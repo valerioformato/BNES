@@ -8,6 +8,7 @@
 #include <utility>
 
 namespace BNES::SDL {
+
 inline ErrorOr<void> Init() {
   // Initialize SDL
   if (SDL_Init(SDL_INIT_VIDEO) == false) {
@@ -17,6 +18,12 @@ inline ErrorOr<void> Init() {
 
   return {};
 }
+
+inline void Quit() {
+  // Quit SDL subsystems
+  SDL_Quit();
+}
+
 } // namespace BNES::SDL
 
 #endif
