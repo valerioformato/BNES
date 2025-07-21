@@ -14,8 +14,9 @@ namespace BNES {
 template <typename ContainedClass, typename Enum>
 class EnumArray : public std::array<ContainedClass, magic_enum::enum_count<Enum>()> {
 public:
-  using EnumSize = magic_enum::enum_count<Enum>();
+  static constexpr auto EnumSize = magic_enum::enum_count<Enum>();
   using BaseType = std::array<ContainedClass, EnumSize>;
+
   // constructors
   EnumArray() = default;
   EnumArray(const EnumArray<ContainedClass, Enum> &c) : BaseType(c) {}
