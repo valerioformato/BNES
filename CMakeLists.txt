@@ -9,5 +9,6 @@ project(
 set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(vendor/SDL)
+add_subdirectory(vendor/magic_enum)
 
 add_subdirectory(src)

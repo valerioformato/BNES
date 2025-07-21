@@ -51,11 +51,8 @@ int main(int argc, char **argv) { // Final exit code
       }
     }
 
-    // Fill the surface white
-    SDL_FillSurfaceRect(screen_surface.Handle(), nullptr, SDL_MapSurfaceRGB(screen_surface.Handle(), 0xFF, 0xFF, 0xFF));
-
     // Render image on screen
-    SDL_BlitSurface(hello_world.Handle(), nullptr, screen_surface.Handle(), nullptr);
+    hello_world.BlitToSurface(screen_surface);
 
     // Update the surface
     window_handle.UpdateSurface();

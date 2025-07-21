@@ -17,3 +17,13 @@ ErrorOr<SurfaceHandle> LoadBMP(fs::path path) {
 }
 
 } // namespace BNES::SDL::Media
+
+BNES::ErrorOr<void> BNES::SDL::SurfaceHandle::BlitToSurface(SurfaceHandle &destination) const {
+  bool result = SDL_BlitSurface(Handle(), nullptr, destination.Handle(), nullptr);
+
+  if (result == false) {
+    return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
+  }
+
+  return {};
+}

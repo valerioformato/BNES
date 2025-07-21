@@ -18,6 +18,8 @@ public:
 
   [[nodiscard]] SDL_Surface *Handle() const { return m_surface; }
 
+  [[nodiscard]] ErrorOr<void> BlitToSurface(SurfaceHandle &destination) const;
+
 private:
   SDL_Surface *m_surface{nullptr};
 };
