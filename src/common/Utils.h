@@ -5,10 +5,6 @@
 #ifndef BNES_UTILS_H
 #define BNES_UTILS_H
 
-#include <fmt/format.h>
-
-#include <algorithm>
-#include <charconv>
 #include <chrono>
 #include <expected>
 #include <string_view>
@@ -69,8 +65,8 @@ struct Error {
   Error(std::error_code code, std::string_view msg) : m_code(code), m_msg(msg) {}
   Error(std::errc code, std::string_view msg) : m_code(std::make_error_code(code)), m_msg(msg) {}
 
-  const std::string_view Message() const { return m_msg; }
-  std::error_code Code() const { return m_code; }
+  [[nodiscard]] std::string_view Message() const { return m_msg; }
+  [[nodiscard]] std::error_code Code() const { return m_code; }
 
 private:
   std::error_code m_code;
@@ -106,7 +102,7 @@ inline std::vector<std::string_view> TokenizeString(const std::string_view str, 
   return tokens;
 }
 
-inline std::vector<std::string> TokenizeString(const std::string str, const char delimiter) {
+inline std::vector<std::string> TokenizeString(const std::string &str, const char delimiter) {
   std::vector<std::string> tokens;
   size_t start = 0;
   size_t end = str.find(delimiter);
