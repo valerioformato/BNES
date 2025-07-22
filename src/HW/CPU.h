@@ -7,6 +7,7 @@
 
 #include <bitset>
 #include <cstdint>
+#include <span>
 
 namespace BNES::HW {
 class CPU {

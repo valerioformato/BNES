@@ -32,7 +32,7 @@ SCENARIO("6502 initialization") {
 
     WHEN("We try loading a program too big") {
       std::vector<uint8_t> program(BNES::HW::CPU::PROG_MEM_SIZE + 1);
-      std::ranges::iota(program, 0);
+      std::iota(program.begin(), program.end(), 0);
 
       THEN("We get an error") {
         auto load_result = cpu.LoadProgram(program);
