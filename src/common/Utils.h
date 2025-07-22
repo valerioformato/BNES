@@ -9,13 +9,15 @@
 
 #include <chrono>
 #include <expected>
+#include <source_location>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
 #define TODO(message)                                                                                                  \
   {                                                                                                                    \
-    spdlog::error("TODO reached in {}: {}", __PRETTY_FUNCTION__, message);                                             \
+    const auto loc = std::source_location::current();                                                                  \
+    spdlog::error("TODO reached in {}:{} ({}): {}", loc.file_name(), loc.line(), loc.function_name(), message);        \
     assert(false);                                                                                                     \
   };
 
