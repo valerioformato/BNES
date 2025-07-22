@@ -9,7 +9,7 @@ ErrorOr<SurfaceHandle> LoadBMP(fs::path path) {
                       "File does not exist: " + path.string());
   }
 
-  if (auto surface = SDL_LoadBMP(path.c_str()); surface != nullptr) {
+  if (auto surface = SDL_LoadBMP(path.string().c_str()); surface != nullptr) {
     return SurfaceHandle{surface};
   } else {
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());

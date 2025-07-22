@@ -41,6 +41,8 @@ public:
   void RunInstruction(const Instruction &instr);
 
 private:
+  class NonMaskableInterrupt : public std::exception {};
+
   void SetStatusFlag(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
   void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
 
