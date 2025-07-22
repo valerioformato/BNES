@@ -1,7 +1,9 @@
 #include "HW/CPU.h"
 
-#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+
+#include <algorithm>
+#include <numeric>
 
 SCENARIO("6502 initialization") {
   GIVEN("a new CPU instance") {
