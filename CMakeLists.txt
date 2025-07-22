@@ -11,6 +11,19 @@ set(CMAKE_CXX_STANDARD 23)
 add_subdirectory(vendor/SDL)
 add_subdirectory(vendor/magic_enum)
 
+set(SPDLOG_USE_STD_FORMAT
+    OFF
+    CACHE BOOL "use std::format for formatting" FORCE
+)
+set(SPDLOG_FMT_EXTERNAL
+    OFF
+    CACHE BOOL "use external fmt library" FORCE
+)
+add_subdirectory(vendor/spdlog)
+
+message(STATUS "${SPDLOG_USE_STD_FORMAT}")
+message(STATUS "${SPDLOG_FMT_EXTERNAL}")
+
 # -------------------------------------------------------------------
 # -------------------------- Begin project --------------------------
 # -------------------------------------------------------------------

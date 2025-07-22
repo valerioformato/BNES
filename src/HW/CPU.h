@@ -1,6 +1,7 @@
 #ifndef BNES_HW_CPU_H
 #define BNES_HW_CPU_H
 
+#include "HW/OpCodes.h"
 #include "common/EnumArray.h"
 #include "common/Utils.h"
 
@@ -10,10 +11,16 @@
 namespace BNES::HW {
 class CPU {
 public:
+  struct Instruction {
+    OpCode opcode;                 // The opcode of the instruction
+    uint8_t cycles;                // Number of cycles the instruction takes
+    std::vector<uint8_t> operands; // Operands for the instruction
+  };
+
   using Addr = uint16_t;
 
   enum class Register : uint8_t { A = 0, X, Y };
-  enum class StatusFlags : uint8_t { Carry = 0, Zero, InterruptDisable, DecimalMode, BreakCommand, Overflow, Negative };
+  enum class StatusFlag : uint8_t { Carry = 0, Zero, InterruptDisable, DecimalMode, BreakCommand, Overflow, Negative };
 
   static constexpr size_t STACK_MEM_SIZE = 2048;
   static constexpr size_t PROG_MEM_SIZE = 32767;
@@ -25,10 +32,17 @@ public:
   [[nodiscard]] uint8_t StackPointer() const { return m_stack_pointer; }
   [[nodiscard]] Addr ProgramCounter() const { return m_program_counter; }
   [[nodiscard]] std::bitset<8> StatusFlags() const { return m_status; }
+  [[nodiscard]] bool TestStatusFlag(StatusFlag flag) const { return m_status.test(static_cast<size_t>(flag)); }
 
   [[nodiscard]] const std::array<uint8_t, PROG_MEM_SIZE> &ProgramMemory() const { return m_program_memory; }
 
+  [[nodiscard]] Instruction DecodeInstruction(std::span<uint8_t> bytes) const;
+  void RunInstruction(const Instruction &instr);
+
 private:
+  void SetStatusFlag(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
+  void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
+
   EnumArray<uint8_t, Register> m_registers{}; // Array to hold CPU registers A, X, and Y
   std::bitset<8> m_status{0x00};              // Status register (flags)
   uint8_t m_stack_pointer{0xFF};              // Stack pointer initialized to 0xFF

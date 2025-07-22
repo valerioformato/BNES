@@ -5,32 +5,19 @@
 #ifndef BNES_UTILS_H
 #define BNES_UTILS_H
 
+#include "spdlog/spdlog.h"
+
 #include <chrono>
 #include <expected>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
-namespace std {
-#ifndef __cpp_lib_remove_cvref
-template <class T> struct remove_cvref { using type = std::remove_cv_t<std::remove_reference_t<T>>; };
-template <class T> using remove_cvref_t = typename remove_cvref<T>::type;
-#endif
-
-#ifndef __cpp_lib_to_underlying
-template <class Enum> constexpr std::underlying_type_t<Enum> to_underlying(Enum e) noexcept {
-  return static_cast<std::underlying_type_t<Enum>>(e);
-}
-#endif
-
-#ifndef __cpp_lib_clamp
-template <class T, class Compare> constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
-  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
-}
-
-template <class T> constexpr const T &clamp(const T &v, const T &lo, const T &hi) { return clamp(v, lo, hi, less{}); }
-#endif
-} // namespace std
+#define TODO(message)                                                                                                  \
+  {                                                                                                                    \
+    spdlog::error("TODO reached in {}: {}", __PRETTY_FUNCTION__, message);                                             \
+    assert(false);                                                                                                     \
+  };
 
 // adapted from https://github.com/SerenityOS/serenity/blob/master/AK/Try.h
 // FIXME: At some point we should use the AK implementation or at least make this one more robust
