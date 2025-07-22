@@ -4,5 +4,4 @@ add_executable(run_tests run_tests.cpp CPU/cpu_tests.cpp CPU/cpu_tests_decode.cp
 target_include_directories(run_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(run_tests PRIVATE NESHW SDLBind Catch2::Catch2WithMain)
 
-# Register the test executable with CTest
-catch_discover_tests(run_tests)
+add_test(run_tests COMMAND run_tests)
