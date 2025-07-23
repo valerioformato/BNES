@@ -61,7 +61,4 @@ add_subdirectory(src)
 if(ENABLE_BNES_TESTS)
   add_subdirectory(vendor/Catch2)
   add_subdirectory(testsuite)
-
-  include(CTest)
-  include(Catch)
 endif()
