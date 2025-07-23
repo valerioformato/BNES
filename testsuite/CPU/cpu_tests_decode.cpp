@@ -17,6 +17,7 @@ SCENARIO("6502 instruction decoding tests") {
       THEN("It should decode correctly") {
         REQUIRE(instruction.opcode == BNES::HW::OpCode::Break);
         REQUIRE(instruction.cycles == 7);
+        REQUIRE(instruction.size == 1);
         REQUIRE(instruction.operands.empty());
       }
     }
@@ -28,6 +29,7 @@ SCENARIO("6502 instruction decoding tests") {
       THEN("It should decode correctly") {
         REQUIRE(instruction.opcode == BNES::HW::OpCode::LDA_Immediate);
         REQUIRE(instruction.cycles == 2);
+        REQUIRE(instruction.size == 2);
         REQUIRE(instruction.operands.size() == 1);
         REQUIRE(instruction.operands[0] == 0x42);
       }
@@ -40,6 +42,7 @@ SCENARIO("6502 instruction decoding tests") {
       THEN("It should decode correctly") {
         REQUIRE(instruction.opcode == BNES::HW::OpCode::LDX_Immediate);
         REQUIRE(instruction.cycles == 2);
+        REQUIRE(instruction.size == 2);
         REQUIRE(instruction.operands.size() == 1);
         REQUIRE(instruction.operands[0] == 0x42);
       }
@@ -52,6 +55,7 @@ SCENARIO("6502 instruction decoding tests") {
       THEN("It should decode correctly") {
         REQUIRE(instruction.opcode == BNES::HW::OpCode::TAX);
         REQUIRE(instruction.cycles == 2);
+        REQUIRE(instruction.size == 1);
         REQUIRE(instruction.operands.empty());
       }
     }
@@ -63,6 +67,7 @@ SCENARIO("6502 instruction decoding tests") {
       THEN("It should decode correctly") {
         REQUIRE(instruction.opcode == BNES::HW::OpCode::INX);
         REQUIRE(instruction.cycles == 2);
+        REQUIRE(instruction.size == 1);
         REQUIRE(instruction.operands.empty());
       }
     }

@@ -15,6 +15,7 @@ public:
   struct Instruction {
     OpCode opcode;                 // The opcode of the instruction
     uint8_t cycles;                // Number of cycles the instruction takes
+    uint8_t size;                  // Size of the instruction in bytes
     std::vector<uint8_t> operands; // Operands for the instruction
   };
 
