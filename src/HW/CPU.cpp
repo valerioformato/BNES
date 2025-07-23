@@ -50,6 +50,15 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
         .size = 2,
         .operands = {bytes[1]},
     };
+  case OpCode::LDA_Absolute:
+  case OpCode::LDX_Absolute:
+  case OpCode::LDY_Absolute:
+    return Instruction{
+        .opcode = opcode,
+        .cycles = 4,
+        .size = 3,
+        .operands = {bytes[1], bytes[2]},
+    };
   case OpCode::TAX:
   case OpCode::INX:
     return Instruction{
@@ -181,6 +190,42 @@ void CPU::RunInstruction(const Instruction &instr) {
     SetStatusFlag(StatusFlag::Negative, m_registers[Register::Y] & 0x80);
     break;
   }
+  case OpCode::LDA_Absolute: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
+    // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
+    // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
+
+    Addr addr = (instr.operands[1] << 8) | instr.operands[0];
+
+    m_registers[Register::A] = ReadFromMemory(addr);
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::A] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::A] & 0x80);
+    break;
+  }
+  case OpCode::LDX_Absolute: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDX
+    // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
+    // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
+
+    Addr addr = (instr.operands[1] << 8) | instr.operands[0];
+
+    m_registers[Register::X] = ReadFromMemory(addr);
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::X] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::X] & 0x80);
+    break;
+  }
+  case OpCode::LDY_Absolute: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDY
+    // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
+    // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
+
+    Addr addr = (instr.operands[1] << 8) | instr.operands[0];
+
+    m_registers[Register::Y] = ReadFromMemory(addr);
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::Y] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::Y] & 0x80);
+    break;
+  }
   case OpCode::TAX: {
     // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
     // Copies the current contents of the accumulator into the X register and sets the zero and negative flags as
@@ -206,6 +251,22 @@ void CPU::RunInstruction(const Instruction &instr) {
 
   // Advance the program counter by the size of the instruction
   m_program_counter += instr.size;
+}
+
+uint8_t CPU::ReadFromMemory(Addr addr) const {
+  if (addr < m_ram_memory.size()) {
+    return m_ram_memory[addr];
+  }
+
+  if (addr >= m_ram_memory.size() && addr < ProgramBaseAddress) {
+    TODO("implement the rest of the memory map for the CPU");
+  }
+
+  if (addr > ProgramBaseAddress && addr < ProgramBaseAddress + m_program_memory.size()) {
+    return m_program_memory[addr - ProgramBaseAddress];
+  }
+
+  throw std::out_of_range("Address out of range for RAM or program memory");
 }
 
 void CPU::WriteToMemory(Addr addr, uint8_t value) {

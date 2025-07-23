@@ -22,6 +22,9 @@ enum class OpCode : uint8_t {
   LDA_ZeroPageX = 0xB5, // Load Accumulator Zero Page,X
   LDX_ZeroPageY = 0xB6, // Load X Register Zero Page,Y
   LDY_ZeroPageX = 0xB4, // Load Y Register Zero Page,X
+  LDA_Absolute = 0xAD,  // Load Accumulator Absolute
+  LDX_Absolute = 0xAE,  // Load X Register Absolute
+  LDY_Absolute = 0xAC,  // Load Y Register Absolute
   STA_Absolute = 0x8D,  // Store Accumulator Absolute
   STX_Absolute = 0x8E,  // Store X Register Absolute
   STY_Absolute = 0x8C,  // Store Y Register Absolute
