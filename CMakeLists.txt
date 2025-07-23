@@ -59,7 +59,7 @@ endif()
 add_subdirectory(src)
 
 if(ENABLE_BNES_TESTS)
-  enable_testing()
   add_subdirectory(vendor/Catch2)
   add_subdirectory(testsuite)
+  enable_testing()
 endif()
