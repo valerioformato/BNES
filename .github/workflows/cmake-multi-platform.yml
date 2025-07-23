@@ -130,8 +130,20 @@ jobs:
         # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+      - name: Debug test discovery
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: |
+          echo "=== Checking if test executable exists ==="
+          ls -la testsuite/ || echo "testsuite directory not found"
+          ls -la testsuite/run_tests* || echo "run_tests executable not found"
+          echo "=== Checking CTest files ==="
+          find . -name "CTestTestfile.cmake" -exec echo "Found: {}" \; -exec cat {} \;
+          find . -name "*test*.cmake" | head -10
+          echo "=== Running CTest in list mode ==="
+          ctest --build-config ${{ matrix.build_type }} -N || echo "CTest list failed"
+
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-        run: ctest --build-config ${{ matrix.build_type }} --test-dir ${{ steps.strings.outputs.build-output-dir }}
+        run: ctest --build-config ${{ matrix.build_type }} --verbose
