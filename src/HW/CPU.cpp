@@ -19,17 +19,25 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
   case OpCode::Break:
     return Instruction{
         .opcode = opcode,
-        .mode = AddressingMode::Immediate,
         .cycles = 7, // BRK takes 7 cycles
         .size = 1,   // BRK is a single byte instruction
         .operands = {},
     };
   case OpCode::LDA_Immediate:
   case OpCode::LDX_Immediate:
+  case OpCode::LDY_Immediate:
     return Instruction{
         .opcode = opcode,
-        .mode = AddressingMode::Immediate,
         .cycles = 2,
+        .size = 2,
+        .operands = {bytes[1]},
+    };
+  case OpCode::LDA_ZeroPage:
+  case OpCode::LDX_ZeroPage:
+  case OpCode::LDY_ZeroPage:
+    return Instruction{
+        .opcode = opcode,
+        .cycles = 3,
         .size = 2,
         .operands = {bytes[1]},
     };
@@ -37,7 +45,6 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
   case OpCode::INX:
     return Instruction{
         .opcode = opcode,
-        .mode = AddressingMode::Immediate,
         .cycles = 2,
         .size = 1,
         .operands = {},
@@ -78,6 +85,51 @@ void CPU::RunInstruction(const Instruction &instr) {
     SetStatusFlag(StatusFlag::Negative, m_registers[Register::X] & 0x80);
     break;
   }
+  case OpCode::LDY_Immediate: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDY
+    // Loads a byte of memory into the Y register setting the zero and negative flags as appropriate.
+
+    m_registers[Register::Y] = instr.operands[0];
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::Y] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::Y] & 0x80);
+    break;
+  }
+  case OpCode::LDA_ZeroPage: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA
+    // Loads a byte of memory into the accumulator setting the zero and negative flags as appropriate.
+    // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
+
+    Addr addr = instr.operands[0];
+
+    m_registers[Register::A] = m_ram_memory[addr];
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::A] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::A] & 0x80);
+    break;
+  }
+  case OpCode::LDX_ZeroPage: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDX
+    // Loads a byte of memory into the X register setting the zero and negative flags as appropriate.
+    // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
+
+    Addr addr = instr.operands[0];
+
+    m_registers[Register::X] = m_ram_memory[addr];
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::X] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::X] & 0x80);
+    break;
+  }
+  case OpCode::LDY_ZeroPage: {
+    // https://www.nesdev.org/obelisk-6502-guide/reference.html#LDY
+    // Loads a byte of memory into the Y register setting the zero and negative flags as appropriate.
+    // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
+
+    Addr addr = instr.operands[0];
+
+    m_registers[Register::Y] = m_ram_memory[addr];
+    SetStatusFlag(StatusFlag::Zero, m_registers[Register::Y] == 0);
+    SetStatusFlag(StatusFlag::Negative, m_registers[Register::Y] & 0x80);
+    break;
+  }
   case OpCode::TAX: {
     // https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX
     // Copies the current contents of the accumulator into the X register and sets the zero and negative flags as
@@ -103,6 +155,14 @@ void CPU::RunInstruction(const Instruction &instr) {
 
   // Advance the program counter by the size of the instruction
   m_program_counter += instr.size;
+}
+
+void CPU::WriteToMemory(Addr addr, uint8_t value) {
+  if (addr < m_ram_memory.size()) {
+    m_ram_memory[addr] = value;
+  } else {
+    throw std::out_of_range("Address out of range for RAM memory");
+  }
 }
 
 } // namespace BNES::HW

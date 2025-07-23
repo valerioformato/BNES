@@ -14,7 +14,6 @@ class CPU {
 public:
   struct Instruction {
     OpCode opcode;                 // The opcode of the instruction
-    AddressingMode mode;           // The addressing mode used by the instruction
     uint8_t cycles;                // Number of cycles the instruction takes
     uint8_t size;                  // Size of the instruction in bytes
     std::vector<uint8_t> operands; // Operands for the instruction
@@ -58,6 +57,10 @@ private:
 
   std::array<uint8_t, STACK_MEM_SIZE> m_ram_memory{}; // CPU memory (2kB)
   std::array<uint8_t, PROG_MEM_SIZE> m_program_memory{};
+
+protected:
+  // Mostly used for unit testing purposes
+  void WriteToMemory(Addr addr, uint8_t value);
 };
 } // namespace BNES::HW
 

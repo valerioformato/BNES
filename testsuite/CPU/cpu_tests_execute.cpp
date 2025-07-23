@@ -8,7 +8,7 @@
 
 template <size_t N> using ByteArray = std::array<uint8_t, N>;
 
-SCENARIO("6502 instruction execution tests") {
+SCENARIO("6502 instruction execution tests (all the rest)") {
   GIVEN("A freshly initialized cpu") {
     BNES::HW::CPU cpu;
     auto original_program_counter = cpu.ProgramCounter();
@@ -20,56 +20,6 @@ SCENARIO("6502 instruction execution tests") {
       THEN("It should throw a NonMaskableInterrupt exception") {
         REQUIRE_THROWS(cpu.RunInstruction(instr));
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
-      }
-    }
-
-    WHEN("We execute a LDA immediate instruction") {
-      auto program = ByteArray<2>{0xA9, 0x42}; // LDA #$42
-      auto instr = cpu.DecodeInstruction(program);
-
-      cpu.RunInstruction(instr);
-
-      THEN("The accumulator should be loaded with the immediate value") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x42);
-        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
-      }
-      original_program_counter = cpu.ProgramCounter();
-
-      instr.operands[0] = 0x00; // Change operand to 0
-      cpu.RunInstruction(instr);
-
-      THEN("The accumulator should be zero and the zero flag should be set") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
-        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
-      }
-    }
-
-    WHEN("We execute a LDX immediate instruction") {
-      auto program = ByteArray<2>{0xA2, 0x42};
-      auto instr = cpu.DecodeInstruction(program);
-
-      cpu.RunInstruction(instr);
-
-      THEN("The accumulator should be loaded with the immediate value") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x42);
-        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
-      }
-      original_program_counter = cpu.ProgramCounter();
-
-      instr.operands[0] = 0x00; // Change operand to 0
-      cpu.RunInstruction(instr);
-
-      THEN("The accumulator should be zero and the zero flag should be set") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x00);
-        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
       }
     }
 

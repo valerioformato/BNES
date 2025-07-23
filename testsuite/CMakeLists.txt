@@ -1,4 +1,8 @@
-add_executable(run_tests run_tests.cpp CPU/cpu_tests.cpp CPU/cpu_tests_decode.cpp CPU/cpu_tests_execute.cpp)
+set(test_SRC run_tests.cpp)
+
+add_subdirectory(CPU)
+
+add_executable(run_tests ${test_SRC})
 
 # Link against your project libraries and Catch2
 target_include_directories(run_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
