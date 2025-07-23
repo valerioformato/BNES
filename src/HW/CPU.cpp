@@ -19,36 +19,27 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
   case OpCode::Break:
     return Instruction{
         .opcode = opcode,
+        .mode = AddressingMode::Immediate,
         .cycles = 7, // BRK takes 7 cycles
         .size = 1,   // BRK is a single byte instruction
         .operands = {},
     };
   case OpCode::LDA_Immediate:
-    return Instruction{
-        .opcode = opcode,
-        .cycles = 2,
-        .size = 2, // LDA immediate is a two-byte instruction (opcode + operand)
-        .operands = {bytes[1]},
-    };
   case OpCode::LDX_Immediate:
     return Instruction{
         .opcode = opcode,
+        .mode = AddressingMode::Immediate,
         .cycles = 2,
-        .size = 2, // LDX immediate is a two-byte instruction (opcode + operand)
+        .size = 2,
         .operands = {bytes[1]},
     };
   case OpCode::TAX:
-    return Instruction{
-        .opcode = opcode,
-        .cycles = 2,
-        .size = 1, // TAX is a single byte instruction
-        .operands = {},
-    };
   case OpCode::INX:
     return Instruction{
         .opcode = opcode,
+        .mode = AddressingMode::Immediate,
         .cycles = 2,
-        .size = 1, // INX is a single byte instruction
+        .size = 1,
         .operands = {},
     };
   default:

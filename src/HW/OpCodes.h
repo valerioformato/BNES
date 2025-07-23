@@ -8,11 +8,23 @@
 #include <cstdint>
 
 namespace BNES::HW {
+enum class AddressingMode : uint8_t {
+  Immediate,
+  ZeroPage,
+  ZeroPageX,
+  Absolute,
+  AbsoluteX,
+  AbsoluteY,
+  IndirectX,
+  IndirectY,
+};
+
 enum class OpCode : uint8_t {
   Break = 0x00, // Break (BRK)
 
   // Load/Store Instructions
   LDA_Immediate = 0xA9, // Load Accumulator Immediate
+  LDA_ZeroPage = 0xA5,  // Load Accumulator Zero Page
   LDX_Immediate = 0xA2, // Load X Register Immediate
   LDY_Immediate = 0xA0, // Load Y Register Immediate
   STA_Absolute = 0x8D,  // Store Accumulator Absolute
@@ -28,6 +40,6 @@ enum class OpCode : uint8_t {
   // Other Instructions
   NOP = 0xEA // No Operation
 };
-}
+} // namespace BNES::HW
 
 #endif // OPCODES_H

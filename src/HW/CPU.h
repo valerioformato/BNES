@@ -14,6 +14,7 @@ class CPU {
 public:
   struct Instruction {
     OpCode opcode;                 // The opcode of the instruction
+    AddressingMode mode;           // The addressing mode used by the instruction
     uint8_t cycles;                // Number of cycles the instruction takes
     uint8_t size;                  // Size of the instruction in bytes
     std::vector<uint8_t> operands; // Operands for the instruction
@@ -47,16 +48,16 @@ private:
   void SetStatusFlag(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
   void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
 
+  static constexpr Addr StackBaseAddress{0x0100}; // Base address for the stack
+  static constexpr Addr ProgramBaseAddress{0x8000};
+
   EnumArray<uint8_t, Register> m_registers{}; // Array to hold CPU registers A, X, and Y
   std::bitset<8> m_status{0x00};              // Status register (flags)
   uint8_t m_stack_pointer{0xFF};              // Stack pointer initialized to 0xFF
-  Addr m_program_counter{0x0000};             // Program counter
+  Addr m_program_counter{ProgramBaseAddress}; // Program counter
 
   std::array<uint8_t, STACK_MEM_SIZE> m_ram_memory{}; // CPU memory (2kB)
   std::array<uint8_t, PROG_MEM_SIZE> m_program_memory{};
-
-  static constexpr Addr StackBaseAddress{0x0100}; // Base address for the stack
-  static constexpr Addr ProgramBaseAddress{0x8000};
 };
 } // namespace BNES::HW
 
