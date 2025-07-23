@@ -87,5 +87,44 @@ SCENARIO("6502 instruction decoding tests (loads and stores)") {
         REQUIRE(instruction.operands[0] == 0x42);
       }
     }
+
+    WHEN("We try to decode a LDA zero page X instruction") {
+      std::vector<uint8_t> bytes = {0xB5, 0x42}; // LDA $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDA_ZeroPageX);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 2);
+        REQUIRE(instruction.operands.size() == 1);
+        REQUIRE(instruction.operands[0] == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a LDX zero page Y instruction") {
+      std::vector<uint8_t> bytes = {0xB6, 0x42}; // LDX $42,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDX_ZeroPageY);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 2);
+        REQUIRE(instruction.operands.size() == 1);
+        REQUIRE(instruction.operands[0] == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a LDY zero page X instruction") {
+      std::vector<uint8_t> bytes = {0xB4, 0x42}; // LDY $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDY_ZeroPageX);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 2);
+        REQUIRE(instruction.operands.size() == 1);
+        REQUIRE(instruction.operands[0] == 0x42);
+      }
+    }
   }
 }

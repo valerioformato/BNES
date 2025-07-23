@@ -12,6 +12,7 @@ class CPUMock : public BNES::HW::CPU {
   // This mock class is used to expose the WriteToMemory method for testing purposes.
   // In a real scenario, you would not need this as CPU would be used directly.
 public:
+  using CPU::SetRegister;
   using CPU::WriteToMemory;
 };
 
@@ -243,6 +244,123 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
       }
       original_program_counter = cpu.ProgramCounter();
+    }
+
+    WHEN("We execute a LDA zero page X instruction") {
+      cpu.WriteToMemory(0x42, 0x22);                     // Write value 0x22 to zero page address 0x42
+      cpu.SetRegister(BNES::HW::CPU::Register::X, 0x02); // Set X register to 0x40
+
+      auto program = ByteArray<2>{0xB5, 0x40}; // LDA $40,X
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x42, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x42, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a LDX zero page Y instruction") {
+      cpu.WriteToMemory(0x42, 0x22);                     // Write value 0x22 to zero page address 0x42
+      cpu.SetRegister(BNES::HW::CPU::Register::Y, 0x02); // Set Y register to 0x40
+
+      auto program = ByteArray<2>{0xB6, 0x40}; // LDX $40,X
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x42, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x42, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a LDY zero page X instruction") {
+      cpu.WriteToMemory(0x42, 0x22);                     // Write value 0x22 to zero page address 0x42
+      cpu.SetRegister(BNES::HW::CPU::Register::X, 0x02); // Set X register to 0x40
+
+      auto program = ByteArray<2>{0xB4, 0x40}; // LDY $40,X
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x42, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x42, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from zero page + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
     }
   }
 }

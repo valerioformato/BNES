@@ -14,11 +14,14 @@ enum class OpCode : uint8_t {
 
   // Load/Store Instructions
   LDA_Immediate = 0xA9, // Load Accumulator Immediate
-  LDA_ZeroPage = 0xA5,  // Load Accumulator Zero Page
   LDX_Immediate = 0xA2, // Load X Register Immediate
-  LDX_ZeroPage = 0xA6,  // Load X Register Zero Page
   LDY_Immediate = 0xA0, // Load Y Register Immediate
+  LDA_ZeroPage = 0xA5,  // Load Accumulator Zero Page
+  LDX_ZeroPage = 0xA6,  // Load X Register Zero Page
   LDY_ZeroPage = 0xA4,  // Load Y Register Zero Page
+  LDA_ZeroPageX = 0xB5, // Load Accumulator Zero Page,X
+  LDX_ZeroPageY = 0xB6, // Load X Register Zero Page,Y
+  LDY_ZeroPageX = 0xB4, // Load Y Register Zero Page,X
   STA_Absolute = 0x8D,  // Store Accumulator Absolute
   STX_Absolute = 0x8E,  // Store X Register Absolute
   STY_Absolute = 0x8C,  // Store Y Register Absolute

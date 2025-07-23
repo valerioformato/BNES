@@ -61,6 +61,7 @@ private:
 protected:
   // Mostly used for unit testing purposes
   void WriteToMemory(Addr addr, uint8_t value);
+  void SetRegister(Register reg, uint8_t value);
 };
 } // namespace BNES::HW
 
