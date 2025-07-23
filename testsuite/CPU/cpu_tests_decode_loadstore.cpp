@@ -156,11 +156,65 @@ SCENARIO("6502 instruction decoding tests (loads and stores)") {
     }
 
     WHEN("We try to decode a LDY absolute instruction") {
-      std::vector<uint8_t> bytes = {0xAC, 0x42, 0x01}; // LDY $0042
+      std::vector<uint8_t> bytes = {0xAC, 0x42, 0x01}; // LDY $0142
       auto instruction = cpu.DecodeInstruction(bytes);
 
       THEN("It should decode correctly") {
         REQUIRE(instruction.opcode == BNES::HW::OpCode::LDY_Absolute);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 3);
+        REQUIRE(instruction.operands.size() == 2);
+        REQUIRE(instruction.operands[0] == 0x42);
+        REQUIRE(instruction.operands[1] == 0x01);
+      }
+    }
+
+    WHEN("We try to decode a LDA indexed absolute instruction") {
+      std::vector<uint8_t> bytes = {0xBD, 0x42, 0x01}; // LDA $0142,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDA_AbsoluteX);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 3);
+        REQUIRE(instruction.operands.size() == 2);
+        REQUIRE(instruction.operands[0] == 0x42);
+        REQUIRE(instruction.operands[1] == 0x01);
+      }
+
+      bytes = {0xB9, 0x42, 0x01}; // LDA $0042,Y
+      instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDA_AbsoluteY);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 3);
+        REQUIRE(instruction.operands.size() == 2);
+        REQUIRE(instruction.operands[0] == 0x42);
+        REQUIRE(instruction.operands[1] == 0x01);
+      }
+    }
+
+    WHEN("We try to decode a LDX absolute instruction") {
+      std::vector<uint8_t> bytes = {0xBE, 0x42, 0x01}; // LDX $0142,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDX_AbsoluteY);
+        REQUIRE(instruction.cycles == 4);
+        REQUIRE(instruction.size == 3);
+        REQUIRE(instruction.operands.size() == 2);
+        REQUIRE(instruction.operands[0] == 0x42);
+        REQUIRE(instruction.operands[1] == 0x01);
+      }
+    }
+
+    WHEN("We try to decode a LDY absolute instruction") {
+      std::vector<uint8_t> bytes = {0xBC, 0x42, 0x01}; // LDY $0042,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        REQUIRE(instruction.opcode == BNES::HW::OpCode::LDY_AbsoluteX);
         REQUIRE(instruction.cycles == 4);
         REQUIRE(instruction.size == 3);
         REQUIRE(instruction.operands.size() == 2);

@@ -383,7 +383,7 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       cpu.WriteToMemory(0x142, 0x00);
       cpu.RunInstruction(instr);
 
-      THEN("The accumulator should be loaded with the value from zero page + X") {
+      THEN("The accumulator should be loaded with the value from memory + X") {
         REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
@@ -394,7 +394,7 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       cpu.WriteToMemory(0x142, 0x90);
       cpu.RunInstruction(instr);
 
-      THEN("The accumulator should be loaded with the value from zero page + X") {
+      THEN("The accumulator should be loaded with the value from memory + X") {
         REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x90);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
@@ -422,7 +422,7 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       cpu.WriteToMemory(0x142, 0x00);
       cpu.RunInstruction(instr);
 
-      THEN("The accumulator should be loaded with the value from zero page + X") {
+      THEN("The accumulator should be loaded with the value from memory + X") {
         REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x00);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
@@ -433,7 +433,7 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       cpu.WriteToMemory(0x142, 0x90);
       cpu.RunInstruction(instr);
 
-      THEN("The accumulator should be loaded with the value from zero page + X") {
+      THEN("The accumulator should be loaded with the value from memory + X") {
         REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x90);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
@@ -461,7 +461,7 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       cpu.WriteToMemory(0x142, 0x00);
       cpu.RunInstruction(instr);
 
-      THEN("The accumulator should be loaded with the value from zero page + X") {
+      THEN("The accumulator should be loaded with the value from memory + X") {
         REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x00);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
@@ -472,7 +472,166 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       cpu.WriteToMemory(0x142, 0x90);
       cpu.RunInstruction(instr);
 
-      THEN("The accumulator should be loaded with the value from zero page + X") {
+      THEN("The accumulator should be loaded with the value from memory + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We try to execute a LDA absolute X instruction") {
+      cpu.SetRegister(BNES::HW::CPU::Register::X, 0x02);
+      cpu.WriteToMemory(0x0142, 0x22); // Write value 0x22 to absolute address 0x0142
+
+      auto program = ByteArray<3>{0xBD, 0x40, 0x01}; // LDA $0140,X
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from absolute address") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We try to execute a LDA absolute Y instruction") {
+      cpu.SetRegister(BNES::HW::CPU::Register::Y, 0x02);
+      cpu.WriteToMemory(0x0142, 0x22); // Write value 0x22 to absolute address 0x0142
+
+      auto program = ByteArray<3>{0xB9, 0x40, 0x01}; // LDA $0140,Y
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from absolute address") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We try to execute a LDX absolute Y instruction") {
+      cpu.SetRegister(BNES::HW::CPU::Register::Y, 0x02);
+      cpu.WriteToMemory(0x0142, 0x22); // Write value 0x22 to absolute address 0x0142
+
+      auto program = ByteArray<3>{0xBE, 0x40, 0x01}; // LDX $0140,Y
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from absolute address") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + Y") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+    WHEN("We try to execute a LDY absolute X instruction") {
+      cpu.SetRegister(BNES::HW::CPU::Register::X, 0x02);
+      cpu.WriteToMemory(0x0142, 0x22); // Write value 0x22 to absolute address 0x0142
+
+      auto program = ByteArray<3>{0xBC, 0x40, 0x01}; // LDY $0140,X
+      auto instr = cpu.DecodeInstruction(program);
+
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from absolute address") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x00);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + X") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x142, 0x90);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should be loaded with the value from memory + X") {
         REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::Y] == 0x90);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);

@@ -25,6 +25,10 @@ enum class OpCode : uint8_t {
   LDA_Absolute = 0xAD,  // Load Accumulator Absolute
   LDX_Absolute = 0xAE,  // Load X Register Absolute
   LDY_Absolute = 0xAC,  // Load Y Register Absolute
+  LDA_AbsoluteX = 0xBD,  // Load Accumulator Absolute,X
+  LDA_AbsoluteY = 0xB9,  // Load Accumulator Absolute,Y
+  LDX_AbsoluteY = 0xBE,  // Load X Register Absolute,Y
+  LDY_AbsoluteX = 0xBC,  // Load Y Register Absolute,X
   STA_Absolute = 0x8D,  // Store Accumulator Absolute
   STX_Absolute = 0x8E,  // Store X Register Absolute
   STY_Absolute = 0x8C,  // Store Y Register Absolute
