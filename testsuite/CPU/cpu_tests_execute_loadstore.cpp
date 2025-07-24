@@ -35,7 +35,8 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       }
       original_program_counter = cpu.ProgramCounter();
 
-      instr.operands[0] = 0x00; // Change operand to 0
+      program[1] = 0x00;
+      instr = cpu.DecodeInstruction(program);
       cpu.RunInstruction(instr);
 
       THEN("The accumulator should be zero and the zero flag should be set") {
@@ -46,7 +47,8 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       }
       original_program_counter = cpu.ProgramCounter();
 
-      instr.operands[0] = 0x90; // Change operand to something > 0x80
+      program[1] = 0x90;
+      instr = cpu.DecodeInstruction(program);
       cpu.RunInstruction(instr);
 
       THEN("The accumulator should be zero and the zero flag should be set") {
@@ -71,7 +73,8 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       }
       original_program_counter = cpu.ProgramCounter();
 
-      instr.operands[0] = 0x00; // Change operand to 0
+      program[1] = 0x00;
+      instr = cpu.DecodeInstruction(program);
       cpu.RunInstruction(instr);
 
       THEN("The accumulator should be zero and the zero flag should be set") {
@@ -82,7 +85,8 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       }
       original_program_counter = cpu.ProgramCounter();
 
-      instr.operands[0] = 0x90; // Change operand to something > 0x80
+      program[1] = 0x90;
+      instr = cpu.DecodeInstruction(program);
       cpu.RunInstruction(instr);
 
       THEN("The accumulator should be zero and the zero flag should be set") {
@@ -107,7 +111,8 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       }
       original_program_counter = cpu.ProgramCounter();
 
-      instr.operands[0] = 0x00; // Change operand to 0
+      program[1] = 0x00;
+      instr = cpu.DecodeInstruction(program);
       cpu.RunInstruction(instr);
 
       THEN("The accumulator should be zero and the zero flag should be set") {
@@ -118,7 +123,8 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
       }
       original_program_counter = cpu.ProgramCounter();
 
-      instr.operands[0] = 0x90; // Change operand to something > 0x80
+      program[1] = 0x90;
+      instr = cpu.DecodeInstruction(program);
       cpu.RunInstruction(instr);
 
       THEN("The accumulator should be zero and the zero flag should be set") {
@@ -636,6 +642,29 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We try to execute a LDA indexed indirect instruction") {
+      cpu.SetRegister(BNES::HW::CPU::Register::X, 0x02);
+
+      // the target memory address is 0x42, there we'll find the values {0x20, 0x04} which will lead the CPU to load the
+      // content of memory address 0x420
+      cpu.WriteToMemory(0x042, 0x20);
+      cpu.WriteToMemory(0x043, 0x04);
+
+      // then memory address 0x420 will contain the final value to load into the accumulator
+      cpu.WriteToMemory(0x0420, 0x22);
+
+      auto program = ByteArray<2>{0xA1, 0x40};
+      auto lda_instr = cpu.DecodeInstruction(program);
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should be loaded with the correct value") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
       }
     }
   }

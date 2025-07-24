@@ -5,6 +5,8 @@
 #ifndef OPCODES_H
 #define OPCODES_H
 
+#include "CPU.h"
+
 #include <cstdint>
 
 namespace BNES::HW {
@@ -25,10 +27,12 @@ enum class OpCode : uint8_t {
   LDA_Absolute = 0xAD,  // Load Accumulator Absolute
   LDX_Absolute = 0xAE,  // Load X Register Absolute
   LDY_Absolute = 0xAC,  // Load Y Register Absolute
-  LDA_AbsoluteX = 0xBD,  // Load Accumulator Absolute,X
-  LDA_AbsoluteY = 0xB9,  // Load Accumulator Absolute,Y
-  LDX_AbsoluteY = 0xBE,  // Load X Register Absolute,Y
-  LDY_AbsoluteX = 0xBC,  // Load Y Register Absolute,X
+  LDA_AbsoluteX = 0xBD, // Load Accumulator Absolute,X
+  LDA_AbsoluteY = 0xB9, // Load Accumulator Absolute,Y
+  LDX_AbsoluteY = 0xBE, // Load X Register Absolute,Y
+  LDY_AbsoluteX = 0xBC, // Load Y Register Absolute,X
+  LDA_IndirectX = 0xA1, // Load Accumulator (Indirect,X)
+  LDA_IndirectY = 0xB1, // Load Accumulator (Indirect),Y
   STA_Absolute = 0x8D,  // Store Accumulator Absolute
   STX_Absolute = 0x8E,  // Store X Register Absolute
   STY_Absolute = 0x8C,  // Store Y Register Absolute
@@ -42,6 +46,19 @@ enum class OpCode : uint8_t {
   // Other Instructions
   NOP = 0xEA // No Operation
 };
+
+enum class AddressingMode : uint8_t {
+  Immediate = 0,
+  ZeroPage = 1,
+  ZeroPageX = 2,
+  ZeroPageY = 3,
+  Absolute = 4,
+  AbsoluteX = 5,
+  AbsoluteY = 6,
+  IndirectX = 7,
+  IndirectY = 8,
+};
+
 } // namespace BNES::HW
 
 #endif // OPCODES_H

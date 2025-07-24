@@ -6,11 +6,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+using namespace BNES::HW;
+
 template <size_t N> using ByteArray = std::array<uint8_t, N>;
 
 SCENARIO("6502 instruction execution tests (all the rest)") {
   GIVEN("A freshly initialized cpu") {
-    BNES::HW::CPU cpu;
+    CPU cpu;
     auto original_program_counter = cpu.ProgramCounter();
 
     WHEN("We execute a BRK instruction") {
@@ -36,22 +38,23 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       cpu.RunInstruction(tax_instr);
 
       THEN("The X register should be loaded with the value from the accumulator") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x42);
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x42);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x42);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x42);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
       }
       original_program_counter = cpu.ProgramCounter();
-      lda_instr.operands[0] = 0x00; // Change operand to 0
+      lda_code[1] = 0x00;                          // LDA #$00
+      lda_instr = cpu.DecodeInstruction(lda_code); // Change operand to 0
       cpu.RunInstruction(lda_instr);
       cpu.RunInstruction(tax_instr);
 
       THEN("The X register should be zero and the zero flag should be set") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x00);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x00);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
       }
     }
 
@@ -69,22 +72,23 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       cpu.RunInstruction(inx_instr);
 
       THEN("The X register should be incremented by 1") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x43);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x43);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
       }
       original_program_counter = cpu.ProgramCounter();
 
-      ldx_instr.operands[0] = 0xFF; // Change operand to 0xFF
+      ldx_code[1] = 0xFF; // Change operand to 0xFF
+      ldx_instr = cpu.DecodeInstruction(ldx_code);
       cpu.RunInstruction(ldx_instr);
       cpu.RunInstruction(inx_instr);
 
       THEN("The X register should wrap around to 0 and the zero flag should be set") {
-        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::X] == 0x00);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x00);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
-        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
       }
     }
   }
