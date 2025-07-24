@@ -56,8 +56,12 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
     return LoadRegister<Register::A, AddressingMode::IndirectY>{bytes[1]};
   case OpCode::TAX:
     return TransferAccumulatorTo<Register::X>{};
+  case OpCode::TAY:
+    return TransferAccumulatorTo<Register::Y>{};
   case OpCode::INX:
     return IncrementRegister<Register::X>{};
+  case OpCode::INY:
+    return IncrementRegister<Register::Y>{};
   default:
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }

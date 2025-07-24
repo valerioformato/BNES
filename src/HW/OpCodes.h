@@ -39,9 +39,11 @@ enum class OpCode : uint8_t {
 
   // Transfer Instructions
   TAX = 0xAA, // Transfer Accumulator to X
+  TAY = 0xA8, // Transfer Accumulator to Y
 
   // Increment/Decrement Instructions
   INX = 0xE8, // Increment X Register
+  INY = 0xC8, // Increment X Register
 
   // Other Instructions
   NOP = 0xEA // No Operation
