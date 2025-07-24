@@ -1,4 +1,5 @@
 # BNES
+[![CMake on multiple platforms](https://github.com/valerioformato/BNES/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/valerioformato/BNES/actions/workflows/cmake-multi-platform.yml)
 
 BNES is a work-in-progress NES emulator written in modern C++23. It aims to provide a clean, modular, and testable
 codebase for learning and experimenting with NES emulation.
