@@ -68,7 +68,7 @@ public:
 
   template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction<LoadRegister<REG, MODE>> {
     LoadRegister() = delete;
-    explicit LoadRegister(uint16_t value);
+    explicit LoadRegister(uint16_t);
 
     void Apply(CPU &cpu) const;
 
@@ -167,6 +167,13 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
     Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
     Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
     cpu.m_registers[REG] = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    // Indirect indexed addressing is the most common indirection mode used on the 6502. In instruction contains the
+    // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
+    // value to generated the actual target address for operation.
+
+    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    cpu.m_registers[REG] = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("LoadRegister<{},{}>::Apply not implemented", magic_enum::enum_name(REG),
                      magic_enum::enum_name(MODE)));
@@ -195,6 +202,7 @@ template <CPU::Register REG> void CPU::TransferAccumulatorTo<REG>::Apply(CPU &cp
 // Constructors
 template <CPU::Register REG, AddressingMode MODE> CPU::LoadRegister<REG, MODE>::LoadRegister(uint16_t _value) {
   this->size = 2;
+
   if constexpr (MODE == AddressingMode::Immediate) {
     this->cycles = 2;
   } else if constexpr (MODE == AddressingMode::ZeroPage) {
@@ -210,6 +218,7 @@ template <CPU::Register REG, AddressingMode MODE> CPU::LoadRegister<REG, MODE>::
   } else if constexpr (MODE == AddressingMode::IndirectX) {
     this->cycles = 6;
   }
+
   value = _value;
 }
 

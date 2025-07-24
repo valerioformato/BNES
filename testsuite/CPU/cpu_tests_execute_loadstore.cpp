@@ -666,6 +666,73 @@ SCENARIO("6502 instruction execution tests (loads and stores)") {
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
         REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
       }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x420, 0x00);
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should be loaded with the correct value") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x420, 0x90);
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should be loaded with the correct value") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We try to execute a LDA indirect indexed instruction") {
+      cpu.SetRegister(BNES::HW::CPU::Register::Y, 0x02);
+
+      // the target memory address is 0x42, there we'll find the values {0x20, 0x04} which will lead the CPU to load the
+      // content of memory address 0x420
+      cpu.WriteToMemory(0x042, 0x1E);
+      cpu.WriteToMemory(0x043, 0x04);
+
+      // then memory address 0x420 will contain the final value to load into the accumulator
+      cpu.WriteToMemory(0x0420, 0x22);
+
+      auto program = ByteArray<2>{0xB1, 0x42};
+      auto lda_instr = cpu.DecodeInstruction(program);
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should be loaded with the correct value") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x22);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x420, 0x00);
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should be loaded with the correct value") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x420, 0x90);
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should be loaded with the correct value") {
+        REQUIRE(cpu.Registers()[BNES::HW::CPU::Register::A] == 0x90);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(BNES::HW::CPU::StatusFlag::Negative) == true);
+      }
     }
   }
 }
