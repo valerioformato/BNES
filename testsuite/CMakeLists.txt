@@ -1,4 +1,6 @@
-set(test_SRC run_tests.cpp)
+set(test_SRC run_tests.cpp
+        CPU/cpu_tests_decode_math.cpp
+        CPU/cpu_tests_execute_math.cpp)
 
 add_subdirectory(CPU)
 

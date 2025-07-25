@@ -10,7 +10,7 @@ ErrorOr<void> CPU::LoadProgram(std::vector<uint8_t> program) {
   return {};
 }
 
-CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
+CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   assert(!bytes.empty());
 
   auto opcode = static_cast<OpCode>(bytes[0]);
@@ -87,6 +87,9 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
     return TransferAccumulatorTo<Register::X>{};
   case OpCode::TAY:
     return TransferAccumulatorTo<Register::Y>{};
+  // Math instructions
+  case OpCode::ADC_Immediate:
+    return AddWithCarry<AddressingMode::Immediate>{bytes[1]};
   case OpCode::INX:
     return IncrementRegister<Register::X>{};
   case OpCode::INY:

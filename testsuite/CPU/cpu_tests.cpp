@@ -5,17 +5,25 @@
 #include <algorithm>
 #include <numeric>
 
+using namespace BNES::HW;
+
+class CPUMock : public CPU {
+  // This mock class is used to expose private methods for testing purposes.
+public:
+  using CPU::ProgramMemory;
+};
+
 SCENARIO("6502 initialization") {
   GIVEN("a new CPU instance") {
 
-    BNES::HW::CPU cpu;
+    CPUMock cpu;
 
     WHEN("the CPU is initialized") {
       THEN("the CPU registers should be in their default state") {
         auto registers = cpu.Registers();
-        REQUIRE(registers[BNES::HW::CPU::Register::A] == 0x00); // Accumulator
-        REQUIRE(registers[BNES::HW::CPU::Register::X] == 0x00); // X register
-        REQUIRE(registers[BNES::HW::CPU::Register::Y] == 0x00); // X register
+        REQUIRE(registers[CPU::Register::A] == 0x00); // Accumulator
+        REQUIRE(registers[CPU::Register::X] == 0x00); // X register
+        REQUIRE(registers[CPU::Register::Y] == 0x00); // X register
 
         REQUIRE(cpu.StackPointer() == 0xFF);     // Stack pointer starts at 0xFF
         REQUIRE(cpu.ProgramCounter() == 0x8000); // Program counter starts at 0x8000
@@ -31,7 +39,7 @@ SCENARIO("6502 initialization") {
     }
 
     WHEN("We try loading a program too big") {
-      std::vector<uint8_t> program(BNES::HW::CPU::PROG_MEM_SIZE + 1);
+      std::vector<uint8_t> program(CPU::PROG_MEM_SIZE + 1);
       std::iota(program.begin(), program.end(), 0);
 
       THEN("We get an error") {

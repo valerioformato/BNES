@@ -16,7 +16,15 @@ public:
   using Addr = uint16_t;
 
   enum class Register : uint8_t { A = 0, X, Y };
-  enum class StatusFlag : uint8_t { Carry = 0, Zero, InterruptDisable, DecimalMode, BreakCommand, Overflow, Negative };
+  enum class StatusFlag : uint8_t {
+    Carry = 0,
+    Zero,
+    InterruptDisable,
+    DecimalMode,
+    BreakCommand,
+    Overflow = 6,
+    Negative
+  };
 
   static constexpr size_t STACK_MEM_SIZE = 2048;
   static constexpr size_t PROG_MEM_SIZE = 32767;
@@ -30,14 +38,7 @@ public:
   [[nodiscard]] std::bitset<8> StatusFlags() const { return m_status; }
   [[nodiscard]] bool TestStatusFlag(StatusFlag flag) const { return m_status.test(static_cast<size_t>(flag)); }
 
-  [[nodiscard]] const std::array<uint8_t, PROG_MEM_SIZE> &ProgramMemory() const { return m_program_memory; }
-
 private:
-  class NonMaskableInterrupt : public std::exception {};
-
-  void SetStatusFlag(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
-  void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
-
   static constexpr Addr StackBaseAddress{0x0100}; // Base address for the stack
   static constexpr Addr ProgramBaseAddress{0x8000};
 
@@ -50,10 +51,16 @@ private:
   std::array<uint8_t, PROG_MEM_SIZE> m_program_memory{};
 
 protected:
+  class NonMaskableInterrupt : public std::exception {};
+
   // Mostly used for unit testing purposes
   [[nodiscard]] uint8_t ReadFromMemory(Addr addr) const;
   void WriteToMemory(Addr addr, uint8_t value);
   void SetRegister(Register reg, uint8_t value);
+  void SetStatusFlag(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
+  void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
+
+  [[nodiscard]] const std::array<uint8_t, PROG_MEM_SIZE> &ProgramMemory() const { return m_program_memory; }
 
 public:
   template <typename Type> struct DecodedInstruction {
@@ -82,6 +89,15 @@ public:
     void Apply(CPU &cpu) const;
 
     uint16_t address{0};
+  };
+
+  template <AddressingMode MODE> struct AddWithCarry : DecodedInstruction<AddWithCarry<MODE>> {
+    AddWithCarry() = delete;
+    explicit AddWithCarry(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t value{0};
   };
 
   template <Register REG> struct IncrementRegister : DecodedInstruction<IncrementRegister<REG>> {
@@ -131,6 +147,7 @@ public:
       StoreRegister<Register::A, AddressingMode::IndirectX>,
       StoreRegister<Register::A, AddressingMode::IndirectY>,
       // Math
+      AddWithCarry<AddressingMode::Immediate>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       // ...
@@ -139,7 +156,7 @@ public:
       >;
   // clang-format on
 
-  [[nodiscard]] Instruction DecodeInstruction(std::span<uint8_t> bytes) const;
+  [[nodiscard]] Instruction DecodeInstruction(std::span<const uint8_t> bytes) const;
   void RunInstruction(const Instruction &instr);
 };
 
@@ -264,6 +281,19 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, M
   // Note: Store instructions do not affect the processor status flags
 }
 
+template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) const {
+  uint16_t intermediate_result{0};
+  if constexpr (MODE == AddressingMode::Immediate) {
+    intermediate_result = cpu.m_registers[Register::A] + value + cpu.TestStatusFlag(StatusFlag::Carry);
+  }
+
+  cpu.m_registers[Register::A] = intermediate_result & 0xFF;
+
+  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlag(StatusFlag::Carry, intermediate_result > 0xFF);
+}
+
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
@@ -323,6 +353,27 @@ template <CPU::Register REG, AddressingMode MODE> CPU::StoreRegister<REG, MODE>:
   address = addr;
 }
 
+template <AddressingMode MODE> CPU::AddWithCarry<MODE>::AddWithCarry(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute || MODE == AddressingMode::AbsoluteX ||
+                       MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    this->cycles = 6;
+  }
+
+  value = _value;
+}
 } // namespace BNES::HW
 
 #endif
