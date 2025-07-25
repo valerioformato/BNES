@@ -51,7 +51,7 @@ private:
 
 protected:
   // Mostly used for unit testing purposes
-  uint8_t ReadFromMemory(Addr addr) const;
+  [[nodiscard]] uint8_t ReadFromMemory(Addr addr) const;
   void WriteToMemory(Addr addr, uint8_t value);
   void SetRegister(Register reg, uint8_t value);
 
@@ -75,6 +75,15 @@ public:
     uint16_t value{0};
   };
 
+  template <Register REG, AddressingMode MODE> struct StoreRegister : DecodedInstruction<StoreRegister<REG, MODE>> {
+    StoreRegister() = delete;
+    explicit StoreRegister(uint16_t addr);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   template <Register REG> struct IncrementRegister : DecodedInstruction<IncrementRegister<REG>> {
     IncrementRegister() : DecodedInstruction<IncrementRegister>(1, 2) {}
     void Apply(CPU &cpu) const;
@@ -88,6 +97,7 @@ public:
   // clang-format off
   using Instruction = std::variant<
       Break,
+      // Loads
       LoadRegister<Register::A, AddressingMode::Immediate>,
       LoadRegister<Register::A, AddressingMode::Absolute>,
       LoadRegister<Register::A, AddressingMode::AbsoluteX>,
@@ -106,8 +116,24 @@ public:
       LoadRegister<Register::Y, AddressingMode::AbsoluteX>,
       LoadRegister<Register::Y, AddressingMode::ZeroPage>,
       LoadRegister<Register::Y, AddressingMode::ZeroPageX>,
+      // Stores
+      StoreRegister<Register::A, AddressingMode::ZeroPage>,
+      StoreRegister<Register::X, AddressingMode::ZeroPage>,
+      StoreRegister<Register::Y, AddressingMode::ZeroPage>,
+      StoreRegister<Register::A, AddressingMode::ZeroPageX>,
+      StoreRegister<Register::X, AddressingMode::ZeroPageY>,
+      StoreRegister<Register::Y, AddressingMode::ZeroPageX>,
+      StoreRegister<Register::A, AddressingMode::Absolute>,
+      StoreRegister<Register::X, AddressingMode::Absolute>,
+      StoreRegister<Register::Y, AddressingMode::Absolute>,
+      StoreRegister<Register::A, AddressingMode::AbsoluteX>,
+      StoreRegister<Register::A, AddressingMode::AbsoluteY>,
+      StoreRegister<Register::A, AddressingMode::IndirectX>,
+      StoreRegister<Register::A, AddressingMode::IndirectY>,
+      // Math
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
+      // ...
       TransferAccumulatorTo<Register::X>,
       TransferAccumulatorTo<Register::Y>
       >;
@@ -183,6 +209,61 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
   cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
+template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, MODE>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#STA (or #STX,#STY)
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
+    Addr addr = address & 0xFF;
+    cpu.m_ram_memory[addr] = cpu.m_registers[REG];
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    // Zero page addressing with X offset means the memory address is in the range 0x00 to 0xFF, and the X register
+    // is added to the zero page address.
+    // If the result exceeds 0xFF, it wraps around to 0x00.
+    Addr addr = (address + cpu.m_registers[Register::X]) & 0xFF;
+    cpu.m_ram_memory[addr] = cpu.m_registers[REG];
+  } else if constexpr (MODE == AddressingMode::ZeroPageY) {
+    // Zero page addressing with Y offset means the memory address is in the range 0x00 to 0xFF, and the Y register
+    // is added to the zero page address.
+    // If the result exceeds 0xFF, it wraps around to 0x00.
+    Addr addr = (address + cpu.m_registers[Register::Y]) & 0xFF;
+    cpu.m_ram_memory[addr] = cpu.m_registers[REG];
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
+    cpu.WriteToMemory(address, cpu.m_registers[REG]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    // Indexed absolute addressing means the memory address is a full 16-bit address (in LE enconding) and the X
+    // register is added to the zero page address.
+    Addr addr = address + cpu.m_registers[Register::X];
+    cpu.WriteToMemory(addr, cpu.m_registers[REG]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    // Indexed absolute addressing means the memory address is a full 16-bit address (in LE enconding) and the Y
+    // register is added to the zero page address.
+    Addr addr = address + cpu.m_registers[Register::Y];
+    cpu.WriteToMemory(addr, cpu.m_registers[REG]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    // Indexed indirect addressing is normally used in conjunction with a table of address held on zero page. The
+    // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
+    // give the location of the least significant byte of the target address.
+
+    Addr target_addr = (address + cpu.m_registers[Register::X]) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    cpu.WriteToMemory(real_addr, cpu.m_registers[REG]);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    // Indirect indexed addressing is the most common indirection mode used on the 6502. In instruction contains the
+    // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
+    // value to generated the actual target address for operation.
+
+    Addr real_addr = cpu.ReadFromMemory(address + 1) << 8 | cpu.ReadFromMemory(address);
+    cpu.WriteToMemory(real_addr + cpu.m_registers[Register::Y], cpu.m_registers[REG]);
+  } else {
+    TODO(fmt::format("StoreRegister<{},{}>::Apply not implemented", magic_enum::enum_name(REG),
+                     magic_enum::enum_name(MODE)));
+  }
+
+  // Note: Store instructions do not affect the processor status flags
+}
+
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
@@ -220,6 +301,26 @@ template <CPU::Register REG, AddressingMode MODE> CPU::LoadRegister<REG, MODE>::
   }
 
   value = _value;
+}
+
+template <CPU::Register REG, AddressingMode MODE> CPU::StoreRegister<REG, MODE>::StoreRegister(uint16_t addr) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX || MODE == AddressingMode::ZeroPageY) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX || MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 5; // Store to indexed absolute always takes 5 cycles
+  } else if constexpr (MODE == AddressingMode::IndirectX || MODE == AddressingMode::IndirectY) {
+    this->cycles = 6;
+  }
+
+  address = addr;
 }
 
 } // namespace BNES::HW

@@ -8,7 +8,7 @@
 
 using namespace BNES::HW;
 
-SCENARIO("6502 instruction decoding tests (loads and stores)") {
+SCENARIO("6502 instruction decoding tests (loads)") {
   GIVEN("A freshly initialized cpu") {
     CPU cpu;
 
@@ -293,6 +293,202 @@ SCENARIO("6502 instruction decoding tests (loads and stores)") {
         REQUIRE(decoded_instruction.cycles == 5);
         REQUIRE(decoded_instruction.size == 2);
         REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+  }
+}
+
+SCENARIO("6502 instruction decoding tests (stores)") {
+  GIVEN("A freshly initialized cpu") {
+    CPU cpu;
+
+    WHEN("We try to decode a STA zero page instruction") {
+      std::vector<uint8_t> bytes = {0x85, 0x42}; // STA $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::A, AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a STX zero page instruction") {
+      std::vector<uint8_t> bytes = {0x86, 0x42}; // STX $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::X, AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a STY zero page instruction") {
+      std::vector<uint8_t> bytes = {0x84, 0x42}; // STY $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::Y, AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a STX zero page Y instruction") {
+      std::vector<uint8_t> bytes = {0x96, 0x42}; // STX $42,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::X, AddressingMode::ZeroPageY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a STY zero page X instruction") {
+      std::vector<uint8_t> bytes = {0x94, 0x42}; // STY $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::Y, AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a STA absolute instruction") {
+      std::vector<uint8_t> bytes = {0x8D, 0x42, 0x01}; // STA $0142
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::A, AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0142);
+      }
+    }
+
+    WHEN("We try to decode a STX absolute instruction") {
+      std::vector<uint8_t> bytes = {0x8E, 0x42, 0x01}; // STX $0142
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::X, AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0142);
+      }
+    }
+
+    WHEN("We try to decode a STY absolute instruction") {
+      std::vector<uint8_t> bytes = {0x8C, 0x42, 0x01}; // STY $0142
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::Y, AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0142);
+      }
+    }
+
+    WHEN("We try to decode a STA indexed absolute instruction") {
+      std::vector<uint8_t> bytes = {0x9D, 0x42, 0x01}; // STA $0142,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::A, AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5); // Store takes 5 cycles in absolute X mode
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0142);
+      }
+    }
+
+    WHEN("We try to decode a STA absolute Y instruction") {
+      std::vector<uint8_t> bytes = {0x99, 0x42, 0x01}; // STA $0142,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::A, AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5); // Store takes 5 cycles in absolute Y mode
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0142);
+      }
+    }
+
+    WHEN("We try to decode a STA indexed indirect instruction") {
+      std::vector<uint8_t> bytes = {0x81, 0x42}; // STA ($42,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::A, AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a STA indirect indexed instruction") {
+      std::vector<uint8_t> bytes = {0x91, 0x42}; // STA ($42),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreRegister<CPU::Register::A, AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
       }
     }
   }

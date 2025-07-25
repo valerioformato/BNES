@@ -33,9 +33,19 @@ enum class OpCode : uint8_t {
   LDY_AbsoluteX = 0xBC, // Load Y Register Absolute,X
   LDA_IndirectX = 0xA1, // Load Accumulator (Indirect,X)
   LDA_IndirectY = 0xB1, // Load Accumulator (Indirect),Y
+  STA_ZeroPage = 0x85,  // Store Accumulator Zero Page
+  STX_ZeroPage = 0x86,  // Store X Register Zero Page
+  STY_ZeroPage = 0x84,  // Store Y Register Zero Page
+  STA_ZeroPageX = 0x95, // Store Accumulator Zero Page,X
+  STX_ZeroPageY = 0x96, // Store X Register Zero Page,Y
+  STY_ZeroPageX = 0x94, // Store Y Register Zero Page,X
   STA_Absolute = 0x8D,  // Store Accumulator Absolute
   STX_Absolute = 0x8E,  // Store X Register Absolute
   STY_Absolute = 0x8C,  // Store Y Register Absolute
+  STA_AbsoluteX = 0x9D, // Store Accumulator Absolute,X
+  STA_AbsoluteY = 0x99, // Store Accumulator Absolute,Y
+  STA_IndirectX = 0x81, // Store Accumulator (Indirect,X)
+  STA_IndirectY = 0x91, // Store Accumulator (Indirect),Y
 
   // Transfer Instructions
   TAX = 0xAA, // Transfer Accumulator to X

@@ -18,6 +18,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
   switch (opcode) {
   case OpCode::Break:
     return Break{};
+  // Load instructions
   case OpCode::LDA_Immediate:
     return LoadRegister<Register::A, AddressingMode::Immediate>{bytes[1]};
   case OpCode::LDX_Immediate:
@@ -54,6 +55,34 @@ CPU::Instruction CPU::DecodeInstruction(std::span<uint8_t> bytes) const {
     return LoadRegister<Register::A, AddressingMode::IndirectX>{bytes[1]};
   case OpCode::LDA_IndirectY:
     return LoadRegister<Register::A, AddressingMode::IndirectY>{bytes[1]};
+  // Store instructions
+  case OpCode::STA_ZeroPage:
+    return StoreRegister<Register::A, AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::STX_ZeroPage:
+    return StoreRegister<Register::X, AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::STY_ZeroPage:
+    return StoreRegister<Register::Y, AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::STA_ZeroPageX:
+    return StoreRegister<Register::A, AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::STX_ZeroPageY:
+    return StoreRegister<Register::X, AddressingMode::ZeroPageY>{bytes[1]};
+  case OpCode::STY_ZeroPageX:
+    return StoreRegister<Register::Y, AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::STA_Absolute:
+    return StoreRegister<Register::A, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::STX_Absolute:
+    return StoreRegister<Register::X, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::STY_Absolute:
+    return StoreRegister<Register::Y, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::STA_AbsoluteX:
+    return StoreRegister<Register::A, AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::STA_AbsoluteY:
+    return StoreRegister<Register::A, AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::STA_IndirectX:
+    return StoreRegister<Register::A, AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::STA_IndirectY:
+    return StoreRegister<Register::A, AddressingMode::IndirectY>{bytes[1]};
+  // ...
   case OpCode::TAX:
     return TransferAccumulatorTo<Register::X>{};
   case OpCode::TAY:
