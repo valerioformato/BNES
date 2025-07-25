@@ -90,6 +90,8 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   // Math instructions
   case OpCode::ADC_Immediate:
     return AddWithCarry<AddressingMode::Immediate>{bytes[1]};
+  case OpCode::ADC_ZeroPage:
+    return AddWithCarry<AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::INX:
     return IncrementRegister<Register::X>{};
   case OpCode::INY:

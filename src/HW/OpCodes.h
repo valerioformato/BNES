@@ -53,6 +53,7 @@ enum class OpCode : uint8_t {
 
   // Math instructions
   ADC_Immediate = 0x69, // Add with Carry (ADC) Immediate
+  ADC_ZeroPage = 0x65,  // Add with Carry (ADC) Zero Page
   INX = 0xE8,           // Increment X Register
   INY = 0xC8,           // Increment X Register
 

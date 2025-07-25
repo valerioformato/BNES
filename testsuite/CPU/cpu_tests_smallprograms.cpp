@@ -71,6 +71,14 @@ std::array programs = {
         .expected_memory_slices = {},
         .code = {0xa9, 0xc0, 0xaa, 0xe8, 0x69, 0xc4, 0x00},
     },
+    // Example 03 at https://skilldrick.github.io/easy6502
+    Program{
+        .expected_register_values = {{0x00, 0x00, 0x00}},
+        .expected_status = {0b01000011},
+        .expected_program_counter = 0x8007,
+        .expected_memory_slices = {},
+        .code = {0xa9, 0x80, 0x85, 0x01, 0x65, 0x01},
+    },
 };
 
 SCENARIO("6502 code execution (small test programs)") {

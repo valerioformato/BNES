@@ -148,6 +148,7 @@ public:
       StoreRegister<Register::A, AddressingMode::IndirectY>,
       // Math
       AddWithCarry<AddressingMode::Immediate>,
+      AddWithCarry<AddressingMode::ZeroPage>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       // ...
@@ -282,16 +283,30 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, M
 }
 
 template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) const {
-  uint16_t intermediate_result{0};
+  uint8_t value_to_add = 0;
   if constexpr (MODE == AddressingMode::Immediate) {
-    intermediate_result = cpu.m_registers[Register::A] + value + cpu.TestStatusFlag(StatusFlag::Carry);
+    value_to_add = value & 0xFF; // Immediate value is already in the instruction
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_add = cpu.ReadFromMemory(value & 0xFF);
   }
 
-  cpu.m_registers[Register::A] = intermediate_result & 0xFF;
+  uint16_t intermediate_result = cpu.m_registers[Register::A] + value_to_add + cpu.TestStatusFlag(StatusFlag::Carry);
+
+  // These will be useful to compute the overflow bit
+  // NOTE: This is actually quite tricky, see https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html for a
+  // full explanation of the overflow bit
+  uint8_t M = cpu.m_registers[Register::A];             // M is the original value in the accumulator
+  uint8_t N = value_to_add & 0xFF;                      // N is the value being added
+  uint8_t result = uint8_t(intermediate_result & 0xFF); // Result is the final value after addition
+
+  cpu.m_registers[Register::A] = result;
 
   cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
   cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
-  cpu.SetStatusFlag(StatusFlag::Carry, intermediate_result > 0xFF);
+  cpu.SetStatusFlag(StatusFlag::Carry, intermediate_result & 0x100);
+  // Overflow if both operands are positive and result is negative, or both operands are negative and result is
+  // positive.
+  cpu.SetStatusFlag(StatusFlag::Overflow, ((M ^ result) & (N ^ result) & 0x80) != 0);
 }
 
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
