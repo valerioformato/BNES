@@ -105,6 +105,20 @@ public:
     void Apply(CPU &cpu) const;
   };
 
+  template <Register REG> struct DecrementRegister : DecodedInstruction<DecrementRegister<REG>> {
+    DecrementRegister() : DecodedInstruction<DecrementRegister>(1, 2) {}
+    void Apply(CPU &cpu) const;
+  };
+
+  template <Register REG, AddressingMode MODE> struct CompareRegister : DecodedInstruction<CompareRegister<REG, MODE>> {
+    CompareRegister() = delete;
+    explicit CompareRegister(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t value{0};
+  };
+
   template <Register REG> struct TransferAccumulatorTo : DecodedInstruction<TransferAccumulatorTo<REG>> {
     TransferAccumulatorTo() : DecodedInstruction<TransferAccumulatorTo>(1, 2) {}
     void Apply(CPU &cpu) const;
@@ -157,7 +171,15 @@ public:
       AddWithCarry<AddressingMode::IndirectY>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
+      DecrementRegister<Register::X>,
+      DecrementRegister<Register::Y>,
       // ...
+      CompareRegister<Register::X, AddressingMode::Immediate>,
+      CompareRegister<Register::X, AddressingMode::ZeroPage>,
+      CompareRegister<Register::X, AddressingMode::Absolute>,
+      CompareRegister<Register::Y, AddressingMode::Immediate>,
+      CompareRegister<Register::Y, AddressingMode::ZeroPage>,
+      CompareRegister<Register::Y, AddressingMode::Absolute>,
       TransferAccumulatorTo<Register::X>,
       TransferAccumulatorTo<Register::Y>
       >;
@@ -340,12 +362,36 @@ template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) c
   cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
+template <CPU::Register REG> void CPU::DecrementRegister<REG>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#DEX (or #DEY)
+
+  cpu.m_registers[REG] -= 1;
+  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == 0);
+  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+}
+
 template <CPU::Register REG> void CPU::TransferAccumulatorTo<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX (or #TAY)
 
   cpu.m_registers[REG] = cpu.m_registers[Register::A];
   cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == 0);
   cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+}
+
+template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG, MODE>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX (or #CPY)
+  uint8_t value_to_compare{0};
+  if constexpr (MODE == AddressingMode::Immediate) {
+    value_to_compare = value & 0xFF; // Immediate value is already in the instruction
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_compare = cpu.ReadFromMemory(value & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_compare = cpu.ReadFromMemory(value);
+  }
+
+  cpu.SetStatusFlag(StatusFlag::Carry, cpu.m_registers[REG] >= value_to_compare);
+  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == value_to_compare);
+  cpu.SetStatusFlag(StatusFlag::Negative, (cpu.m_registers[REG] - value_to_compare) & 0x80);
 }
 
 // Constructors
@@ -408,10 +454,30 @@ template <AddressingMode MODE> CPU::AddWithCarry<MODE>::AddWithCarry(uint16_t _v
     this->cycles = 5;
   } else if constexpr (MODE == AddressingMode::IndirectX) {
     this->cycles = 6;
+  } else {
+    std::unreachable();
   }
 
   value = _value;
 }
+
+template <CPU::Register REG, AddressingMode MODE> CPU::CompareRegister<REG, MODE>::CompareRegister(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 4;
+  } else {
+    std::unreachable();
+  }
+
+  value = _value;
+}
+
 } // namespace BNES::HW
 
 #endif

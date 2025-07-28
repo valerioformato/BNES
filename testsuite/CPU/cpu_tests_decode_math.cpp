@@ -12,6 +12,65 @@ SCENARIO("6502 instruction decoding tests (math ops)") {
   GIVEN("A freshly initialized cpu") {
     CPU cpu;
 
+    WHEN("We try to decode a INX instruction") {
+      std::vector<uint8_t> bytes = {0xE8}; // INX
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as an INY instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::IncrementRegister<CPU::Register::X>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a INY instruction") {
+      std::vector<uint8_t> bytes = {0xC8}; // INY
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as an INX instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::IncrementRegister<CPU::Register::Y>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a DEX instruction") {
+      std::vector<uint8_t> bytes = {0xCA}; // DEX
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as an DEY instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::DecrementRegister<CPU::Register::X>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a DEY instruction") {
+      std::vector<uint8_t> bytes = {0x88}; // DEY
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as an DEX instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::DecrementRegister<CPU::Register::Y>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
     WHEN("We try to decode a ADC immediate instruction") {
       std::vector<uint8_t> bytes = {0x69, 0x42}; // ADC #$42
       auto instruction = cpu.DecodeInstruction(bytes);

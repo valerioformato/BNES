@@ -79,8 +79,17 @@ std::array programs = {
         .expected_memory_slices = {},
         .code = {0xa9, 0x80, 0x85, 0x01, 0x65, 0x01},
     },
+    // Example 04 at https://skilldrick.github.io/easy6502
+    // Program{
+    //     .expected_register_values = {{0x00, 0x03, 0x00}},
+    //     .expected_status = {0b00010011},
+    //     .expected_program_counter = 0x800e,
+    //     .expected_memory_slices = {},
+    //     .code = {0xa2, 0x08, 0xca, 0x8e, 0x00, 0x02, 0xe0, 0x03, 0xd0, 0xf8, 0x8e, 0x01, 0x02, 0x00},
+    // },
 };
 
+//,
 SCENARIO("6502 code execution (small test programs)") {
   GIVEN("a new CPU instance") {
     CPUMock cpu;

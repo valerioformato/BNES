@@ -24,6 +24,126 @@ SCENARIO("6502 instruction execution tests (math ops)") {
     CPUMock cpu;
     auto original_program_counter = cpu.ProgramCounter();
 
+    WHEN("We execute a INX instruction") {
+      auto load_instr = CPU::LoadRegister<CPU::Register::X, AddressingMode::Immediate>{0x42};
+      auto inx_instr = CPU::IncrementRegister<CPU::Register::X>{};
+
+      // First, load the X register with a value
+      cpu.RunInstruction(load_instr);
+
+      // Now execute the INX instruction
+      cpu.RunInstruction(inx_instr);
+
+      THEN("The X register should be incremented by 1") {
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x43);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      load_instr.value = 0xFF; // Change operand to 0xFF
+      cpu.RunInstruction(load_instr);
+      cpu.RunInstruction(inx_instr);
+
+      THEN("The X register should wrap around to 0 and the zero flag should be set") {
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a INY instruction") {
+      auto load_instr = CPU::LoadRegister<CPU::Register::Y, AddressingMode::Immediate>{0x42};
+      auto iny_instr = CPU::IncrementRegister<CPU::Register::Y>{};
+
+      // First, load the Y register with a value
+      cpu.RunInstruction(load_instr);
+
+      // Now execute the INY instruction
+      cpu.RunInstruction(iny_instr);
+
+      THEN("The Y register should be incremented by 1") {
+        REQUIRE(cpu.Registers()[CPU::Register::Y] == 0x43);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      load_instr.value = 0xFF; // Change operand to 0xFF
+      cpu.RunInstruction(load_instr);
+      cpu.RunInstruction(iny_instr);
+
+      THEN("The Y register should wrap around to 0 and the zero flag should be set") {
+        REQUIRE(cpu.Registers()[CPU::Register::Y] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a DEX instruction") {
+      auto load_instr = CPU::LoadRegister<CPU::Register::X, AddressingMode::Immediate>{0x42};
+      auto inx_instr = CPU::DecrementRegister<CPU::Register::X>{};
+
+      // First, load the X register with a value
+      cpu.RunInstruction(load_instr);
+
+      // Now execute the DEX instruction
+      cpu.RunInstruction(inx_instr);
+
+      THEN("The X register should be incremented by 1") {
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x41);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      load_instr.value = 0x00; // Change operand to 0x00
+      cpu.RunInstruction(load_instr);
+      cpu.RunInstruction(inx_instr);
+
+      THEN("The X register should wrap around to 0xFF and the negative flag should be set") {
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a DEY instruction") {
+      auto load_instr = CPU::LoadRegister<CPU::Register::Y, AddressingMode::Immediate>{0x42};
+      auto iny_instr = CPU::DecrementRegister<CPU::Register::Y>{};
+
+      // First, load the Y register with a value
+      cpu.RunInstruction(load_instr);
+
+      // Now execute the DEY instruction
+      cpu.RunInstruction(iny_instr);
+
+      THEN("The Y register should be incremented by 1") {
+        REQUIRE(cpu.Registers()[CPU::Register::Y] == 0x41);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      load_instr.value = 0x00; // Change operand to 0x00
+      cpu.RunInstruction(load_instr);
+      cpu.RunInstruction(iny_instr);
+
+      THEN("The Y register should wrap around to 0xFF and the negative flag should be set") {
+        REQUIRE(cpu.Registers()[CPU::Register::Y] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
     WHEN("We execute a ADC immediate instruction") {
       cpu.SetRegister(CPU::Register::A, 0x02);
 

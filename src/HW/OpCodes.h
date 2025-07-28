@@ -62,9 +62,17 @@ enum class OpCode : uint8_t {
   ADC_IndirectY = 0x71, // Add with Carry (ADC) (Indirect),Y
   INX = 0xE8,           // Increment X Register
   INY = 0xC8,           // Increment X Register
+  DEX = 0xCA,           // Increment X Register
+  DEY = 0x88,           // Increment X Register
 
   // Other Instructions
-  NOP = 0xEA // No Operation
+  CPX_Immediate = 0xE0, // Compare X Register Immediate
+  CPX_ZeroPage = 0xE4,  // Compare X Register Zero Page
+  CPX_Absolute = 0xEC,  // Compare X Register Absolute
+  CPY_Immediate = 0xC0, // Compare Y Register Immediate
+  CPY_ZeroPage = 0xC4,  // Compare Y Register Zero Page
+  CPY_Absolute = 0xCC,  // Compare Y Register Absolute
+  NOP = 0xEA            // No Operation
 };
 
 enum class AddressingMode : uint8_t {

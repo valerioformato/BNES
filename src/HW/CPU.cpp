@@ -108,6 +108,22 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return IncrementRegister<Register::X>{};
   case OpCode::INY:
     return IncrementRegister<Register::Y>{};
+  case OpCode::DEX:
+    return DecrementRegister<Register::X>{};
+  case OpCode::DEY:
+    return DecrementRegister<Register::Y>{};
+  case OpCode::CPX_Immediate:
+    return CompareRegister<Register::X, AddressingMode::Immediate>{bytes[1]};
+  case OpCode::CPX_ZeroPage:
+    return CompareRegister<Register::X, AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::CPX_Absolute:
+    return CompareRegister<Register::X, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::CPY_Immediate:
+    return CompareRegister<Register::Y, AddressingMode::Immediate>{bytes[1]};
+  case OpCode::CPY_ZeroPage:
+    return CompareRegister<Register::Y, AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::CPY_Absolute:
+    return CompareRegister<Register::Y, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   default:
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }
