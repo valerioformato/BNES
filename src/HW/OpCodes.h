@@ -66,6 +66,7 @@ enum class OpCode : uint8_t {
   DEY = 0x88,           // Increment X Register
 
   // Branch instructions
+  BEQ = 0xF0, // Branch if Equal (BEQ)
   BNE = 0xD0, // Branch if Not Equal (BNE)
 
   // Other Instructions

@@ -332,5 +332,31 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter - 3); // 2 bytes for BNE - 5 byte for offset
       }
     }
+
+    WHEN("We execute a BEQ instruction") {
+      auto beq = CPU::BranchIfEqual{0x04};
+
+      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.RunInstruction(beq);
+      THEN("The program counter should not change if Zero flag is clear") {
+        // Remember that the offset is relative to the byte after the current instruction
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.RunInstruction(beq);
+      THEN("The program counter should change if Zero flag is set") {
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BEQ + 4 bytes for offset
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      beq.offset = -0x5;
+      cpu.RunInstruction(beq);
+      THEN("The program counter should go back if Zero flag is set and offset is negative") {
+        REQUIRE(cpu.ProgramCounter() == original_program_counter - 3); // 2 bytes for BEQ - 5 byte for offset
+      }
+    }
   }
 }

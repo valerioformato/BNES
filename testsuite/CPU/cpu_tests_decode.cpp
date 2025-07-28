@@ -181,5 +181,34 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
         REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
       }
     }
+
+    WHEN("We try to decode a BEQ instruction") {
+      std::vector<uint8_t> bytes = {0xF0, 0x10}; // BEQ $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BranchIfEqual;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::BranchIfEqual;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
   }
 }

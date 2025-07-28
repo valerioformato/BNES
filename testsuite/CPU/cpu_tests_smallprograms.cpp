@@ -23,9 +23,8 @@ void SimpleRun(CPUMock &cpu) {
   // Run the program
   while (true) {
     std::span bytes(std::next(cpu.ProgramMemory().begin(), cpu.ProgramCounter() - 0x8000), 3ul);
-    auto next_instruction = cpu.DecodeInstruction(bytes);
     try {
-      cpu.RunInstruction(next_instruction);
+      cpu.RunInstruction(cpu.DecodeInstruction(bytes));
     } catch (const CPUMock::NonMaskableInterrupt &) {
       // NMI is not handled in this test
       break;

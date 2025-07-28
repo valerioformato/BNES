@@ -124,10 +124,18 @@ public:
     void Apply(CPU &cpu) const;
   };
 
+  struct BranchIfEqual : DecodedInstruction<BranchIfEqual> {
+    BranchIfEqual() = delete;
+    explicit BranchIfEqual(int8_t offset_) : DecodedInstruction<BranchIfEqual>(2, 2), offset(offset_) {}
+    inline void Apply(CPU &cpu);
+
+    int8_t offset{0}; // in branch instruction the offset is always signed
+  };
+
   struct BranchIfNotEqual : DecodedInstruction<BranchIfNotEqual> {
     BranchIfNotEqual() = delete;
     explicit BranchIfNotEqual(int8_t offset_) : DecodedInstruction<BranchIfNotEqual>(2, 2), offset(offset_) {}
-    inline void Apply(CPU &cpu) const;
+    inline void Apply(CPU &cpu);
 
     int8_t offset{0}; // in branch instruction the offset is always signed
   };
@@ -182,6 +190,7 @@ public:
       DecrementRegister<Register::X>,
       DecrementRegister<Register::Y>,
       // Branch
+      BranchIfEqual,
       BranchIfNotEqual,
       // ...
       CompareRegister<Register::X, AddressingMode::Immediate>,
@@ -196,7 +205,7 @@ public:
   // clang-format on
 
   [[nodiscard]] Instruction DecodeInstruction(std::span<const uint8_t> bytes) const;
-  void RunInstruction(const Instruction &instr);
+  void RunInstruction(Instruction &&instr);
 };
 
 inline void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {
@@ -207,10 +216,44 @@ inline void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {
   throw NonMaskableInterrupt{};
 }
 
-inline void CPU::BranchIfNotEqual::Apply(CPU &cpu) const {
+inline void CPU::BranchIfEqual::Apply(CPU &cpu) {
+  if (!cpu.TestStatusFlag(StatusFlag::Zero)) {
+    return;
+  }
+
+  // Check if we cross a page boundary (different high byte)
+  uint16_t old_pc = cpu.m_program_counter;
+  uint16_t new_pc = cpu.m_program_counter + int16_t(offset);
+
+  // If the high byte changes, we crossed a page boundary and need an extra cycle
+  if ((old_pc & 0xFF00) != (new_pc & 0xFF00)) {
+    // Page boundary crossed, but we can't modify cycles here since this is const
+    // The CPU main loop would need to handle this case
+    cycles += 1;
+  }
+
+  cycles += 1;
+
+  cpu.m_program_counter += int16_t(offset);
+}
+
+inline void CPU::BranchIfNotEqual::Apply(CPU &cpu) {
   if (cpu.TestStatusFlag(StatusFlag::Zero)) {
     return;
   }
+
+  // Check if we cross a page boundary (different high byte)
+  uint16_t old_pc = cpu.m_program_counter;
+  uint16_t new_pc = cpu.m_program_counter + int16_t(offset);
+
+  // If the high byte changes, we crossed a page boundary and need an extra cycle
+  if ((old_pc & 0xFF00) != (new_pc & 0xFF00)) {
+    // Page boundary crossed, but we can't modify cycles here since this is const
+    // The CPU main loop would need to handle this case
+    cycles += 1;
+  }
+
+  cycles += 1;
 
   cpu.m_program_counter += int16_t(offset);
 }
