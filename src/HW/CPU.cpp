@@ -92,6 +92,18 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return AddWithCarry<AddressingMode::Immediate>{bytes[1]};
   case OpCode::ADC_ZeroPage:
     return AddWithCarry<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::ADC_ZeroPageX:
+    return AddWithCarry<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::ADC_Absolute:
+    return AddWithCarry<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ADC_AbsoluteX:
+    return AddWithCarry<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ADC_AbsoluteY:
+    return AddWithCarry<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ADC_IndirectX:
+    return AddWithCarry<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::ADC_IndirectY:
+    return AddWithCarry<AddressingMode::IndirectY>{bytes[1]};
   case OpCode::INX:
     return IncrementRegister<Register::X>{};
   case OpCode::INY:

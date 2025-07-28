@@ -149,6 +149,12 @@ public:
       // Math
       AddWithCarry<AddressingMode::Immediate>,
       AddWithCarry<AddressingMode::ZeroPage>,
+      AddWithCarry<AddressingMode::ZeroPageX>,
+      AddWithCarry<AddressingMode::Absolute>,
+      AddWithCarry<AddressingMode::AbsoluteX>,
+      AddWithCarry<AddressingMode::AbsoluteY>,
+      AddWithCarry<AddressingMode::IndirectX>,
+      AddWithCarry<AddressingMode::IndirectY>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       // ...
@@ -288,6 +294,23 @@ template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) con
     value_to_add = value & 0xFF; // Immediate value is already in the instruction
   } else if constexpr (MODE == AddressingMode::ZeroPage) {
     value_to_add = cpu.ReadFromMemory(value & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_add = cpu.ReadFromMemory((value + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_add = cpu.ReadFromMemory(value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_add = cpu.ReadFromMemory(value + cpu.m_registers[Register::X]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    value_to_add = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    value_to_add = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    value_to_add = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
+  } else {
+    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
   uint16_t intermediate_result = cpu.m_registers[Register::A] + value_to_add + cpu.TestStatusFlag(StatusFlag::Carry);

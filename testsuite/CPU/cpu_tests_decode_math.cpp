@@ -43,5 +43,101 @@ SCENARIO("6502 instruction decoding tests (math ops)") {
         REQUIRE(decoded_instruction.value == 0x42);
       }
     }
+
+    WHEN("We try to decode a ADC zero-page,X instruction") {
+      std::vector<uint8_t> bytes = {0x75, 0x42}; // ADC $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::AddWithCarry<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a ADC absolute instruction") {
+      std::vector<uint8_t> bytes = {0x6D, 0x00, 0x03}; // ADC $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::AddWithCarry<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a ADC absolute,X instruction") {
+      std::vector<uint8_t> bytes = {0x7D, 0x00, 0x03}; // ADC $0300,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::AddWithCarry<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a ADC absolute,Y instruction") {
+      std::vector<uint8_t> bytes = {0x79, 0x00, 0x03}; // ADC $0300,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::AddWithCarry<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a ADC indirect,X instruction") {
+      std::vector<uint8_t> bytes = {0x61, 0x42}; // ADC ($42,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::AddWithCarry<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a ADC indirect,Y instruction") {
+      std::vector<uint8_t> bytes = {0x71, 0x42}; // ADC ($42),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::AddWithCarry<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
   }
 }
