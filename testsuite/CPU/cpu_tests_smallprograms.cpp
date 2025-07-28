@@ -29,7 +29,7 @@ void SimpleRun(CPUMock &cpu) {
     } catch (const CPUMock::NonMaskableInterrupt &) {
       // NMI is not handled in this test
       break;
-    } catch (const std::out_of_range &e) {
+    } catch ([[maybe_unused]] const std::out_of_range &e) {
       // Out of range access, we stop the execution
       break;
     }
@@ -80,13 +80,13 @@ std::array programs = {
         .code = {0xa9, 0x80, 0x85, 0x01, 0x65, 0x01},
     },
     // Example 04 at https://skilldrick.github.io/easy6502
-    // Program{
-    //     .expected_register_values = {{0x00, 0x03, 0x00}},
-    //     .expected_status = {0b00010011},
-    //     .expected_program_counter = 0x800e,
-    //     .expected_memory_slices = {},
-    //     .code = {0xa2, 0x08, 0xca, 0x8e, 0x00, 0x02, 0xe0, 0x03, 0xd0, 0xf8, 0x8e, 0x01, 0x02, 0x00},
-    // },
+    Program{
+        .expected_register_values = {{0x00, 0x03, 0x00}},
+        .expected_status = {0b00000011},
+        .expected_program_counter = 0x800e,
+        .expected_memory_slices = {},
+        .code = {0xa2, 0x08, 0xca, 0x8e, 0x00, 0x02, 0xe0, 0x03, 0xd0, 0xf8, 0x8e, 0x01, 0x02, 0x00},
+    },
 };
 
 //,
@@ -103,9 +103,9 @@ SCENARIO("6502 code execution (small test programs)") {
       REQUIRE(cpu.Registers() == program.expected_register_values);
       REQUIRE(cpu.StatusFlags() == program.expected_status);
       REQUIRE(cpu.ProgramCounter() == program.expected_program_counter);
-      for (const auto &slice : program.expected_memory_slices) {
-        for (size_t i = 0; i < MemorySlice::SIZE; ++i) {
-          REQUIRE(cpu.ReadFromMemory(slice.start_address + i) == slice.data[i]);
+      for (const auto &[start_address, data] : program.expected_memory_slices) {
+        for (uint16_t i = 0; i < MemorySlice::SIZE; ++i) {
+          REQUIRE(cpu.ReadFromMemory(start_address + i) == data[i]);
         }
       }
     }

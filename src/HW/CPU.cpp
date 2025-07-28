@@ -112,6 +112,10 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return DecrementRegister<Register::X>{};
   case OpCode::DEY:
     return DecrementRegister<Register::Y>{};
+  // Branch instructions
+  case OpCode::BNE:
+    return BranchIfNotEqual{int8_t(bytes[1])};
+  // ...
   case OpCode::CPX_Immediate:
     return CompareRegister<Register::X, AddressingMode::Immediate>{bytes[1]};
   case OpCode::CPX_ZeroPage:

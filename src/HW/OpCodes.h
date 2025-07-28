@@ -65,6 +65,9 @@ enum class OpCode : uint8_t {
   DEX = 0xCA,           // Increment X Register
   DEY = 0x88,           // Increment X Register
 
+  // Branch instructions
+  BNE = 0xD0, // Branch if Not Equal (BNE)
+
   // Other Instructions
   CPX_Immediate = 0xE0, // Compare X Register Immediate
   CPX_ZeroPage = 0xE4,  // Compare X Register Zero Page

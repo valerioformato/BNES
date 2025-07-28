@@ -124,6 +124,14 @@ public:
     void Apply(CPU &cpu) const;
   };
 
+  struct BranchIfNotEqual : DecodedInstruction<BranchIfNotEqual> {
+    BranchIfNotEqual() = delete;
+    explicit BranchIfNotEqual(int8_t offset_) : DecodedInstruction<BranchIfNotEqual>(2, 2), offset(offset_) {}
+    inline void Apply(CPU &cpu) const;
+
+    int8_t offset{0}; // in branch instruction the offset is always signed
+  };
+
   // clang-format off
   using Instruction = std::variant<
       Break,
@@ -173,6 +181,8 @@ public:
       IncrementRegister<Register::Y>,
       DecrementRegister<Register::X>,
       DecrementRegister<Register::Y>,
+      // Branch
+      BranchIfNotEqual,
       // ...
       CompareRegister<Register::X, AddressingMode::Immediate>,
       CompareRegister<Register::X, AddressingMode::ZeroPage>,
@@ -195,6 +205,14 @@ inline void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {
   //        Let's do it here.
   cpu.m_program_counter += size;
   throw NonMaskableInterrupt{};
+}
+
+inline void CPU::BranchIfNotEqual::Apply(CPU &cpu) const {
+  if (cpu.TestStatusFlag(StatusFlag::Zero)) {
+    return;
+  }
+
+  cpu.m_program_counter += int16_t(offset);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MODE>::Apply(CPU &cpu) const {
