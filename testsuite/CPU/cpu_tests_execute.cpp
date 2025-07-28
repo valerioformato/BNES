@@ -358,5 +358,37 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter - 3); // 2 bytes for BEQ - 5 byte for offset
       }
     }
+
+    WHEN("We execute a JMP Absolute instruction") {
+      auto jmp = CPU::Jump<AddressingMode::Absolute>{0x3000};
+
+      cpu.RunInstruction(jmp);
+      THEN("The program counter should jump to the target address") { REQUIRE(cpu.ProgramCounter() == 0x3000); }
+    }
+
+    WHEN("We execute a JMP Indirect instruction") {
+      // First, set up the indirect address in memory
+      // We'll store the target address 0x4000 at memory location 0x0200
+      cpu.WriteToMemory(0x0200, 0x00); // Low byte of target address
+      cpu.WriteToMemory(0x0201, 0x40); // High byte of target address
+
+      auto jmp = CPU::Jump<AddressingMode::Indirect>{0x0200};
+
+      cpu.RunInstruction(jmp);
+      THEN("The program counter should jump to the address stored at the indirect location") {
+        REQUIRE(cpu.ProgramCounter() == 0x4000);
+      }
+    }
+
+    WHEN("We execute multiple JMP instructions") {
+      auto jmp1 = CPU::Jump<AddressingMode::Absolute>{0x2000};
+      auto jmp2 = CPU::Jump<AddressingMode::Absolute>{0x3000};
+
+      cpu.RunInstruction(jmp1);
+      THEN("First jump should work") { REQUIRE(cpu.ProgramCounter() == 0x2000); }
+
+      cpu.RunInstruction(jmp2);
+      THEN("Second jump should work") { REQUIRE(cpu.ProgramCounter() == 0x3000); }
+    }
   }
 }

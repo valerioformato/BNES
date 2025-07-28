@@ -117,7 +117,11 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return BranchIfEqual{int8_t(bytes[1])};
   case OpCode::BNE:
     return BranchIfNotEqual{int8_t(bytes[1])};
-    // ...
+  case OpCode::JMP_Absolute:
+    return Jump<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::JMP_Indirect:
+    return Jump<AddressingMode::Indirect>{uint16_t(bytes[2] << 8 | bytes[1])};
+  // ...
   case OpCode::CPX_Immediate:
     return CompareRegister<Register::X, AddressingMode::Immediate>{bytes[1]};
   case OpCode::CPX_ZeroPage:

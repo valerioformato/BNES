@@ -210,5 +210,37 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
         REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
       }
     }
+
+    WHEN("We try to decode a JMP Absolute instruction") {
+      std::vector<uint8_t> bytes = {0x4C, 0x00, 0x30}; // JMP $3000
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Jump<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x3000);
+      }
+    }
+
+    WHEN("We try to decode a JMP Indirect instruction") {
+      std::vector<uint8_t> bytes = {0x6C, 0x20, 0x30}; // JMP ($3020)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Jump<AddressingMode::Indirect>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x3020);
+      }
+    }
   }
 }

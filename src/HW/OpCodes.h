@@ -66,8 +66,10 @@ enum class OpCode : uint8_t {
   DEY = 0x88,           // Increment X Register
 
   // Branch instructions
-  BEQ = 0xF0, // Branch if Equal (BEQ)
-  BNE = 0xD0, // Branch if Not Equal (BNE)
+  BEQ = 0xF0,          // Branch if Equal (BEQ)
+  BNE = 0xD0,          // Branch if Not Equal (BNE)
+  JMP_Absolute = 0x4C, // Jump Absolute (JMP)
+  JMP_Indirect = 0x6C, // Jump Indirect (JMP)
 
   // Other Instructions
   CPX_Immediate = 0xE0, // Compare X Register Immediate
@@ -81,14 +83,15 @@ enum class OpCode : uint8_t {
 
 enum class AddressingMode : uint8_t {
   Immediate = 0,
-  ZeroPage = 1,
-  ZeroPageX = 2,
-  ZeroPageY = 3,
-  Absolute = 4,
-  AbsoluteX = 5,
-  AbsoluteY = 6,
-  IndirectX = 7,
-  IndirectY = 8,
+  ZeroPage,
+  ZeroPageX,
+  ZeroPageY,
+  Absolute,
+  AbsoluteX,
+  AbsoluteY,
+  Indirect,
+  IndirectX,
+  IndirectY,
 };
 
 } // namespace BNES::HW

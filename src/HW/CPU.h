@@ -140,6 +140,14 @@ public:
     int8_t offset{0}; // in branch instruction the offset is always signed
   };
 
+  template <AddressingMode MODE> struct Jump : DecodedInstruction<Jump<MODE>> {
+    Jump() = delete;
+    explicit Jump(uint16_t addr);
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   // clang-format off
   using Instruction = std::variant<
       Break,
@@ -192,6 +200,8 @@ public:
       // Branch
       BranchIfEqual,
       BranchIfNotEqual,
+      Jump<AddressingMode::Absolute>,
+      Jump<AddressingMode::Indirect>,
       // ...
       CompareRegister<Register::X, AddressingMode::Immediate>,
       CompareRegister<Register::X, AddressingMode::ZeroPage>,
@@ -256,6 +266,28 @@ inline void CPU::BranchIfNotEqual::Apply(CPU &cpu) {
   cycles += 1;
 
   cpu.m_program_counter += int16_t(offset);
+}
+
+template <AddressingMode MODE> void CPU::Jump<MODE>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#JMP
+
+  Addr target_address{0};
+  if constexpr (MODE == AddressingMode::Absolute) {
+    target_address = address;
+  } else if constexpr (MODE == AddressingMode::Indirect) {
+    // Indirect jump is used to jump to a subroutine or a specific address.
+    Addr low_byte = cpu.ReadFromMemory(address);
+    Addr high_byte = cpu.ReadFromMemory(address + 1);
+    target_address = (high_byte << 8) | low_byte;
+  } else {
+    TODO(fmt::format("Jump<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  // FIXME: JMP is the only instruction that can change the program counter directly.
+  //        Executing the instruction will update the program counter right after.
+  //        We need to offset it manually here so that the final value is the one provided.
+  //        This is a bit of a hack, but it works for now.
+  cpu.m_program_counter = target_address - this->size;
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MODE>::Apply(CPU &cpu) const {
@@ -537,6 +569,20 @@ template <CPU::Register REG, AddressingMode MODE> CPU::CompareRegister<REG, MODE
   }
 
   value = _value;
+}
+
+template <AddressingMode MODE> CPU::Jump<MODE>::Jump(uint16_t addr) {
+  this->size = 3;
+
+  if constexpr (MODE == AddressingMode::Absolute) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::Indirect) {
+    this->cycles = 5;
+  } else {
+    std::unreachable();
+  }
+
+  address = addr;
 }
 
 } // namespace BNES::HW
