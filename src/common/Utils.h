@@ -28,7 +28,7 @@
     auto &&_temporary_result = (expression);                                                                           \
     static_assert(!std::is_lvalue_reference_v<std::remove_cvref_t<decltype(_temporary_result)>::value_type>,           \
                   "Do not return a reference from a fallible expression");                                             \
-    if (_temporary_result.has_error()) [[unlikely]]                                                                    \
+    if (!_temporary_result.has_value()) [[unlikely]]                                                                   \
       return _temporary_result.error();                                                                                \
     _temporary_result.value();                                                                                         \
   })
@@ -39,11 +39,11 @@
     auto &&_temporary_result = (expression);                                                                           \
     static_assert(!std::is_lvalue_reference_v<std::remove_cvref_t<decltype(_temporary_result)>::value_type>,           \
                   "Do not return a reference from a fallible expression");                                             \
-    while (_temporary_result.has_error() && tries < max_tries) {                                                       \
+    while (!_temporary_result.has_value() && tries < max_tries) {                                                      \
       _temporary_result = (expression);                                                                                \
       ++tries;                                                                                                         \
     }                                                                                                                  \
-    if (_temporary_result.has_error()) [[unlikely]]                                                                    \
+    if (!_temporary_result.has_value()) [[unlikely]]                                                                   \
       return _temporary_result;                                                                                        \
     _temporary_result.value();                                                                                         \
   })
@@ -73,7 +73,9 @@ template <typename T> using ErrorOr = std::expected<T, Error>;
 } // namespace BNES
 
 namespace BNES::Utils {
-template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <class... Ts> struct overloaded : Ts... {
+  using Ts::operator()...;
+};
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 inline std::vector<std::string_view> TokenizeString(const std::string_view str, const char delimiter) {

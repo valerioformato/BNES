@@ -4,4 +4,4 @@ add_subdirectory(HW)
 add_subdirectory(SDL)
 
 add_executable(BNES main.cpp)
-target_link_libraries(BNES PRIVATE SDLBind NESHW)
+target_link_libraries(BNES PUBLIC SDLBind NESHW)

@@ -2,6 +2,22 @@
 
 namespace fs = std::filesystem;
 
+BNES::SDL::SurfaceHandle::~SurfaceHandle() {
+  if (!m_is_managed) {
+    SDL_DestroySurface(m_surface);
+  }
+}
+
+BNES::ErrorOr<void> BNES::SDL::SurfaceHandle::BlitToSurface(SurfaceHandle &destination) const {
+  bool result = SDL_BlitSurface(Handle(), nullptr, destination.Handle(), nullptr);
+
+  if (result == false) {
+    return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
+  }
+
+  return {};
+}
+
 namespace BNES::SDL::Media {
 ErrorOr<SurfaceHandle> LoadBMP(fs::path path) {
   if (fs::exists(path) == false) {
@@ -15,15 +31,4 @@ ErrorOr<SurfaceHandle> LoadBMP(fs::path path) {
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 }
-
 } // namespace BNES::SDL::Media
-
-BNES::ErrorOr<void> BNES::SDL::SurfaceHandle::BlitToSurface(SurfaceHandle &destination) const {
-  bool result = SDL_BlitSurface(Handle(), nullptr, destination.Handle(), nullptr);
-
-  if (result == false) {
-    return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
-  }
-
-  return {};
-}

@@ -1,18 +1,29 @@
 #include "SDL/WindowHandle.h"
 
+#include <spdlog/spdlog.h>
+
 #include <stdexcept>
 
 namespace BNES::SDL {
-WindowHandle::WindowHandle() : WindowHandle(DefaultWidth, DefaultHeight) {}
+ErrorOr<TextureHandle> WindowHandle::CreateTexture(Buffer &&buffer) const {
+  return std::move(MakeTextureFromBuffer(m_renderer, std::move(buffer)));
+}
 
-WindowHandle::WindowHandle(unsigned int width, unsigned int height) : WindowHandle(width, height, "BNES SDL Window") {}
+ErrorOr<WindowHandle> MakeWindow() { return MakeWindow(WindowHandle::DefaultHeight, WindowHandle::DefaultWidth); }
 
-WindowHandle::WindowHandle(unsigned int width, unsigned int height, std::string_view title) {
-  // Create window
-  if (m_window = SDL_CreateWindow("SDL3 Tutorial: Hello SDL3", width, height, 0); m_window == nullptr) {
-    // TODO: pass to spdlog for logging
-    SDL_Log("Window could not be created! SDL error: %s\n", SDL_GetError());
-    throw std::runtime_error("Failed to create SDL window: " + std::string(SDL_GetError()));
+ErrorOr<WindowHandle> MakeWindow(unsigned int width, unsigned int height) {
+  return MakeWindow(width, height, "BNES emulator");
+}
+
+ErrorOr<WindowHandle> MakeWindow(unsigned int width, unsigned int height, std::string_view title) {
+  // Create window and renderer for this window
+  SDL_Window *window_ptr{nullptr};
+  SDL_Renderer *renderer_ptr{nullptr};
+
+  if (SDL_CreateWindowAndRenderer(title.data(), width, height, 0, &window_ptr, &renderer_ptr) == false) {
+    return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
+
+  return WindowHandle{window_ptr, renderer_ptr};
 }
 } // namespace BNES::SDL
