@@ -32,7 +32,7 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       auto instruction = cpu.DecodeInstruction(bytes);
 
       THEN("It should decode as a TAX instruction with correct cycle count and size") {
-        using ExpectedInstruction = CPU::TransferAccumulatorTo<CPU::Register::X>;
+        using ExpectedInstruction = CPU::TransferRegisterTo<CPU::Register::A, CPU::Register::X>;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
@@ -46,13 +46,73 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       std::vector<uint8_t> bytes = {0xA8}; // TAY
       auto instruction = cpu.DecodeInstruction(bytes);
 
-      THEN("It should decode as a BRK instruction with correct cycle count and size") {
-        using ExpectedInstruction = CPU::TransferAccumulatorTo<CPU::Register::Y>;
+      THEN("It should decode as a TAY instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::TransferRegisterTo<CPU::Register::A, CPU::Register::Y>;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
 
         REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a TXA instruction") {
+      std::vector<uint8_t> bytes = {0x8A}; // TXA
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a TXA instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::TransferRegisterTo<CPU::Register::X, CPU::Register::A>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a TYA instruction") {
+      std::vector<uint8_t> bytes = {0x9A}; // TYA
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a TYA instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::TransferRegisterTo<CPU::Register::Y, CPU::Register::A>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a PHA instruction") {
+      std::vector<uint8_t> bytes = {0x48}; // PHA
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a PHA instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::PushAccumulator;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a PLA instruction") {
+      std::vector<uint8_t> bytes = {0x68}; // PLA
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a PLA instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::PullAccumulator;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
         REQUIRE(decoded_instruction.size == 1);
       }
     }

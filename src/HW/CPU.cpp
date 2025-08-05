@@ -84,10 +84,19 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return StoreRegister<Register::A, AddressingMode::IndirectY>{bytes[1]};
   // ...
   case OpCode::TAX:
-    return TransferAccumulatorTo<Register::X>{};
+    return TransferRegisterTo<Register::A, Register::X>{};
   case OpCode::TAY:
-    return TransferAccumulatorTo<Register::Y>{};
-  // Math instructions
+    return TransferRegisterTo<Register::A, Register::Y>{};
+  case OpCode::TXA:
+    return TransferRegisterTo<Register::X, Register::A>{};
+  case OpCode::TYA:
+    return TransferRegisterTo<Register::Y, Register::A>{};
+    // Stack instructions
+  case OpCode::PHA:
+    return PushAccumulator{};
+  case OpCode::PLA:
+    return PullAccumulator{};
+    // Math instructions
   case OpCode::ADC_Immediate:
     return AddWithCarry<AddressingMode::Immediate>{bytes[1]};
   case OpCode::ADC_ZeroPage:

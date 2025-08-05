@@ -119,9 +119,20 @@ public:
     uint16_t value{0};
   };
 
-  template <Register REG> struct TransferAccumulatorTo : DecodedInstruction<TransferAccumulatorTo<REG>> {
-    TransferAccumulatorTo() : DecodedInstruction<TransferAccumulatorTo>(1, 2) {}
+  template <Register SRCREG, Register DSTREG>
+  struct TransferRegisterTo : DecodedInstruction<TransferRegisterTo<SRCREG, DSTREG>> {
+    TransferRegisterTo() : DecodedInstruction<TransferRegisterTo>(1, 2) {}
     void Apply(CPU &cpu) const;
+  };
+
+  struct PushAccumulator : DecodedInstruction<PushAccumulator> {
+    PushAccumulator() : DecodedInstruction<PushAccumulator>(1, 3) {}
+    inline void Apply(CPU &cpu) const;
+  };
+
+  struct PullAccumulator : DecodedInstruction<PullAccumulator> {
+    PullAccumulator() : DecodedInstruction<PullAccumulator>(1, 4) {}
+    inline void Apply(CPU &cpu) const;
   };
 
   struct BranchIfEqual : DecodedInstruction<BranchIfEqual> {
@@ -209,8 +220,13 @@ public:
       CompareRegister<Register::Y, AddressingMode::Immediate>,
       CompareRegister<Register::Y, AddressingMode::ZeroPage>,
       CompareRegister<Register::Y, AddressingMode::Absolute>,
-      TransferAccumulatorTo<Register::X>,
-      TransferAccumulatorTo<Register::Y>
+      TransferRegisterTo<Register::A, Register::X>,
+      TransferRegisterTo<Register::A, Register::Y>,
+      TransferRegisterTo<Register::X, Register::A>,
+      TransferRegisterTo<Register::Y, Register::A>,
+      // Stack
+      PushAccumulator,
+      PullAccumulator
       >;
   // clang-format on
 
@@ -224,6 +240,19 @@ inline void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {
   //        Let's do it here.
   cpu.m_program_counter += size;
   throw NonMaskableInterrupt{};
+}
+
+inline void CPU::PushAccumulator::Apply(CPU &cpu) const {
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, cpu.m_registers[Register::A]);
+  cpu.m_stack_pointer--;
+}
+
+inline void CPU::PullAccumulator::Apply(CPU &cpu) const {
+  cpu.m_stack_pointer++;
+  cpu.m_registers[Register::A] = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
+
+  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlag(StatusFlag::Negative, (cpu.m_registers[Register::A] & 0x80) != 0);
 }
 
 inline void CPU::BranchIfEqual::Apply(CPU &cpu) {
@@ -294,7 +323,7 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA (or #LDX,#LDY)
 
   if constexpr (MODE == AddressingMode::Immediate) {
-    cpu.m_registers[REG] = value;
+    cpu.m_registers[REG] = uint8_t(value);
   } else if constexpr (MODE == AddressingMode::ZeroPage) {
     // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
     Addr addr = value & 0xFF;
@@ -463,12 +492,13 @@ template <CPU::Register REG> void CPU::DecrementRegister<REG>::Apply(CPU &cpu) c
   cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
-template <CPU::Register REG> void CPU::TransferAccumulatorTo<REG>::Apply(CPU &cpu) const {
+template <CPU::Register SRCREG, CPU::Register DSTREG>
+void CPU::TransferRegisterTo<SRCREG, DSTREG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX (or #TAY)
 
-  cpu.m_registers[REG] = cpu.m_registers[Register::A];
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+  cpu.m_registers[DSTREG] = cpu.m_registers[SRCREG];
+  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[DSTREG] == 0);
+  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[DSTREG] & 0x80);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG, MODE>::Apply(CPU &cpu) const {

@@ -50,6 +50,12 @@ enum class OpCode : uint8_t {
   // Transfer Instructions
   TAX = 0xAA, // Transfer Accumulator to X
   TAY = 0xA8, // Transfer Accumulator to Y
+  TXA = 0x8A, // Transfer X to Accumulator
+  TYA = 0x9A, // Transfer Y to Accumulator
+
+  // Stack Instructions
+  PHA = 0x48, // Push Accumulator onto Stack
+  PLA = 0x68, // Pull Accumulator from Stack
 
   // Math instructions
   ADC_Immediate = 0x69, // Add with Carry (ADC) Immediate
