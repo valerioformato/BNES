@@ -58,26 +58,31 @@ enum class OpCode : uint8_t {
   PLA = 0x68, // Pull Accumulator from Stack
 
   // Math instructions
-  ADC_Immediate = 0x69, // Add with Carry (ADC) Immediate
-  ADC_ZeroPage = 0x65,  // Add with Carry (ADC) Zero Page
-  ADC_ZeroPageX = 0x75, // Add with Carry (ADC) Zero Page,X
-  ADC_Absolute = 0x6D,  // Add with Carry (ADC) Absolute
-  ADC_AbsoluteX = 0x7D, // Add with Carry (ADC) Absolute,X
-  ADC_AbsoluteY = 0x79, // Add with Carry (ADC) Absolute,Y
-  ADC_IndirectX = 0x61, // Add with Carry (ADC) (Indirect,X)
-  ADC_IndirectY = 0x71, // Add with Carry (ADC) (Indirect),Y
-  AND_Immediate = 0x29, // Logical AND (AND) Immediate
-  AND_ZeroPage = 0x25,  // Logical AND (AND) Zero Page
-  AND_ZeroPageX = 0x35, // Logical AND (AND) Zero Page,X
-  AND_Absolute = 0x2D,  // Logical AND (AND) Absolute
-  AND_AbsoluteX = 0x3D, // Logical AND (AND) Absolute,X
-  AND_AbsoluteY = 0x39, // Logical AND (AND) Absolute,Y
-  AND_IndirectX = 0x21, // Logical AND (AND) (Indirect,X)
-  AND_IndirectY = 0x31, // Logical AND (AND) (Indirect),Y
-  INX = 0xE8,           // Increment X Register
-  INY = 0xC8,           // Increment X Register
-  DEX = 0xCA,           // Increment X Register
-  DEY = 0x88,           // Increment X Register
+  ADC_Immediate = 0x69,   // Add with Carry (ADC) Immediate
+  ADC_ZeroPage = 0x65,    // Add with Carry (ADC) Zero Page
+  ADC_ZeroPageX = 0x75,   // Add with Carry (ADC) Zero Page,X
+  ADC_Absolute = 0x6D,    // Add with Carry (ADC) Absolute
+  ADC_AbsoluteX = 0x7D,   // Add with Carry (ADC) Absolute,X
+  ADC_AbsoluteY = 0x79,   // Add with Carry (ADC) Absolute,Y
+  ADC_IndirectX = 0x61,   // Add with Carry (ADC) (Indirect,X)
+  ADC_IndirectY = 0x71,   // Add with Carry (ADC) (Indirect),Y
+  AND_Immediate = 0x29,   // Logical AND (AND) Immediate
+  AND_ZeroPage = 0x25,    // Logical AND (AND) Zero Page
+  AND_ZeroPageX = 0x35,   // Logical AND (AND) Zero Page,X
+  AND_Absolute = 0x2D,    // Logical AND (AND) Absolute
+  AND_AbsoluteX = 0x3D,   // Logical AND (AND) Absolute,X
+  AND_AbsoluteY = 0x39,   // Logical AND (AND) Absolute,Y
+  AND_IndirectX = 0x21,   // Logical AND (AND) (Indirect,X)
+  AND_IndirectY = 0x31,   // Logical AND (AND) (Indirect),Y
+  ASL_Accumulator = 0x0A, // Arithmetic Shift Left (ASL) Accumulator
+  ASL_ZeroPage = 0x06,    // Arithmetic Shift Left (ASL) Zero Page
+  ASL_ZeroPageX = 0x16,   // Arithmetic Shift Left (ASL) Zero Page,X
+  ASL_Absolute = 0x0E,    // Arithmetic Shift Left (ASL) Absolute
+  ASL_AbsoluteX = 0x1E,   // Arithmetic Shift Left (ASL) Absolute,X
+  INX = 0xE8,             // Increment X Register
+  INY = 0xC8,             // Increment X Register
+  DEX = 0xCA,             // Increment X Register
+  DEY = 0x88,             // Increment X Register
 
   // Branch instructions
   BEQ = 0xF0,          // Branch if Equal (BEQ)
@@ -106,6 +111,7 @@ enum class AddressingMode : uint8_t {
   Indirect,
   IndirectX,
   IndirectY,
+  Accumulator,
 };
 
 } // namespace BNES::HW

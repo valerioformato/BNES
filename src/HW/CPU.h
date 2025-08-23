@@ -109,6 +109,15 @@ public:
     uint16_t value{0};
   };
 
+  template <AddressingMode MODE> struct ShiftLeft : DecodedInstruction<ShiftLeft<MODE>> {
+    ShiftLeft() = delete;
+    explicit ShiftLeft(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   template <Register REG> struct IncrementRegister : DecodedInstruction<IncrementRegister<REG>> {
     IncrementRegister() : DecodedInstruction<IncrementRegister>{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
@@ -221,6 +230,11 @@ public:
       LogicalAND<AddressingMode::AbsoluteY>,
       LogicalAND<AddressingMode::IndirectX>,
       LogicalAND<AddressingMode::IndirectY>,
+      ShiftLeft<AddressingMode::Accumulator>,
+      ShiftLeft<AddressingMode::ZeroPage>,
+      ShiftLeft<AddressingMode::ZeroPageX>,
+      ShiftLeft<AddressingMode::Absolute>,
+      ShiftLeft<AddressingMode::AbsoluteX>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       DecrementRegister<Register::X>,
@@ -524,6 +538,45 @@ template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const
   cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
 }
 
+template <AddressingMode MODE> void CPU::ShiftLeft<MODE>::Apply(CPU &cpu) const {
+  uint16_t value_to_shift = 0;
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    value_to_shift = cpu.m_registers[Register::A];
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_shift = cpu.ReadFromMemory(address & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_shift = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_shift = cpu.ReadFromMemory(address);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_shift = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]);
+  } else {
+    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  value_to_shift = value_to_shift << 1;
+
+  uint8_t value_to_store = value_to_shift & 0xFF;
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    cpu.m_registers[Register::A] = value_to_store;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    cpu.WriteToMemory(address & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    cpu.WriteToMemory(address, value_to_store);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_store);
+  } else {
+    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlag(StatusFlag::Negative, value_to_store & 0x80);
+  cpu.SetStatusFlag(StatusFlag::Zero, value_to_store == 0);
+  cpu.SetStatusFlag(StatusFlag::Carry, value_to_shift & 0x100);
+}
+
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
@@ -630,6 +683,29 @@ template <AddressingMode MODE> CPU::LogicalAND<MODE>::LogicalAND(uint16_t _value
   }
 
   value = _value;
+}
+
+template <AddressingMode MODE> CPU::ShiftLeft<MODE>::ShiftLeft(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    this->size = 1;
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    this->size = 3;
+    this->cycles = 7;
+  } else {
+    std::unreachable();
+  }
+
+  address = _value;
 }
 
 template <AddressingMode MODE> CPU::AddWithCarry<MODE>::AddWithCarry(uint16_t _value) {

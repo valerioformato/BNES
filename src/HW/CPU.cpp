@@ -129,6 +129,16 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return LogicalAND<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::AND_IndirectY:
     return LogicalAND<AddressingMode::IndirectY>{bytes[1]};
+  case OpCode::ASL_Accumulator:
+    return ShiftLeft<AddressingMode::Accumulator>{0};
+  case OpCode::ASL_ZeroPage:
+    return ShiftLeft<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::ASL_ZeroPageX:
+    return ShiftLeft<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::ASL_Absolute:
+    return ShiftLeft<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ASL_AbsoluteX:
+    return ShiftLeft<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::INX:
     return IncrementRegister<Register::X>{};
   case OpCode::INY:
