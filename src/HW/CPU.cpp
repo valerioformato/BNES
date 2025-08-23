@@ -113,6 +113,22 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return AddWithCarry<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::ADC_IndirectY:
     return AddWithCarry<AddressingMode::IndirectY>{bytes[1]};
+  case OpCode::AND_Immediate:
+    return LogicalAND<AddressingMode::Immediate>{bytes[1]};
+  case OpCode::AND_ZeroPage:
+    return LogicalAND<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::AND_ZeroPageX:
+    return LogicalAND<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::AND_Absolute:
+    return LogicalAND<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::AND_AbsoluteX:
+    return LogicalAND<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::AND_AbsoluteY:
+    return LogicalAND<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::AND_IndirectX:
+    return LogicalAND<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::AND_IndirectY:
+    return LogicalAND<AddressingMode::IndirectY>{bytes[1]};
   case OpCode::INX:
     return IncrementRegister<Register::X>{};
   case OpCode::INY:
@@ -152,7 +168,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
 }
 
 void CPU::RunInstruction(Instruction &&instr) {
-  std::visit(
+  std::visit<void>(
       [this](auto &instruction) {
         // Run the instruction on the CPU
         instruction.Apply(*this);

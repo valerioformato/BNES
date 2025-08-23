@@ -66,6 +66,14 @@ enum class OpCode : uint8_t {
   ADC_AbsoluteY = 0x79, // Add with Carry (ADC) Absolute,Y
   ADC_IndirectX = 0x61, // Add with Carry (ADC) (Indirect,X)
   ADC_IndirectY = 0x71, // Add with Carry (ADC) (Indirect),Y
+  AND_Immediate = 0x29, // Logical AND (AND) Immediate
+  AND_ZeroPage = 0x25,  // Logical AND (AND) Zero Page
+  AND_ZeroPageX = 0x35, // Logical AND (AND) Zero Page,X
+  AND_Absolute = 0x2D,  // Logical AND (AND) Absolute
+  AND_AbsoluteX = 0x3D, // Logical AND (AND) Absolute,X
+  AND_AbsoluteY = 0x39, // Logical AND (AND) Absolute,Y
+  AND_IndirectX = 0x21, // Logical AND (AND) (Indirect,X)
+  AND_IndirectY = 0x31, // Logical AND (AND) (Indirect),Y
   INX = 0xE8,           // Increment X Register
   INY = 0xC8,           // Increment X Register
   DEX = 0xCA,           // Increment X Register

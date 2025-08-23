@@ -100,6 +100,15 @@ public:
     uint16_t value{0};
   };
 
+  template <AddressingMode MODE> struct LogicalAND : DecodedInstruction<LogicalAND<MODE>> {
+    LogicalAND() = delete;
+    explicit LogicalAND(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t value{0};
+  };
+
   template <Register REG> struct IncrementRegister : DecodedInstruction<IncrementRegister<REG>> {
     IncrementRegister() : DecodedInstruction<IncrementRegister>{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
@@ -204,6 +213,14 @@ public:
       AddWithCarry<AddressingMode::AbsoluteY>,
       AddWithCarry<AddressingMode::IndirectX>,
       AddWithCarry<AddressingMode::IndirectY>,
+      LogicalAND<AddressingMode::Immediate>,
+      LogicalAND<AddressingMode::ZeroPage>,
+      LogicalAND<AddressingMode::ZeroPageX>,
+      LogicalAND<AddressingMode::Absolute>,
+      LogicalAND<AddressingMode::AbsoluteX>,
+      LogicalAND<AddressingMode::AbsoluteY>,
+      LogicalAND<AddressingMode::IndirectX>,
+      LogicalAND<AddressingMode::IndirectY>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       DecrementRegister<Register::X>,
@@ -476,6 +493,37 @@ template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) con
   cpu.SetStatusFlag(StatusFlag::Overflow, ((M ^ result) & (N ^ result) & 0x80) != 0);
 }
 
+template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const {
+  uint8_t value_to_and = 0;
+  if constexpr (MODE == AddressingMode::Immediate) {
+    value_to_and = value & 0xFF; // Immediate value is already in the instruction
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_and = cpu.ReadFromMemory(value & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_and = cpu.ReadFromMemory((value + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_and = cpu.ReadFromMemory(value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_and = cpu.ReadFromMemory(value + cpu.m_registers[Register::X]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    value_to_and = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    value_to_and = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    value_to_and = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
+  } else {
+    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.m_registers[Register::A] = cpu.m_registers[Register::A] & value_to_and;
+
+  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+}
+
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
@@ -558,6 +606,30 @@ template <CPU::Register REG, AddressingMode MODE> CPU::StoreRegister<REG, MODE>:
   }
 
   address = addr;
+}
+
+template <AddressingMode MODE> CPU::LogicalAND<MODE>::LogicalAND(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute || MODE == AddressingMode::AbsoluteX ||
+                       MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    this->cycles = 6;
+  } else {
+    std::unreachable();
+  }
+
+  value = _value;
 }
 
 template <AddressingMode MODE> CPU::AddWithCarry<MODE>::AddWithCarry(uint16_t _value) {
