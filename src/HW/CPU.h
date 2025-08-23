@@ -69,7 +69,7 @@ public:
   };
 
   struct Break : DecodedInstruction<Break> {
-    Break() : DecodedInstruction<Break>(1, 7) {}
+    Break() : DecodedInstruction{.size = 1, .cycles = 7} {}
     inline void Apply([[maybe_unused]] CPU &cpu) const;
   };
 
@@ -101,12 +101,12 @@ public:
   };
 
   template <Register REG> struct IncrementRegister : DecodedInstruction<IncrementRegister<REG>> {
-    IncrementRegister() : DecodedInstruction<IncrementRegister>(1, 2) {}
+    IncrementRegister() : DecodedInstruction<IncrementRegister>{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
   template <Register REG> struct DecrementRegister : DecodedInstruction<DecrementRegister<REG>> {
-    DecrementRegister() : DecodedInstruction<DecrementRegister>(1, 2) {}
+    DecrementRegister() : DecodedInstruction<DecrementRegister>{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
@@ -121,23 +121,23 @@ public:
 
   template <Register SRCREG, Register DSTREG>
   struct TransferRegisterTo : DecodedInstruction<TransferRegisterTo<SRCREG, DSTREG>> {
-    TransferRegisterTo() : DecodedInstruction<TransferRegisterTo>(1, 2) {}
+    TransferRegisterTo() : DecodedInstruction<TransferRegisterTo>{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
   struct PushAccumulator : DecodedInstruction<PushAccumulator> {
-    PushAccumulator() : DecodedInstruction<PushAccumulator>(1, 3) {}
+    PushAccumulator() : DecodedInstruction{.size = 1, .cycles = 3} {}
     inline void Apply(CPU &cpu) const;
   };
 
   struct PullAccumulator : DecodedInstruction<PullAccumulator> {
-    PullAccumulator() : DecodedInstruction<PullAccumulator>(1, 4) {}
+    PullAccumulator() : DecodedInstruction{.size = 1, .cycles = 4} {}
     inline void Apply(CPU &cpu) const;
   };
 
   struct BranchIfEqual : DecodedInstruction<BranchIfEqual> {
     BranchIfEqual() = delete;
-    explicit BranchIfEqual(int8_t offset_) : DecodedInstruction<BranchIfEqual>(2, 2), offset(offset_) {}
+    explicit BranchIfEqual(int8_t offset_) : DecodedInstruction{.size = 2, .cycles = 2}, offset(offset_) {}
     inline void Apply(CPU &cpu);
 
     int8_t offset{0}; // in branch instruction the offset is always signed
@@ -145,7 +145,7 @@ public:
 
   struct BranchIfNotEqual : DecodedInstruction<BranchIfNotEqual> {
     BranchIfNotEqual() = delete;
-    explicit BranchIfNotEqual(int8_t offset_) : DecodedInstruction<BranchIfNotEqual>(2, 2), offset(offset_) {}
+    explicit BranchIfNotEqual(int8_t offset_) : DecodedInstruction{.size = 2, .cycles = 2}, offset(offset_) {}
     inline void Apply(CPU &cpu);
 
     int8_t offset{0}; // in branch instruction the offset is always signed
