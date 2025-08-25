@@ -169,6 +169,10 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::JMP_Indirect:
     return Jump<AddressingMode::Indirect>{uint16_t(bytes[2] << 8 | bytes[1])};
   // ...
+  case OpCode::BIT_ZeroPage:
+    return BitTest<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::BIT_Absolute:
+    return BitTest<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::CPX_Immediate:
     return CompareRegister<Register::X, AddressingMode::Immediate>{bytes[1]};
   case OpCode::CPX_ZeroPage:

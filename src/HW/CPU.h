@@ -169,6 +169,15 @@ public:
     uint16_t address{0};
   };
 
+  template <AddressingMode MODE> struct BitTest : DecodedInstruction<BitTest<MODE>> {
+    BitTest() = delete;
+    explicit BitTest(uint16_t addr);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   // clang-format off
   using Instruction = std::variant<
       Break,
@@ -243,6 +252,8 @@ public:
       Jump<AddressingMode::Absolute>,
       Jump<AddressingMode::Indirect>,
       // ...
+      BitTest<AddressingMode::ZeroPage>,
+      BitTest<AddressingMode::Absolute>,
       CompareRegister<Register::X, AddressingMode::Immediate>,
       CompareRegister<Register::X, AddressingMode::ZeroPage>,
       CompareRegister<Register::X, AddressingMode::Absolute>,
@@ -346,6 +357,23 @@ template <AddressingMode MODE> void CPU::Jump<MODE>::Apply(CPU &cpu) const {
   //        We need to offset it manually here so that the final value is the one provided.
   //        This is a bit of a hack, but it works for now.
   cpu.m_program_counter = target_address - this->size;
+}
+
+template <AddressingMode MODE> void CPU::BitTest<MODE>::Apply(CPU &cpu) const {
+  uint8_t value{0};
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    Addr addr = address & 0xFF;
+    value = cpu.m_ram_memory[addr];
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value = cpu.ReadFromMemory(address);
+  } else {
+    TODO(fmt::format("BitTest<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  uint8_t result = cpu.m_registers[Register::A] & value;
+  cpu.SetStatusFlag(StatusFlag::Zero, result == 0);
+  cpu.SetStatusFlag(StatusFlag::Negative, value & 0b10000000);
+  cpu.SetStatusFlag(StatusFlag::Overflow, value & 0b01000000);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MODE>::Apply(CPU &cpu) const {
@@ -754,6 +782,21 @@ template <AddressingMode MODE> CPU::Jump<MODE>::Jump(uint16_t addr) {
     this->cycles = 3;
   } else if constexpr (MODE == AddressingMode::Indirect) {
     this->cycles = 5;
+  } else {
+    std::unreachable();
+  }
+
+  address = addr;
+}
+
+template <AddressingMode MODE> CPU::BitTest<MODE>::BitTest(uint16_t addr) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 4;
   } else {
     std::unreachable();
   }

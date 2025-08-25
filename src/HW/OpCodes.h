@@ -97,6 +97,8 @@ enum class OpCode : uint8_t {
   JMP_Indirect = 0x6C, // Jump Indirect (JMP)
 
   // Other Instructions
+  BIT_ZeroPage = 0x24,  // Bit Test Zero Page
+  BIT_Absolute = 0x2C,  // Bit Test Absolute
   CPX_Immediate = 0xE0, // Compare X Register Immediate
   CPX_ZeroPage = 0xE4,  // Compare X Register Zero Page
   CPX_Absolute = 0xEC,  // Compare X Register Absolute

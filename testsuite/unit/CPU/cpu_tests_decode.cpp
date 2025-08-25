@@ -213,6 +213,38 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       }
     }
 
+    WHEN("We try to decode a BIT zero-page instruction") {
+      std::vector<uint8_t> bytes = {0x24, 0x42}; // BIT $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitTest<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a BIT absolute instruction") {
+      std::vector<uint8_t> bytes = {0x2C, 0x00, 0x03}; // BIT $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitTest<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
+
     WHEN("We try to decode a BNE instruction") {
       std::vector<uint8_t> bytes = {0xD0, 0x10}; // BNE $10
       auto instruction = cpu.DecodeInstruction(bytes);
