@@ -153,17 +153,9 @@ public:
     inline void Apply(CPU &cpu) const;
   };
 
-  struct BranchIfEqual : DecodedInstruction<BranchIfEqual> {
-    BranchIfEqual() = delete;
-    explicit BranchIfEqual(int8_t offset_) : DecodedInstruction{.size = 2, .cycles = 2}, offset(offset_) {}
-    inline void Apply(CPU &cpu);
-
-    int8_t offset{0}; // in branch instruction the offset is always signed
-  };
-
-  struct BranchIfNotEqual : DecodedInstruction<BranchIfNotEqual> {
-    BranchIfNotEqual() = delete;
-    explicit BranchIfNotEqual(int8_t offset_) : DecodedInstruction{.size = 2, .cycles = 2}, offset(offset_) {}
+  template <Conditional COND> struct Branch : DecodedInstruction<Branch<COND>> {
+    Branch() = delete;
+    explicit Branch(int8_t offset_) : DecodedInstruction<Branch>{.size = 2, .cycles = 2}, offset(offset_) {}
     inline void Apply(CPU &cpu);
 
     int8_t offset{0}; // in branch instruction the offset is always signed
@@ -240,8 +232,14 @@ public:
       DecrementRegister<Register::X>,
       DecrementRegister<Register::Y>,
       // Branch
-      BranchIfEqual,
-      BranchIfNotEqual,
+      Branch<Conditional::Equal>,
+      Branch<Conditional::NotEqual>,
+      Branch<Conditional::CarrySet>,
+      Branch<Conditional::CarryClear>,
+      Branch<Conditional::Minus>,
+      Branch<Conditional::Positive>,
+      Branch<Conditional::OverflowSet>,
+      Branch<Conditional::OverflowClear>,
       Jump<AddressingMode::Absolute>,
       Jump<AddressingMode::Indirect>,
       // ...
@@ -286,8 +284,29 @@ inline void CPU::PullAccumulator::Apply(CPU &cpu) const {
   cpu.SetStatusFlag(StatusFlag::Negative, (cpu.m_registers[Register::A] & 0x80) != 0);
 }
 
-inline void CPU::BranchIfEqual::Apply(CPU &cpu) {
-  if (!cpu.TestStatusFlag(StatusFlag::Zero)) {
+template <Conditional COND> inline void CPU::Branch<COND>::Apply(CPU &cpu) {
+  bool should_branch = false;
+  if constexpr (COND == Conditional::Equal) {
+    should_branch = cpu.TestStatusFlag(StatusFlag::Zero);
+  } else if constexpr (COND == Conditional::NotEqual) {
+    should_branch = !cpu.TestStatusFlag(StatusFlag::Zero);
+  } else if constexpr (COND == Conditional::CarrySet) {
+    should_branch = cpu.TestStatusFlag(StatusFlag::Carry);
+  } else if constexpr (COND == Conditional::CarryClear) {
+    should_branch = !cpu.TestStatusFlag(StatusFlag::Carry);
+  } else if constexpr (COND == Conditional::Minus) {
+    should_branch = cpu.TestStatusFlag(StatusFlag::Negative);
+  } else if constexpr (COND == Conditional::Positive) {
+    should_branch = !cpu.TestStatusFlag(StatusFlag::Negative);
+  } else if constexpr (COND == Conditional::OverflowSet) {
+    should_branch = cpu.TestStatusFlag(StatusFlag::Overflow);
+  } else if constexpr (COND == Conditional::OverflowClear) {
+    should_branch = !cpu.TestStatusFlag(StatusFlag::Overflow);
+  } else {
+    TODO(fmt::format("Branch<{}>::Apply not implemented", magic_enum::enum_name(COND)));
+  }
+
+  if (!should_branch) {
     return;
   }
 
@@ -299,31 +318,10 @@ inline void CPU::BranchIfEqual::Apply(CPU &cpu) {
   if ((old_pc & 0xFF00) != (new_pc & 0xFF00)) {
     // Page boundary crossed, but we can't modify cycles here since this is const
     // The CPU main loop would need to handle this case
-    cycles += 1;
+    this->cycles += 1;
   }
 
-  cycles += 1;
-
-  cpu.m_program_counter += int16_t(offset);
-}
-
-inline void CPU::BranchIfNotEqual::Apply(CPU &cpu) {
-  if (cpu.TestStatusFlag(StatusFlag::Zero)) {
-    return;
-  }
-
-  // Check if we cross a page boundary (different high byte)
-  uint16_t old_pc = cpu.m_program_counter;
-  uint16_t new_pc = cpu.m_program_counter + int16_t(offset);
-
-  // If the high byte changes, we crossed a page boundary and need an extra cycle
-  if ((old_pc & 0xFF00) != (new_pc & 0xFF00)) {
-    // Page boundary crossed, but we can't modify cycles here since this is const
-    // The CPU main loop would need to handle this case
-    cycles += 1;
-  }
-
-  cycles += 1;
+  this->cycles += 1;
 
   cpu.m_program_counter += int16_t(offset);
 }

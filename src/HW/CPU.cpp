@@ -149,9 +149,21 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return DecrementRegister<Register::Y>{};
   // Branch instructions
   case OpCode::BEQ:
-    return BranchIfEqual{int8_t(bytes[1])};
+    return Branch<Conditional::Equal>{int8_t(bytes[1])};
   case OpCode::BNE:
-    return BranchIfNotEqual{int8_t(bytes[1])};
+    return Branch<Conditional::NotEqual>{int8_t(bytes[1])};
+  case OpCode::BCC:
+    return Branch<Conditional::CarryClear>{int8_t(bytes[1])};
+  case OpCode::BCS:
+    return Branch<Conditional::CarrySet>{int8_t(bytes[1])};
+  case OpCode::BMI:
+    return Branch<Conditional::Minus>{int8_t(bytes[1])};
+  case OpCode::BPL:
+    return Branch<Conditional::Positive>{int8_t(bytes[1])};
+  case OpCode::BVC:
+    return Branch<Conditional::OverflowClear>{int8_t(bytes[1])};
+  case OpCode::BVS:
+    return Branch<Conditional::OverflowSet>{int8_t(bytes[1])};
   case OpCode::JMP_Absolute:
     return Jump<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::JMP_Indirect:

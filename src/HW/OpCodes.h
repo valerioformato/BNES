@@ -87,6 +87,12 @@ enum class OpCode : uint8_t {
   // Branch instructions
   BEQ = 0xF0,          // Branch if Equal (BEQ)
   BNE = 0xD0,          // Branch if Not Equal (BNE)
+  BCC = 0x90,          // Branch if Carry Clear (BCC)
+  BCS = 0xB0,          // Branch if Carry Set (BCS)
+  BMI = 0x30,          // Branch if Minus (BMI)
+  BPL = 0x10,          // Branch if Positive (BPL)
+  BVC = 0x50,          // Branch if Overflow Clear (BVC)
+  BVS = 0x70,          // Branch if Overflow Set (BVS)
   JMP_Absolute = 0x4C, // Jump Absolute (JMP)
   JMP_Indirect = 0x6C, // Jump Indirect (JMP)
 
@@ -112,6 +118,18 @@ enum class AddressingMode : uint8_t {
   IndirectX,
   IndirectY,
   Accumulator,
+};
+
+enum class Conditional : uint8_t {
+  Equal = 0,
+  NotEqual,
+  CarrySet,
+  CarryClear,
+  Minus,
+  Positive,
+  OverflowClear,
+  OverflowSet,
+
 };
 
 } // namespace BNES::HW

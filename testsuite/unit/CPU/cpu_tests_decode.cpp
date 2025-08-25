@@ -218,7 +218,7 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       auto instruction = cpu.DecodeInstruction(bytes);
 
       THEN("It should decode correctly") {
-        using ExpectedInstruction = CPU::BranchIfNotEqual;
+        using ExpectedInstruction = CPU::Branch<Conditional::NotEqual>;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
@@ -231,7 +231,7 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       bytes[1] = 0xFB;
       instruction = cpu.DecodeInstruction(bytes);
       THEN("It should decode negative offsets correctly") {
-        using ExpectedInstruction = CPU::BranchIfNotEqual;
+        using ExpectedInstruction = CPU::Branch<Conditional::NotEqual>;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
@@ -247,7 +247,7 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       auto instruction = cpu.DecodeInstruction(bytes);
 
       THEN("It should decode correctly") {
-        using ExpectedInstruction = CPU::BranchIfEqual;
+        using ExpectedInstruction = CPU::Branch<Conditional::Equal>;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
@@ -260,7 +260,181 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       bytes[1] = 0xFB;
       instruction = cpu.DecodeInstruction(bytes);
       THEN("It should decode negative offsets correctly") {
-        using ExpectedInstruction = CPU::BranchIfEqual;
+        using ExpectedInstruction = CPU::Branch<Conditional::Equal>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
+
+    WHEN("We try to decode a BCC instruction") {
+      std::vector<uint8_t> bytes = {0x90, 0x10}; // BCC $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::CarryClear>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::CarryClear>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
+
+    WHEN("We try to decode a BCS instruction") {
+      std::vector<uint8_t> bytes = {0xB0, 0x10}; // BCS $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::CarrySet>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::CarrySet>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
+
+    WHEN("We try to decode a BMI instruction") {
+      std::vector<uint8_t> bytes = {0x30, 0x10}; // BMI $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::Minus>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::Minus>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
+
+    WHEN("We try to decode a BPL instruction") {
+      std::vector<uint8_t> bytes = {0x10, 0x10}; // BPL $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::Positive>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::Positive>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
+
+    WHEN("We try to decode a BVC instruction") {
+      std::vector<uint8_t> bytes = {0x50, 0x10}; // BVC $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::OverflowClear>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::OverflowClear>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == -0x05); // 0xFB is -5 in two's complement
+      }
+    }
+
+    WHEN("We try to decode a BVS instruction") {
+      std::vector<uint8_t> bytes = {0x70, 0x10}; // BVS $10
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::OverflowSet>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.offset == 0x10);
+      }
+
+      bytes[1] = 0xFB;
+      instruction = cpu.DecodeInstruction(bytes);
+      THEN("It should decode negative offsets correctly") {
+        using ExpectedInstruction = CPU::Branch<Conditional::OverflowSet>;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
