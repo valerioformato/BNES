@@ -99,12 +99,19 @@ enum class OpCode : uint8_t {
   // Other Instructions
   BIT_ZeroPage = 0x24,  // Bit Test Zero Page
   BIT_Absolute = 0x2C,  // Bit Test Absolute
+  CLC = 0x18,           // Clear Carry Flag
+  CLD = 0xD8,           // Clear Decimal Mode
+  CLI = 0x58,           // Clear Interrupt Disable
+  CLV = 0xB8,           // Clear Overflow Flag
   CPX_Immediate = 0xE0, // Compare X Register Immediate
   CPX_ZeroPage = 0xE4,  // Compare X Register Zero Page
   CPX_Absolute = 0xEC,  // Compare X Register Absolute
   CPY_Immediate = 0xC0, // Compare Y Register Immediate
   CPY_ZeroPage = 0xC4,  // Compare Y Register Zero Page
   CPY_Absolute = 0xCC,  // Compare Y Register Absolute
+  SEC = 0x38,           // Set Carry Flag
+  SED = 0xF8,           // Set Decimal Flag
+  SEI = 0x78,           // Set Interrupt Disable
   NOP = 0xEA            // No Operation
 };
 

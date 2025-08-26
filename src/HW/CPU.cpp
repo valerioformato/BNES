@@ -173,6 +173,14 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return BitTest<AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::BIT_Absolute:
     return BitTest<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::CLC:
+    return ClearStatusFlag<StatusFlag::Carry>{};
+  case OpCode::CLD:
+    return ClearStatusFlag<StatusFlag::DecimalMode>{};
+  case OpCode::CLI:
+    return ClearStatusFlag<StatusFlag::InterruptDisable>{};
+  case OpCode::CLV:
+    return ClearStatusFlag<StatusFlag::Overflow>{};
   case OpCode::CPX_Immediate:
     return CompareRegister<Register::X, AddressingMode::Immediate>{bytes[1]};
   case OpCode::CPX_ZeroPage:
@@ -185,6 +193,12 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return CompareRegister<Register::Y, AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::CPY_Absolute:
     return CompareRegister<Register::Y, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SEC:
+    return SetStatusFlag<StatusFlag::Carry>{};
+  case OpCode::SED:
+    return SetStatusFlag<StatusFlag::DecimalMode>{};
+  case OpCode::SEI:
+    return SetStatusFlag<StatusFlag::InterruptDisable>{};
   default:
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }
@@ -231,8 +245,8 @@ void CPU::WriteToMemory(Addr addr, uint8_t value) {
 
 void CPU::SetRegister(Register reg, uint8_t value) {
   m_registers[reg] = value;
-  SetStatusFlag(StatusFlag::Zero, value == 0);
-  SetStatusFlag(StatusFlag::Negative, value & 0x80);
+  SetStatusFlagValue(StatusFlag::Zero, value == 0);
+  SetStatusFlagValue(StatusFlag::Negative, value & 0x80);
 }
 
 } // namespace BNES::HW

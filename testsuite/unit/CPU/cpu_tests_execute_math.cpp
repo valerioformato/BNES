@@ -15,7 +15,7 @@ class CPUMock : public CPU {
 public:
   using CPU::ReadFromMemory;
   using CPU::SetRegister;
-  using CPU::SetStatusFlag;
+  using CPU::SetStatusFlagValue;
   using CPU::WriteToMemory;
 };
 
@@ -176,7 +176,7 @@ SCENARIO("6502 instruction execution tests (math ops)") {
       original_program_counter = cpu.ProgramCounter();
 
       cpu.SetRegister(CPU::Register::A, 0x02);
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       instr.value = 0x80;
       cpu.RunInstruction(instr);
 
@@ -239,7 +239,7 @@ SCENARIO("6502 instruction execution tests (math ops)") {
       original_program_counter = cpu.ProgramCounter();
 
       cpu.SetRegister(CPU::Register::A, 0x02);
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       cpu.WriteToMemory(0x52, 0x80); // Write test value to zero-page address
       instr.value = 0x52;
       cpu.RunInstruction(instr);

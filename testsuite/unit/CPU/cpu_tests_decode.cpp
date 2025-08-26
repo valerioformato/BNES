@@ -508,5 +508,110 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
         REQUIRE(decoded_instruction.address == 0x3020);
       }
     }
+
+    WHEN("We try to decode a CLC instruction") {
+      std::vector<uint8_t> bytes = {0x18}; // CLC
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a CLC instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::ClearStatusFlag<CPU::StatusFlag::Carry>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a CLD instruction") {
+      std::vector<uint8_t> bytes = {0xD8}; // CLD
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a CLD instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::ClearStatusFlag<CPU::StatusFlag::DecimalMode>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a CLI instruction") {
+      std::vector<uint8_t> bytes = {0x58}; // CLI
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a CLI instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::ClearStatusFlag<CPU::StatusFlag::InterruptDisable>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a CLV instruction") {
+      std::vector<uint8_t> bytes = {0xB8}; // CLV
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a CLV instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::ClearStatusFlag<CPU::StatusFlag::Overflow>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a SEC instruction") {
+      std::vector<uint8_t> bytes = {0x38}; // SEC
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a SEC instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::SetStatusFlag<CPU::StatusFlag::Carry>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a SED instruction") {
+      std::vector<uint8_t> bytes = {0xF8}; // SED
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a SED instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::SetStatusFlag<CPU::StatusFlag::DecimalMode>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a SEI instruction") {
+      std::vector<uint8_t> bytes = {0x78}; // SEI
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a SEI instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::SetStatusFlag<CPU::StatusFlag::InterruptDisable>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
   }
 }

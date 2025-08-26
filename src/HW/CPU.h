@@ -57,7 +57,7 @@ protected:
   [[nodiscard]] uint8_t ReadFromMemory(Addr addr) const;
   void WriteToMemory(Addr addr, uint8_t value);
   void SetRegister(Register reg, uint8_t value);
-  void SetStatusFlag(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
+  void SetStatusFlagValue(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
   void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
 
   [[nodiscard]] const std::array<uint8_t, PROG_MEM_SIZE> &ProgramMemory() const { return m_program_memory; }
@@ -178,6 +178,16 @@ public:
     uint16_t address{0};
   };
 
+  template <StatusFlag FLAG> struct ClearStatusFlag : DecodedInstruction<ClearStatusFlag<FLAG>> {
+    ClearStatusFlag() : DecodedInstruction<ClearStatusFlag>{.size = 1, .cycles = 2} {}
+    void Apply(CPU &cpu) const;
+  };
+
+  template <StatusFlag FLAG> struct SetStatusFlag : DecodedInstruction<SetStatusFlag<FLAG>> {
+    SetStatusFlag() : DecodedInstruction<SetStatusFlag>{.size = 1, .cycles = 2} {}
+    void Apply(CPU &cpu) const;
+  };
+
   // clang-format off
   using Instruction = std::variant<
       Break,
@@ -254,12 +264,19 @@ public:
       // ...
       BitTest<AddressingMode::ZeroPage>,
       BitTest<AddressingMode::Absolute>,
+      ClearStatusFlag<StatusFlag::Carry>,
+      ClearStatusFlag<StatusFlag::DecimalMode>,
+      ClearStatusFlag<StatusFlag::InterruptDisable>,
+      ClearStatusFlag<StatusFlag::Overflow>,
       CompareRegister<Register::X, AddressingMode::Immediate>,
       CompareRegister<Register::X, AddressingMode::ZeroPage>,
       CompareRegister<Register::X, AddressingMode::Absolute>,
       CompareRegister<Register::Y, AddressingMode::Immediate>,
       CompareRegister<Register::Y, AddressingMode::ZeroPage>,
       CompareRegister<Register::Y, AddressingMode::Absolute>,
+      SetStatusFlag<StatusFlag::Carry>,
+      SetStatusFlag<StatusFlag::DecimalMode>,
+      SetStatusFlag<StatusFlag::InterruptDisable>,
       TransferRegisterTo<Register::A, Register::X>,
       TransferRegisterTo<Register::A, Register::Y>,
       TransferRegisterTo<Register::X, Register::A>,
@@ -291,8 +308,8 @@ inline void CPU::PullAccumulator::Apply(CPU &cpu) const {
   cpu.m_stack_pointer++;
   cpu.m_registers[Register::A] = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
 
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, (cpu.m_registers[Register::A] & 0x80) != 0);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, (cpu.m_registers[Register::A] & 0x80) != 0);
 }
 
 template <Conditional COND> inline void CPU::Branch<COND>::Apply(CPU &cpu) {
@@ -371,9 +388,9 @@ template <AddressingMode MODE> void CPU::BitTest<MODE>::Apply(CPU &cpu) const {
   }
 
   uint8_t result = cpu.m_registers[Register::A] & value;
-  cpu.SetStatusFlag(StatusFlag::Zero, result == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, value & 0b10000000);
-  cpu.SetStatusFlag(StatusFlag::Overflow, value & 0b01000000);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, result == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, value & 0b10000000);
+  cpu.SetStatusFlagValue(StatusFlag::Overflow, value & 0b01000000);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MODE>::Apply(CPU &cpu) const {
@@ -430,8 +447,8 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
                      magic_enum::enum_name(MODE)));
   }
 
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[REG] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, MODE>::Apply(CPU &cpu) const {
@@ -525,12 +542,12 @@ template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) con
 
   cpu.m_registers[Register::A] = result;
 
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
-  cpu.SetStatusFlag(StatusFlag::Carry, intermediate_result & 0x100);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, intermediate_result & 0x100);
   // Overflow if both operands are positive and result is negative, or both operands are negative and result is
   // positive.
-  cpu.SetStatusFlag(StatusFlag::Overflow, ((M ^ result) & (N ^ result) & 0x80) != 0);
+  cpu.SetStatusFlagValue(StatusFlag::Overflow, ((M ^ result) & (N ^ result) & 0x80) != 0);
 }
 
 template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const {
@@ -560,8 +577,8 @@ template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const
 
   cpu.m_registers[Register::A] = cpu.m_registers[Register::A] & value_to_and;
 
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
 }
 
 template <AddressingMode MODE> void CPU::ShiftLeft<MODE>::Apply(CPU &cpu) const {
@@ -598,25 +615,25 @@ template <AddressingMode MODE> void CPU::ShiftLeft<MODE>::Apply(CPU &cpu) const 
     TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
-  cpu.SetStatusFlag(StatusFlag::Negative, value_to_store & 0x80);
-  cpu.SetStatusFlag(StatusFlag::Zero, value_to_store == 0);
-  cpu.SetStatusFlag(StatusFlag::Carry, value_to_shift & 0x100);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_store & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, value_to_store == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, value_to_shift & 0x100);
 }
 
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
   cpu.m_registers[REG] += 1;
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[REG] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
 template <CPU::Register REG> void CPU::DecrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#DEX (or #DEY)
 
   cpu.m_registers[REG] -= 1;
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[REG] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
 template <CPU::Register SRCREG, CPU::Register DSTREG>
@@ -624,8 +641,8 @@ void CPU::TransferRegisterTo<SRCREG, DSTREG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX (or #TAY)
 
   cpu.m_registers[DSTREG] = cpu.m_registers[SRCREG];
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[DSTREG] == 0);
-  cpu.SetStatusFlag(StatusFlag::Negative, cpu.m_registers[DSTREG] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[DSTREG] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[DSTREG] & 0x80);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG, MODE>::Apply(CPU &cpu) const {
@@ -639,9 +656,17 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG,
     value_to_compare = cpu.ReadFromMemory(value);
   }
 
-  cpu.SetStatusFlag(StatusFlag::Carry, cpu.m_registers[REG] >= value_to_compare);
-  cpu.SetStatusFlag(StatusFlag::Zero, cpu.m_registers[REG] == value_to_compare);
-  cpu.SetStatusFlag(StatusFlag::Negative, (cpu.m_registers[REG] - value_to_compare) & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, cpu.m_registers[REG] >= value_to_compare);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[REG] == value_to_compare);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, (cpu.m_registers[REG] - value_to_compare) & 0x80);
+}
+
+template <CPU::StatusFlag FLAG> void CPU::ClearStatusFlag<FLAG>::Apply(CPU &cpu) const {
+  cpu.SetStatusFlagValue(FLAG, false);
+}
+
+template <CPU::StatusFlag FLAG> void CPU::SetStatusFlag<FLAG>::Apply(CPU &cpu) const {
+  cpu.SetStatusFlagValue(FLAG, true);
 }
 
 // Constructors

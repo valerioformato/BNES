@@ -15,7 +15,7 @@ class CPUMock : public CPU {
 public:
   using CPU::ReadFromMemory;
   using CPU::SetRegister;
-  using CPU::SetStatusFlag;
+  using CPU::SetStatusFlagValue;
   using CPU::StackPointer;
   using CPU::WriteToMemory;
 };
@@ -397,7 +397,7 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BNE instruction") {
       auto bne = CPU::Branch<Conditional::NotEqual>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
       cpu.RunInstruction(bne);
       THEN("The program counter should not change if Zero flag is set") {
         // Remember that the offset is relative to the byte after the current instruction
@@ -405,14 +405,14 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
       cpu.RunInstruction(bne);
       THEN("The program counter should change if Zero flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BNE + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
       bne.offset = -0x5;
       cpu.RunInstruction(bne);
       THEN("The program counter should go back if Zero flag is clear and offset is negative") {
@@ -423,7 +423,7 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BEQ instruction") {
       auto beq = CPU::Branch<Conditional::Equal>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
       cpu.RunInstruction(beq);
       THEN("The program counter should not change if Zero flag is clear") {
         // Remember that the offset is relative to the byte after the current instruction
@@ -431,14 +431,14 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
       cpu.RunInstruction(beq);
       THEN("The program counter should change if Zero flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BEQ + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
       beq.offset = -0x5;
       cpu.RunInstruction(beq);
       THEN("The program counter should go back if Zero flag is set and offset is negative") {
@@ -449,21 +449,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BCC instruction") {
       auto bcc = CPU::Branch<Conditional::CarryClear>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       cpu.RunInstruction(bcc);
       THEN("The program counter should not change if Carry flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
       cpu.RunInstruction(bcc);
       THEN("The program counter should change if Carry flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BCC + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
       bcc.offset = -0x5;
       cpu.RunInstruction(bcc);
       THEN("The program counter should go back if Carry flag is clear and offset is negative") {
@@ -474,21 +474,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BCS instruction") {
       auto bcs = CPU::Branch<Conditional::CarrySet>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
       cpu.RunInstruction(bcs);
       THEN("The program counter should not change if Carry flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       cpu.RunInstruction(bcs);
       THEN("The program counter should change if Carry flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BCS + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       bcs.offset = -0x5;
       cpu.RunInstruction(bcs);
       THEN("The program counter should go back if Carry flag is set and offset is negative") {
@@ -499,21 +499,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BMI instruction") {
       auto bmi = CPU::Branch<Conditional::Minus>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
       cpu.RunInstruction(bmi);
       THEN("The program counter should not change if Negative flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
       cpu.RunInstruction(bmi);
       THEN("The program counter should change if Negative flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BMI + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
       bmi.offset = -0x5;
       cpu.RunInstruction(bmi);
       THEN("The program counter should go back if Negative flag is set and offset is negative") {
@@ -524,21 +524,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BPL instruction") {
       auto bpl = CPU::Branch<Conditional::Positive>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
       cpu.RunInstruction(bpl);
       THEN("The program counter should not change if Negative flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
       cpu.RunInstruction(bpl);
       THEN("The program counter should change if Negative flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BPL + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
       bpl.offset = -0x5;
       cpu.RunInstruction(bpl);
       THEN("The program counter should go back if Negative flag is clear and offset is negative") {
@@ -549,21 +549,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BVC instruction") {
       auto bvc = CPU::Branch<Conditional::OverflowClear>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
       cpu.RunInstruction(bvc);
       THEN("The program counter should not change if Overflow flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
       cpu.RunInstruction(bvc);
       THEN("The program counter should change if Overflow flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BVC + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
       bvc.offset = -0x5;
       cpu.RunInstruction(bvc);
       THEN("The program counter should go back if Overflow flag is clear and offset is negative") {
@@ -574,21 +574,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BVS instruction") {
       auto bvs = CPU::Branch<Conditional::OverflowSet>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
       cpu.RunInstruction(bvs);
       THEN("The program counter should not change if Overflow flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
       cpu.RunInstruction(bvs);
       THEN("The program counter should change if Overflow flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BVS + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
       bvs.offset = -0x5;
       cpu.RunInstruction(bvs);
       THEN("The program counter should go back if Overflow flag is set and offset is negative") {
@@ -907,7 +907,7 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BNE instruction") {
       auto bne = CPU::Branch<Conditional::NotEqual>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
       cpu.RunInstruction(bne);
       THEN("The program counter should not change if Zero flag is set") {
         // Remember that the offset is relative to the byte after the current instruction
@@ -915,14 +915,14 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
       cpu.RunInstruction(bne);
       THEN("The program counter should change if Zero flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BNE + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
       bne.offset = -0x5;
       cpu.RunInstruction(bne);
       THEN("The program counter should go back if Zero flag is clear and offset is negative") {
@@ -933,7 +933,7 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BEQ instruction") {
       auto beq = CPU::Branch<Conditional::Equal>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
       cpu.RunInstruction(beq);
       THEN("The program counter should not change if Zero flag is clear") {
         // Remember that the offset is relative to the byte after the current instruction
@@ -941,14 +941,14 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
       cpu.RunInstruction(beq);
       THEN("The program counter should change if Zero flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BEQ + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
       beq.offset = -0x5;
       cpu.RunInstruction(beq);
       THEN("The program counter should go back if Zero flag is set and offset is negative") {
@@ -959,21 +959,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BCC instruction") {
       auto bcc = CPU::Branch<Conditional::CarryClear>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       cpu.RunInstruction(bcc);
       THEN("The program counter should not change if Carry flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
       cpu.RunInstruction(bcc);
       THEN("The program counter should change if Carry flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BCC + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
       bcc.offset = -0x5;
       cpu.RunInstruction(bcc);
       THEN("The program counter should go back if Carry flag is clear and offset is negative") {
@@ -984,21 +984,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BCS instruction") {
       auto bcs = CPU::Branch<Conditional::CarrySet>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
       cpu.RunInstruction(bcs);
       THEN("The program counter should not change if Carry flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       cpu.RunInstruction(bcs);
       THEN("The program counter should change if Carry flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BCS + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
       bcs.offset = -0x5;
       cpu.RunInstruction(bcs);
       THEN("The program counter should go back if Carry flag is set and offset is negative") {
@@ -1009,21 +1009,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BMI instruction") {
       auto bmi = CPU::Branch<Conditional::Minus>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
       cpu.RunInstruction(bmi);
       THEN("The program counter should not change if Negative flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
       cpu.RunInstruction(bmi);
       THEN("The program counter should change if Negative flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BMI + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
       bmi.offset = -0x5;
       cpu.RunInstruction(bmi);
       THEN("The program counter should go back if Negative flag is set and offset is negative") {
@@ -1034,21 +1034,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BPL instruction") {
       auto bpl = CPU::Branch<Conditional::Positive>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
       cpu.RunInstruction(bpl);
       THEN("The program counter should not change if Negative flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
       cpu.RunInstruction(bpl);
       THEN("The program counter should change if Negative flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BPL + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
       bpl.offset = -0x5;
       cpu.RunInstruction(bpl);
       THEN("The program counter should go back if Negative flag is clear and offset is negative") {
@@ -1059,21 +1059,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BVC instruction") {
       auto bvc = CPU::Branch<Conditional::OverflowClear>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
       cpu.RunInstruction(bvc);
       THEN("The program counter should not change if Overflow flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
       cpu.RunInstruction(bvc);
       THEN("The program counter should change if Overflow flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BVC + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
       bvc.offset = -0x5;
       cpu.RunInstruction(bvc);
       THEN("The program counter should go back if Overflow flag is clear and offset is negative") {
@@ -1084,21 +1084,21 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
     WHEN("We execute a BVS instruction") {
       auto bvs = CPU::Branch<Conditional::OverflowSet>{0x04};
 
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
       cpu.RunInstruction(bvs);
       THEN("The program counter should not change if Overflow flag is clear") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
       cpu.RunInstruction(bvs);
       THEN("The program counter should change if Overflow flag is set") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 6); // 2 bytes for BVS + 4 bytes for offset
       }
 
       original_program_counter = cpu.ProgramCounter();
-      cpu.SetStatusFlag(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
       bvs.offset = -0x5;
       cpu.RunInstruction(bvs);
       THEN("The program counter should go back if Overflow flag is set and offset is negative") {
@@ -1277,6 +1277,202 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       THEN("Third pull should get the first pushed value") {
         REQUIRE(cpu.Registers()[CPU::Register::A] == 0x11);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a CLC instruction") {
+      // Set the carry flag first to test clearing
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto clc_instr = CPU::ClearStatusFlag<CPU::StatusFlag::Carry>{};
+      cpu.RunInstruction(clc_instr);
+
+      THEN("The carry flag should be cleared") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already clear
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(clc_instr);
+
+      THEN("The carry flag should remain clear") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a CLD instruction") {
+      // Set the decimal mode flag first to test clearing
+      cpu.SetStatusFlagValue(CPU::StatusFlag::DecimalMode, true);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto cld_instr = CPU::ClearStatusFlag<CPU::StatusFlag::DecimalMode>{};
+      cpu.RunInstruction(cld_instr);
+
+      THEN("The decimal mode flag should be cleared") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already clear
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(cld_instr);
+
+      THEN("The decimal mode flag should remain clear") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a CLI instruction") {
+      // Set the interrupt disable flag first to test clearing
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, true);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto cli_instr = CPU::ClearStatusFlag<CPU::StatusFlag::InterruptDisable>{};
+      cpu.RunInstruction(cli_instr);
+
+      THEN("The interrupt disable flag should be cleared") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already clear
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(cli_instr);
+
+      THEN("The interrupt disable flag should remain clear") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a CLV instruction") {
+      // Set the overflow flag first to test clearing
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto clv_instr = CPU::ClearStatusFlag<CPU::StatusFlag::Overflow>{};
+      cpu.RunInstruction(clv_instr);
+
+      THEN("The overflow flag should be cleared") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already clear
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(clv_instr);
+
+      THEN("The overflow flag should remain clear") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a SEC instruction") {
+      // Clear the carry flag first to test setting
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto sec_instr = CPU::SetStatusFlag<CPU::StatusFlag::Carry>{};
+      cpu.RunInstruction(sec_instr);
+
+      THEN("The carry flag should be set") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already set
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(sec_instr);
+
+      THEN("The carry flag should remain set") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a SED instruction") {
+      // Clear the decimal mode flag first to test setting
+      cpu.SetStatusFlagValue(CPU::StatusFlag::DecimalMode, false);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto sed_instr = CPU::SetStatusFlag<CPU::StatusFlag::DecimalMode>{};
+      cpu.RunInstruction(sed_instr);
+
+      THEN("The decimal mode flag should be set") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already set
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(sed_instr);
+
+      THEN("The decimal mode flag should remain set") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a SEI instruction") {
+      // Clear the interrupt disable flag first to test setting
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, false);
+      original_program_counter = cpu.ProgramCounter();
+
+      auto sei_instr = CPU::SetStatusFlag<CPU::StatusFlag::InterruptDisable>{};
+      cpu.RunInstruction(sei_instr);
+
+      THEN("The interrupt disable flag should be set") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      // Test that it doesn't affect the flag if already set
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(sei_instr);
+
+      THEN("The interrupt disable flag should remain set") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute flag manipulation instructions in sequence") {
+      // Test that flag instructions don't interfere with each other
+      auto clc_instr = CPU::ClearStatusFlag<CPU::StatusFlag::Carry>{};
+      auto sec_instr = CPU::SetStatusFlag<CPU::StatusFlag::Carry>{};
+      auto cli_instr = CPU::ClearStatusFlag<CPU::StatusFlag::InterruptDisable>{};
+      auto sei_instr = CPU::SetStatusFlag<CPU::StatusFlag::InterruptDisable>{};
+
+      // Set up original state
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, true);
+      original_program_counter = cpu.ProgramCounter();
+
+      // Clear carry, clear interrupt disable
+      cpu.RunInstruction(clc_instr);
+      cpu.RunInstruction(cli_instr);
+
+      THEN("Both flags should be cleared independently") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Set carry, set interrupt disable
+      cpu.RunInstruction(sec_instr);
+      cpu.RunInstruction(sei_instr);
+
+      THEN("Both flags should be set independently") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
   }
