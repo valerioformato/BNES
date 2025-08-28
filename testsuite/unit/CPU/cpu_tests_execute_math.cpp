@@ -574,5 +574,92 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
       }
     }
+
+    WHEN("We execute a DEC zero-page instruction") {
+      // Setup memory for zero-page test
+      cpu.WriteToMemory(0x42, 0x02);
+
+      auto instr = CPU::Decrement<AddressingMode::ZeroPage>{0x42};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain the decremented value 0x01, with all flags clear") {
+        REQUIRE(cpu.ReadFromMemory(0x42) == 0x01);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x43, 0x01);
+      instr.address = 0x43;
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain 0x00, with zero flag set") {
+        REQUIRE(cpu.ReadFromMemory(0x43) == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x44, 0x00);
+      instr.address = 0x44;
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain 0xFF, with negative flag set") {
+        REQUIRE(cpu.ReadFromMemory(0x44) == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a DEC zero-page,X instruction") {
+      // Setup memory and X register for zero-page,X test
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x47, 0x80); // 0x42 + 0x05 = 0x47
+
+      auto instr = CPU::Decrement<AddressingMode::ZeroPageX>{0x42};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain the decremented value 0x7F, with all flags clear") {
+        REQUIRE(cpu.ReadFromMemory(0x47) == 0x7F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a DEC absolute instruction") {
+      // Setup memory for absolute test
+      cpu.WriteToMemory(0x0300, 0x81);
+
+      auto instr = CPU::Decrement<AddressingMode::Absolute>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain the decremented value 0x80, with negative flag set") {
+        REQUIRE(cpu.ReadFromMemory(0x0300) == 0x80);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a DEC absolute,X instruction") {
+      // Setup memory and X register for absolute,X test
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.WriteToMemory(0x0310, 0x10); // 0x0300 + 0x10 = 0x0310
+
+      auto instr = CPU::Decrement<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain the decremented value 0x0F, with all flags clear") {
+        REQUIRE(cpu.ReadFromMemory(0x0310) == 0x0F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
   }
 }

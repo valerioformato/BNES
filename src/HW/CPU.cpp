@@ -147,6 +147,14 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return DecrementRegister<Register::X>{};
   case OpCode::DEY:
     return DecrementRegister<Register::Y>{};
+  case OpCode::DEC_ZeroPage:
+    return Decrement<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::DEC_ZeroPageX:
+    return Decrement<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::DEC_Absolute:
+    return Decrement<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::DEC_AbsoluteX:
+    return Decrement<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   // Branch instructions
   case OpCode::BEQ:
     return Branch<Conditional::Equal>{int8_t(bytes[1])};
