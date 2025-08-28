@@ -155,6 +155,22 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return Decrement<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::DEC_AbsoluteX:
     return Decrement<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::EOR_Immediate:
+    return ExclusiveOR<AddressingMode::Immediate>{bytes[1]};
+  case OpCode ::EOR_ZeroPage:
+    return ExclusiveOR<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::EOR_ZeroPageX:
+    return ExclusiveOR<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::EOR_Absolute:
+    return ExclusiveOR<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::EOR_AbsoluteX:
+    return ExclusiveOR<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::EOR_AbsoluteY:
+    return ExclusiveOR<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::EOR_IndirectX:
+    return ExclusiveOR<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::EOR_IndirectY:
+    return ExclusiveOR<AddressingMode::IndirectY>{bytes[1]};
   // Branch instructions
   case OpCode::BEQ:
     return Branch<Conditional::Equal>{int8_t(bytes[1])};

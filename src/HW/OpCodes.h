@@ -87,6 +87,14 @@ enum class OpCode : uint8_t {
   DEC_AbsoluteX = 0xDE,   // Decrement Memory (DEC) Absolute,X
   DEX = 0xCA,             // Increment X Register
   DEY = 0x88,             // Increment X Register
+  EOR_Immediate = 0x49,   // Exclusive OR (EOR) Immediate
+  EOR_ZeroPage = 0x45,    // Exclusive OR (EOR) Zero Page
+  EOR_ZeroPageX = 0x55,   // Exclusive OR (EOR) Zero Page,X
+  EOR_Absolute = 0x4D,    // Exclusive OR (EOR) Absolute
+  EOR_AbsoluteX = 0x5D,   // Exclusive OR (EOR) Absolute,X
+  EOR_AbsoluteY = 0x59,   // Exclusive OR (EOR) Absolute,Y
+  EOR_IndirectX = 0x41,   // Exclusive OR (EOR) (Indirect,X)
+  EOR_IndirectY = 0x51,   // Exclusive OR (EOR) (Indirect),Y
 
   // Branch instructions
   BEQ = 0xF0,          // Branch if Equal (BEQ)

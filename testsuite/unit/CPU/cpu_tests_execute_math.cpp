@@ -661,5 +661,194 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
       }
     }
+
+    WHEN("We execute a EOR immediate instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::Immediate>{0x0F};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result 0xF0, with negative flag set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xF0);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0xAA);
+      instr.value = 0xAA;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00, with zero flag set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x55);
+      instr.value = 0xAA;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0xFF, with negative flag set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x7F);
+      instr.value = 0x00;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x7F, with both zero and negative flags clear") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x7F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a EOR zero-page instruction") {
+      // Setup memory for zero-page test
+      cpu.WriteToMemory(0x42, 0x0F);
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::ZeroPage>{0x42};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from memory") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xF0);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x43, 0x55);
+      cpu.SetRegister(CPU::Register::A, 0x55);
+      instr.value = 0x43;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00, with zero flag set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a EOR zero-page,X instruction") {
+      // Setup memory and X register for zero-page,X test
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x47, 0x3C); // 0x42 + 0x05 = 0x47
+      cpu.SetRegister(CPU::Register::A, 0xC3);
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::ZeroPageX>{0x42};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from zero-page,X") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a EOR absolute instruction") {
+      // Setup memory for absolute test
+      cpu.WriteToMemory(0x0300, 0x81);
+      cpu.SetRegister(CPU::Register::A, 0x01);
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::Absolute>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from memory with negative flag set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x80);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a EOR absolute,X instruction") {
+      // Setup memory and X register for absolute,X test
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x0305, 0x40); // 0x0300 + 0x05 = 0x0305
+      cpu.SetRegister(CPU::Register::A, 0x02);
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from absolute,X") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x42);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a EOR absolute,Y instruction") {
+      // Setup memory and Y register for absolute,Y test
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+      cpu.WriteToMemory(0x0305, 0x7E); // 0x0300 + 0x05 = 0x0305
+      cpu.SetRegister(CPU::Register::A, 0x01);
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::AbsoluteY>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from absolute,Y") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x7F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
+    WHEN("We execute a EOR indirect,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x0F);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+
+      // Set up indirect addressing: pointer at 0x25 (0x20 + 0x05) points to 0x0300
+      cpu.WriteToMemory(0x25, 0x00);   // Low byte of target address
+      cpu.WriteToMemory(0x26, 0x03);   // High byte of target address
+      cpu.WriteToMemory(0x0300, 0xF0); // Value at target address
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::IndirectX>{0x20};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from indirect,X") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
+
+    WHEN("We execute a EOR indirect,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x33);
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+
+      // Set up indirect addressing: pointer at 0x20 points to 0x0300, then add Y
+      cpu.WriteToMemory(0x20, 0x00);   // Low byte of base address
+      cpu.WriteToMemory(0x21, 0x03);   // High byte of base address
+      cpu.WriteToMemory(0x0305, 0xCC); // Value at target address (0x0300 + 0x05)
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::IndirectY>{0x20};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the XOR result from indirect,Y") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+      }
+    }
   }
 }
