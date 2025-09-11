@@ -598,5 +598,69 @@ SCENARIO("6502 instruction decoding tests (math ops)") {
         REQUIRE(decoded_instruction.value == 0x20);
       }
     }
+
+    WHEN("We try to decode an INC zero-page instruction") {
+      std::vector<uint8_t> bytes = {0xE6, 0x42}; // INC $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Increment<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode an INC zero-page,X instruction") {
+      std::vector<uint8_t> bytes = {0xF6, 0x42}; // INC $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Increment<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode an INC absolute instruction") {
+      std::vector<uint8_t> bytes = {0xEE, 0x00, 0x03}; // INC $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Increment<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode an INC absolute,X instruction") {
+      std::vector<uint8_t> bytes = {0xFE, 0x00, 0x03}; // INC $0300,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::Increment<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
   }
 }

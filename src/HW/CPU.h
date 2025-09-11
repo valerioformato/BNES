@@ -123,6 +123,15 @@ public:
     void Apply(CPU &cpu) const;
   };
 
+  template <AddressingMode MODE> struct Increment : DecodedInstruction<Increment<MODE>> {
+    Increment() = delete;
+    explicit Increment(uint16_t addr);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   template <Register REG> struct DecrementRegister : DecodedInstruction<DecrementRegister<REG>> {
     DecrementRegister() : DecodedInstruction<DecrementRegister>{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
@@ -266,6 +275,10 @@ public:
       ShiftLeft<AddressingMode::AbsoluteX>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
+      Increment<AddressingMode::ZeroPage>,
+      Increment<AddressingMode::ZeroPageX>,
+      Increment<AddressingMode::Absolute>,
+      Increment<AddressingMode::AbsoluteX>,
       DecrementRegister<Register::X>,
       DecrementRegister<Register::Y>,
       Decrement<AddressingMode::ZeroPage>,
@@ -666,6 +679,28 @@ template <CPU::Register REG> void CPU::DecrementRegister<REG>::Apply(CPU &cpu) c
   cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
 }
 
+template <AddressingMode MODE> void CPU::Increment<MODE>::Apply(CPU &cpu) const {
+  uint8_t value_to_write = 0;
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_write = cpu.ReadFromMemory(address & 0xFF) + 1;
+    cpu.WriteToMemory(address & 0xFF, value_to_write);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_write = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF) + 1;
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_write);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_write = cpu.ReadFromMemory(address) + 1;
+    cpu.WriteToMemory(address, value_to_write);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_write = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]) + 1;
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_write);
+  } else {
+    TODO(fmt::format("Increment<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlagValue(StatusFlag::Zero, value_to_write == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_write & 0x80);
+}
+
 template <AddressingMode MODE> void CPU::Decrement<MODE>::Apply(CPU &cpu) const {
   uint8_t value_to_write = 0;
   if constexpr (MODE == AddressingMode::ZeroPage) {
@@ -791,6 +826,26 @@ template <CPU::Register REG, AddressingMode MODE> CPU::StoreRegister<REG, MODE>:
     this->cycles = 5; // Store to indexed absolute always takes 5 cycles
   } else if constexpr (MODE == AddressingMode::IndirectX || MODE == AddressingMode::IndirectY) {
     this->cycles = 6;
+  }
+
+  address = addr;
+}
+
+template <AddressingMode MODE> CPU::Increment<MODE>::Increment(uint16_t addr) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    this->size = 3;
+    this->cycles = 7;
+  } else {
+    std::unreachable();
   }
 
   address = addr;

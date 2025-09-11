@@ -79,6 +79,10 @@ enum class OpCode : uint8_t {
   ASL_ZeroPageX = 0x16,   // Arithmetic Shift Left (ASL) Zero Page,X
   ASL_Absolute = 0x0E,    // Arithmetic Shift Left (ASL) Absolute
   ASL_AbsoluteX = 0x1E,   // Arithmetic Shift Left (ASL) Absolute,X
+  INC_ZeroPage = 0xE6,    // Increment Memory (INC) Zero Page
+  INC_ZeroPageX = 0xF6,   // Increment Memory (INC) Zero Page,X
+  INC_Absolute = 0xEE,    // Increment Memory (INC) Absolute
+  INC_AbsoluteX = 0xFE,   // Increment Memory (INC) Absolute,X
   INX = 0xE8,             // Increment X Register
   INY = 0xC8,             // Increment X Register
   DEC_ZeroPage = 0xC6,    // Decrement Memory (DEC) Zero Page
