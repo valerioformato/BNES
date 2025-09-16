@@ -49,6 +49,8 @@ public:
     return {};
   }
 
+  void SetRenderScale(float scale_x, float scale_y) const { SDL_SetRenderScale(m_renderer, scale_x, scale_y); }
+
 private:
   WindowHandle(SDL_Window *window, SDL_Renderer *renderer) : m_window(window), m_renderer(renderer) {}
 

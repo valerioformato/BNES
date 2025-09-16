@@ -27,6 +27,8 @@ public:
     return *this;
   }
 
+  void SetScaleMode(SDL_ScaleMode scale_mode) const { SDL_SetTextureScaleMode(m_texture, scale_mode); }
+
   void Render(SDL_Renderer *renderer, const SDL_FRect *dest = nullptr);
 
   [[nodiscard]] SDL_Texture *Get() const { return m_texture; }

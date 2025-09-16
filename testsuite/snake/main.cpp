@@ -47,6 +47,9 @@ int main() {
   }
   auto &texture = maybe_texture.value();
 
+  window_handle.SetRenderScale(10.0f, 10.0f);
+  texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST); // Pixelated scaling
+
   // The quit flag
   bool quit{false};
 
@@ -56,6 +59,9 @@ int main() {
 
   BNES::HW::CPU cpu;
   cpu.LoadProgram(program);
+
+  unsigned int x{0};
+  unsigned int y{0};
 
   // The main loop
   while (quit == false) {
@@ -70,13 +76,13 @@ int main() {
       }
     }
 
-    // texture.Buffer().WritePixel(x, y, BNES::SDL::Pixel{255, 0, 0, 255}); // Write a red pixel
-    // ++x;
-    // if (x >= texture.Buffer().Width()) {
-    //   x = 0;
-    //   ++y;
-    // }
-    // texture.Update();
+    texture.Buffer().WritePixel(x, y, BNES::SDL::Pixel{255, 0, 0, 255}); // Write a red pixel
+    ++x;
+    if (x >= texture.Buffer().Width()) {
+      x = 0;
+      ++y;
+    }
+    texture.Update();
 
     // Set a blue background to distinguish from black texture
     SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 255, 255);
