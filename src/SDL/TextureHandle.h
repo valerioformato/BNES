@@ -60,7 +60,7 @@ inline ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buff
   result.m_buffer = std::move(buffer);
   result.m_texture = texture;
 
-  return std::move(result);
+  return result;
 }
 } // namespace BNES::SDL
 

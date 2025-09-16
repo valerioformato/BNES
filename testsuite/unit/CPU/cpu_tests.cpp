@@ -32,7 +32,7 @@ SCENARIO("6502 initialization") {
     }
 
     WHEN("We try loading an empty program") {
-      REQUIRE(cpu.LoadProgram(std::vector<uint8_t>{}).has_value());
+      REQUIRE(cpu.LoadProgram({}).has_value());
       THEN("Program memory is empty") {
         REQUIRE(std::ranges::none_of(cpu.ProgramMemory(), [](auto byte) { return byte > 0; }));
       }

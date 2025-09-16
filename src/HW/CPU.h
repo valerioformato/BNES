@@ -29,7 +29,7 @@ public:
   static constexpr size_t STACK_MEM_SIZE = 2048;
   static constexpr size_t PROG_MEM_SIZE = 32767;
 
-  ErrorOr<void> LoadProgram(std::vector<uint8_t> program);
+  ErrorOr<void> LoadProgram(std::span<const uint8_t> program);
 
   // Helper functions to inspect the state of the CPU
   [[nodiscard]] EnumArray<uint8_t, Register> Registers() const { return m_registers; };
