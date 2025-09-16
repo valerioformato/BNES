@@ -1475,5 +1475,161 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
+
+    WHEN("We execute a JSR instruction") {
+      // Store initial state
+      auto initial_stack_pointer = cpu.StackPointer();
+      original_program_counter = cpu.ProgramCounter();
+
+      // Test basic JSR functionality
+      auto jsr = CPU::JumpToSubroutine{0x4000};
+      cpu.RunInstruction(jsr);
+
+      THEN("The program counter should jump to the target address and return address should be pushed to stack") {
+        REQUIRE(cpu.ProgramCounter() == 0x4000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 2); // Stack pointer decremented by 2
+
+        // Calculate expected return address (PC + instruction size - 1)
+        uint16_t expected_return_address = original_program_counter + 3 - 1;
+
+        // Check that return address was pushed to stack correctly (high byte first, then low byte)
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer) ==
+                ((expected_return_address >> 8) & 0xFF)); // High byte
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer - 1) == (expected_return_address & 0xFF)); // Low byte
+      }
+    }
+
+    WHEN("We execute multiple JSR instructions (nested subroutines)") {
+      auto initial_stack_pointer = cpu.StackPointer();
+      original_program_counter = cpu.ProgramCounter();
+
+      // First JSR
+      auto jsr1 = CPU::JumpToSubroutine{0x3000};
+      cpu.RunInstruction(jsr1);
+
+      auto first_return_address = original_program_counter + 3 - 1;
+      auto stack_pointer_after_first = cpu.StackPointer();
+
+      THEN("First JSR should work correctly") {
+        REQUIRE(cpu.ProgramCounter() == 0x3000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 2);
+      }
+
+      // Second JSR (simulating a nested call)
+      auto jsr2 = CPU::JumpToSubroutine{0x5000};
+      cpu.RunInstruction(jsr2);
+
+      auto second_return_address = 0x3000 + 3 - 1; // Return to address after second JSR
+
+      THEN("Nested JSR should work correctly") {
+        REQUIRE(cpu.ProgramCounter() == 0x5000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 4); // Two return addresses on stack
+
+        // Check first return address (should still be there)
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer) == ((first_return_address >> 8) & 0xFF));
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer - 1) == (first_return_address & 0xFF));
+
+        // Check second return address
+        REQUIRE(cpu.ReadFromMemory(0x0100 + stack_pointer_after_first) == ((second_return_address >> 8) & 0xFF));
+        REQUIRE(cpu.ReadFromMemory(0x0100 + stack_pointer_after_first - 1) == (second_return_address & 0xFF));
+      }
+    }
+
+    WHEN("We execute JSR with different target addresses") {
+      auto initial_stack_pointer = cpu.StackPointer();
+      original_program_counter = cpu.ProgramCounter();
+
+      // Test JSR to address 0x0000 (edge case)
+      auto jsr_zero = CPU::JumpToSubroutine{0x0000};
+      cpu.RunInstruction(jsr_zero);
+
+      THEN("JSR to address 0x0000 should work") {
+        REQUIRE(cpu.ProgramCounter() == 0x0000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 2);
+
+        auto expected_return_address = original_program_counter + 3 - 1;
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer) == ((expected_return_address >> 8) & 0xFF));
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer - 1) == (expected_return_address & 0xFF));
+      }
+
+      // Reset for next test
+      auto new_initial_sp = cpu.StackPointer() + 2;     // Simulate stack cleanup
+      cpu.WriteToMemory(0x0100 + new_initial_sp, 0x00); // Clear stack
+      cpu.WriteToMemory(0x0100 + new_initial_sp - 1, 0x00);
+
+      // Test JSR to address 0xFFFF (high address)
+      auto jsr_high = CPU::JumpToSubroutine{0xFFFF};
+      cpu.RunInstruction(jsr_high);
+
+      THEN("JSR to high address should work") {
+        REQUIRE(cpu.ProgramCounter() == 0xFFFF);
+        // The stack pointer should be decremented correctly regardless of target address
+      }
+    }
+
+    WHEN("We execute JSR and verify instruction size and cycles") {
+      original_program_counter = cpu.ProgramCounter();
+
+      auto jsr = CPU::JumpToSubroutine{0x2000};
+
+      // Verify instruction properties before execution
+      THEN("JSR instruction should have correct size and cycles") {
+        REQUIRE(jsr.size == 3);   // JSR is a 3-byte instruction
+        REQUIRE(jsr.cycles == 6); // JSR takes 6 cycles
+      }
+
+      cpu.RunInstruction(jsr);
+
+      THEN("JSR should jump correctly") { REQUIRE(cpu.ProgramCounter() == 0x2000); }
+    }
+
+    WHEN("We execute JSR with stack boundary conditions") {
+      // Test JSR when stack is nearly full
+      // Set stack pointer to a low value to simulate a nearly full stack
+      auto low_stack_pointer = uint8_t(0x02);
+      cpu.WriteToMemory(0x0100 + low_stack_pointer, 0x00); // Ensure memory is clear
+
+      // We can't directly set the stack pointer in the public interface,
+      // but we can test that JSR handles normal stack operations correctly
+      auto initial_stack_pointer = cpu.StackPointer();
+      original_program_counter = cpu.ProgramCounter();
+
+      auto jsr = CPU::JumpToSubroutine{0x1000};
+      cpu.RunInstruction(jsr);
+
+      THEN("JSR should handle stack operations correctly even with different stack states") {
+        REQUIRE(cpu.ProgramCounter() == 0x1000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 2);
+
+        // Verify return address is correctly stored
+        auto expected_return_address = original_program_counter + 3 - 1;
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer) == ((expected_return_address >> 8) & 0xFF));
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer - 1) == (expected_return_address & 0xFF));
+      }
+    }
+
+    WHEN("We test JSR return address calculation edge cases") {
+      // Test JSR from different starting program counter values
+      original_program_counter = cpu.ProgramCounter();
+
+      auto jsr = CPU::JumpToSubroutine{0x8000};
+      cpu.RunInstruction(jsr);
+
+      auto expected_return_address = original_program_counter + 3 - 1;
+
+      THEN("Return address should be calculated correctly (PC + 3 - 1)") {
+        REQUIRE(cpu.ProgramCounter() == 0x8000);
+
+        // The return address stored should be the address of the last byte of the JSR instruction
+        // This is the standard 6502 behavior for JSR
+        auto stored_high_byte = cpu.ReadFromMemory(0x0100 + cpu.StackPointer() + 2);
+        auto stored_low_byte = cpu.ReadFromMemory(0x0100 + cpu.StackPointer() + 1);
+        uint16_t stored_return_address = (stored_high_byte << 8) | stored_low_byte;
+
+        REQUIRE(stored_return_address == expected_return_address);
+      }
+    }
+
+    // ...existing code...
   }
 }

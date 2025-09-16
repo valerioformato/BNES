@@ -111,6 +111,7 @@ enum class OpCode : uint8_t {
   BVS = 0x70,          // Branch if Overflow Set (BVS)
   JMP_Absolute = 0x4C, // Jump Absolute (JMP)
   JMP_Indirect = 0x6C, // Jump Indirect (JMP)
+  JSR = 0x20,          // Jump to Subroutine (JSR)
 
   // Other Instructions
   BIT_ZeroPage = 0x24,  // Bit Test Zero Page

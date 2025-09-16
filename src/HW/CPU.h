@@ -174,7 +174,7 @@ public:
   template <Conditional COND> struct Branch : DecodedInstruction<Branch<COND>> {
     Branch() = delete;
     explicit Branch(int8_t offset_) : DecodedInstruction<Branch>{.size = 2, .cycles = 2}, offset(offset_) {}
-    inline void Apply(CPU &cpu);
+    void Apply(CPU &cpu);
 
     int8_t offset{0}; // in branch instruction the offset is always signed
   };
@@ -183,6 +183,14 @@ public:
     Jump() = delete;
     explicit Jump(uint16_t addr);
     void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
+  struct JumpToSubroutine : DecodedInstruction<JumpToSubroutine> {
+    JumpToSubroutine() = delete;
+    explicit JumpToSubroutine(uint16_t addr) : DecodedInstruction{.size = 3, .cycles = 6}, address(addr) {}
+    inline void Apply(CPU &cpu) const;
 
     uint16_t address{0};
   };
@@ -304,6 +312,7 @@ public:
       Branch<Conditional::OverflowClear>,
       Jump<AddressingMode::Absolute>,
       Jump<AddressingMode::Indirect>,
+      JumpToSubroutine,
       // ...
       BitTest<AddressingMode::ZeroPage>,
       BitTest<AddressingMode::Absolute>,
@@ -412,11 +421,24 @@ template <AddressingMode MODE> void CPU::Jump<MODE>::Apply(CPU &cpu) const {
     TODO(fmt::format("Jump<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
-  // FIXME: JMP is the only instruction that can change the program counter directly.
-  //        Executing the instruction will update the program counter right after.
-  //        We need to offset it manually here so that the final value is the one provided.
-  //        This is a bit of a hack, but it works for now.
-  cpu.m_program_counter = target_address - this->size;
+  cpu.m_program_counter = target_address;
+}
+
+inline void CPU::JumpToSubroutine::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#JSR
+
+  Addr target_address{0};
+  target_address = address;
+
+  // Push the return address (address of the next instruction - 1) onto the stack
+  uint16_t return_address = cpu.m_program_counter + size - 1;
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, (return_address >> 8) & 0xFF); // Push high byte
+  cpu.m_stack_pointer--;
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, return_address & 0xFF); // Push low byte
+  cpu.m_stack_pointer--;
+
+  // Jump to the target address
+  cpu.m_program_counter = target_address;
 }
 
 template <AddressingMode MODE> void CPU::BitTest<MODE>::Apply(CPU &cpu) const {

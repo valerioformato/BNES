@@ -200,6 +200,8 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return Jump<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::JMP_Indirect:
     return Jump<AddressingMode::Indirect>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::JSR:
+    return JumpToSubroutine{uint16_t(bytes[2] << 8 | bytes[1])};
   // ...
   case OpCode::BIT_ZeroPage:
     return BitTest<AddressingMode::ZeroPage>{bytes[1]};
@@ -245,8 +247,13 @@ void CPU::RunInstruction(Instruction &&instr) {
         // Run the instruction on the CPU
         instruction.Apply(*this);
 
-        // Advance the program counter by the size of the instruction
-        m_program_counter += instruction.size;
+        if constexpr (!(std::is_same_v<std::decay_t<decltype(instruction)>, JumpToSubroutine> ||
+                        std::is_same_v<std::decay_t<decltype(instruction)>, Jump<AddressingMode::Absolute>> ||
+                        std::is_same_v<std::decay_t<decltype(instruction)>, Jump<AddressingMode::Indirect>>)) {
+          // Advance the program counter by the size of the instruction
+          // We avoid this for jump instructions, since they directly modify the program counter
+          m_program_counter += instruction.size;
+        }
       },
       instr);
 }

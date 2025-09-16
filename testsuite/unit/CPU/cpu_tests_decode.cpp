@@ -509,6 +509,22 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
       }
     }
 
+    WHEN("We try to decode a JSR instruction") {
+      std::vector<uint8_t> bytes = {0x20, 0x00, 0x30}; // JSR $3000
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::JumpToSubroutine;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x3000);
+      }
+    }
+
     WHEN("We try to decode a CLC instruction") {
       std::vector<uint8_t> bytes = {0x18}; // CLC
       auto instruction = cpu.DecodeInstruction(bytes);
