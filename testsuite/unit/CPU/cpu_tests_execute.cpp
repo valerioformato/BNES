@@ -1630,6 +1630,90 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       }
     }
 
-    // ...existing code...
+    WHEN("We execute a RTS instruction") {
+      // Test complete JSR/RTS cycle
+      auto jsr_instr = CPU::JumpToSubroutine{0x3000};
+      auto rts_instr = CPU::ReturnFromSubroutine{};
+      auto initial_pc = cpu.ProgramCounter();
+      auto initial_stack_pointer = cpu.StackPointer();
+      // Execute JSR to set up stack
+      cpu.RunInstruction(jsr_instr);
+      REQUIRE(cpu.ProgramCounter() == 0x3000);
+      auto stack_after_jsr = cpu.StackPointer();
+      // Now execute RTS
+      cpu.RunInstruction(rts_instr);
+      THEN("RTS should restore return address from stack and update program counter") {
+        REQUIRE(cpu.StackPointer() == stack_after_jsr + 2); // Stack pointer restored
+        REQUIRE(cpu.ProgramCounter() == initial_pc + 3);    // Return to after JSR instruction
+      }
+    }
+
+    WHEN("We execute multiple JSR/RTS pairs (nested subroutines)") {
+      // Test nested subroutine calls
+      auto initial_pc = cpu.ProgramCounter();
+      auto initial_stack_pointer = cpu.StackPointer();
+      auto jsr1 = CPU::JumpToSubroutine{0x3000};
+      auto jsr2 = CPU::JumpToSubroutine{0x4000};
+      auto rts1 = CPU::ReturnFromSubroutine{};
+      auto rts2 = CPU::ReturnFromSubroutine{};
+      // First JSR
+      cpu.RunInstruction(jsr1);
+      THEN("First JSR should work correctly") {
+        REQUIRE(cpu.ProgramCounter() == 0x3000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 2);
+      }
+      // Second JSR (nested call)
+      cpu.RunInstruction(jsr2);
+      THEN("Second JSR should work correctly") {
+        REQUIRE(cpu.ProgramCounter() == 0x4000);
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 4); // Two return addresses on stack
+      }
+      // First RTS (return from inner subroutine)
+      cpu.RunInstruction(rts1);
+      THEN("First RTS should return to outer subroutine") {
+        REQUIRE(cpu.ProgramCounter() == 0x3000 + jsr2.size);      // Return to after second JSR in first subroutine
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 2); // One return address remains
+      }
+      // Second RTS (return from outer subroutine)
+      cpu.RunInstruction(rts2);
+      THEN("Second RTS should return to main program") {
+        REQUIRE(cpu.ProgramCounter() == initial_pc + jsr1.size); // Return to after first JSR
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer);    // Stack fully restored
+      }
+    }
+
+    WHEN("We execute RTS with different return addresses") {
+      // Test RTS with various return address values
+      struct TestCase {
+        uint16_t target_addr;
+        const char *description;
+      };
+      std::vector<TestCase> test_cases = {
+          {0x8100, "Low program address"}, {0x9000, "Mid program address"}, {0xA000, "High program address"}};
+      for (const auto &test_case : test_cases) {
+        auto jsr_instr = CPU::JumpToSubroutine{test_case.target_addr};
+        auto rts_instr = CPU::ReturnFromSubroutine{};
+        auto initial_pc = cpu.ProgramCounter();
+        // Execute JSR to target address
+        cpu.RunInstruction(jsr_instr);
+        REQUIRE(cpu.ProgramCounter() == test_case.target_addr);
+
+        // Execute RTS
+        cpu.RunInstruction(rts_instr);
+
+        THEN(std::string("RTS should work with ") + test_case.description) {
+          REQUIRE(cpu.ProgramCounter() == initial_pc + 3); // Return to after JSR
+        }
+      }
+    }
+
+    WHEN("We execute RTS and verify instruction properties") {
+      auto rts_instr = CPU::ReturnFromSubroutine{};
+
+      THEN("RTS instruction should have correct size and cycles") {
+        REQUIRE(rts_instr.size == 1);   // RTS is a 1-byte instruction
+        REQUIRE(rts_instr.cycles == 6); // RTS takes 6 cycles
+      }
+    }
   }
 }

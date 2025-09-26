@@ -407,6 +407,86 @@ SCENARIO("6502 instruction decoding tests (math ops)") {
       }
     }
 
+    WHEN("We try to decode a LSR accumulator instruction") {
+      std::vector<uint8_t> bytes = {0x4A}; // LSR A
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRight<AddressingMode::Accumulator>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+        REQUIRE(decoded_instruction.address == 0x00);
+      }
+    }
+
+    WHEN("We try to decode a LSR zero-page instruction") {
+      std::vector<uint8_t> bytes = {0x46, 0x42}; // LSR $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRight<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a LSR zero-page,X instruction") {
+      std::vector<uint8_t> bytes = {0x56, 0x42}; // LSR $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRight<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a LSR absolute instruction") {
+      std::vector<uint8_t> bytes = {0x4E, 0x00, 0x03}; // LSR $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRight<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a LSR absolute,X instruction") {
+      std::vector<uint8_t> bytes = {0x5E, 0x00, 0x03}; // LSR $0300,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRight<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
+
     WHEN("We try to decode a DEC zero-page instruction") {
       std::vector<uint8_t> bytes = {0xC6, 0x42}; // DEC $42
       auto instruction = cpu.DecodeInstruction(bytes);

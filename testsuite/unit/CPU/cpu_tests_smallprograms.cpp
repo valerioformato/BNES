@@ -15,12 +15,12 @@ public:
   using CPU::NonMaskableInterrupt;
   using CPU::ProgramMemory;
   using CPU::ReadFromMemory;
+  using CPU::SetProgramStartAddress;
   using CPU::SetRegister;
   using CPU::WriteToMemory;
 };
 
 void SimpleRun(CPUMock &cpu) {
-  // Run the program
   while (true) {
     std::span bytes(std::next(cpu.ProgramMemory().begin(), cpu.ProgramCounter() - 0x8000), 3ul);
     try {
@@ -141,7 +141,11 @@ SCENARIO("6502 code execution (small test programs)") {
 
     WHEN("We run a test program") {
       auto program = GENERATE(from_range(programs));
+
       REQUIRE(cpu.LoadProgram(program.code).has_value());
+      cpu.SetProgramStartAddress(0x8000);
+
+      cpu.Init();
 
       REQUIRE_NOTHROW(SimpleRun(cpu));
 

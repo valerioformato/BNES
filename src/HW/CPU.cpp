@@ -139,6 +139,16 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return ShiftLeft<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::ASL_AbsoluteX:
     return ShiftLeft<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::LSR_Accumulator:
+    return ShiftRight<AddressingMode::Accumulator>{0};
+  case OpCode::LSR_ZeroPage:
+    return ShiftRight<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::LSR_ZeroPageX:
+    return ShiftRight<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::LSR_Absolute:
+    return ShiftRight<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::LSR_AbsoluteX:
+    return ShiftRight<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::INC_ZeroPage:
     return Increment<AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::INC_ZeroPageX:
@@ -229,6 +239,10 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return CompareRegister<Register::Y, AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::CPY_Absolute:
     return CompareRegister<Register::Y, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::CMP_Immediate:
+    return CompareRegister<Register::A, AddressingMode::Immediate>{bytes[1]};
+  case OpCode::CMP_ZeroPage:
+    return CompareRegister<Register::A, AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::SEC:
     return SetStatusFlag<StatusFlag::Carry>{};
   case OpCode::SED:

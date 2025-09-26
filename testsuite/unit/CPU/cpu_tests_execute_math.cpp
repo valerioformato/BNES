@@ -816,6 +816,105 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
       }
     }
 
+    WHEN("We execute a LSR accumulator instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x40);
+
+      auto instr = CPU::ShiftRight<AddressingMode::Accumulator>{0x00};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the shifted value 0x80, with negative flag set and zero,carry flags clear") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x20);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x01);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00, with zero and carry flags set, negative flag clear") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x7E);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x3F, with all flags clear") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x3F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x3);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x01, with carry flags set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x01);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+      }
+    }
+
+    WHEN("We execute a LSR zero-page instruction") {
+      // Setup memory for zero-page test
+      cpu.WriteToMemory(0x42, 0x40);
+
+      auto instr = CPU::ShiftRight<AddressingMode::ZeroPage>{0x42};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain the shifted value 0x20") {
+        REQUIRE(cpu.ReadFromMemory(0x42) == 0x20);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.WriteToMemory(0x43, 0x01);
+      instr.address = 0x43;
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain 0x00, with zero and carry flags set") {
+        REQUIRE(cpu.ReadFromMemory(0x43) == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+      }
+    }
+
+    WHEN("We execute a LSR absolute instruction") {
+      // Setup memory for absolute test
+      cpu.WriteToMemory(0x0300, 0x7E);
+
+      auto instr = CPU::ShiftRight<AddressingMode::Absolute>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain the shifted value 0x3F, with all flags clear") {
+        REQUIRE(cpu.ReadFromMemory(0x0300) == 0x3F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+    }
+
     WHEN("We execute a EOR immediate instruction") {
       cpu.SetRegister(CPU::Register::A, 0xFF);
 

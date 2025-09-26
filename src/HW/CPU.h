@@ -129,6 +129,15 @@ public:
     uint16_t address{0};
   };
 
+  template <AddressingMode MODE> struct ShiftRight : DecodedInstruction {
+    ShiftRight() = delete;
+    explicit ShiftRight(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   template <Register REG> struct IncrementRegister : DecodedInstruction {
     IncrementRegister() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
@@ -296,6 +305,11 @@ public:
       ShiftLeft<AddressingMode::ZeroPageX>,
       ShiftLeft<AddressingMode::Absolute>,
       ShiftLeft<AddressingMode::AbsoluteX>,
+      ShiftRight<AddressingMode::Accumulator>,
+      ShiftRight<AddressingMode::ZeroPage>,
+      ShiftRight<AddressingMode::ZeroPageX>,
+      ShiftRight<AddressingMode::Absolute>,
+      ShiftRight<AddressingMode::AbsoluteX>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       Increment<AddressingMode::ZeroPage>,
@@ -342,6 +356,14 @@ public:
       CompareRegister<Register::Y, AddressingMode::Immediate>,
       CompareRegister<Register::Y, AddressingMode::ZeroPage>,
       CompareRegister<Register::Y, AddressingMode::Absolute>,
+      CompareRegister<Register::A, AddressingMode::Immediate>,
+      CompareRegister<Register::A, AddressingMode::ZeroPage>,
+      CompareRegister<Register::A, AddressingMode::ZeroPageX>,
+      CompareRegister<Register::A, AddressingMode::Absolute>,
+      CompareRegister<Register::A, AddressingMode::AbsoluteX>,
+      CompareRegister<Register::A, AddressingMode::AbsoluteY>,
+      CompareRegister<Register::A, AddressingMode::IndirectX>,
+      CompareRegister<Register::A, AddressingMode::IndirectY>,
       SetStatusFlag<StatusFlag::Carry>,
       SetStatusFlag<StatusFlag::DecimalMode>,
       SetStatusFlag<StatusFlag::InterruptDisable>,
@@ -690,7 +712,7 @@ template <AddressingMode MODE> void CPU::ShiftLeft<MODE>::Apply(CPU &cpu) const 
   } else if constexpr (MODE == AddressingMode::AbsoluteX) {
     value_to_shift = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]);
   } else {
-    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+    TODO(fmt::format("ShiftLeft<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
   value_to_shift = value_to_shift << 1;
@@ -708,12 +730,49 @@ template <AddressingMode MODE> void CPU::ShiftLeft<MODE>::Apply(CPU &cpu) const 
   } else if constexpr (MODE == AddressingMode::AbsoluteX) {
     cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_store);
   } else {
-    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+    TODO(fmt::format("ShiftLeft<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
   cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_store & 0x80);
   cpu.SetStatusFlagValue(StatusFlag::Zero, value_to_store == 0);
   cpu.SetStatusFlagValue(StatusFlag::Carry, value_to_shift & 0x100);
+}
+
+template <AddressingMode MODE> void CPU::ShiftRight<MODE>::Apply(CPU &cpu) const {
+  uint16_t value_to_shift = 0;
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    value_to_shift = cpu.m_registers[Register::A];
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_shift = cpu.ReadFromMemory(address & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_shift = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_shift = cpu.ReadFromMemory(address);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_shift = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]);
+  } else {
+    TODO(fmt::format("ShiftRight<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  uint8_t value_to_store = (value_to_shift >> 1) & 0xFF;
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    cpu.m_registers[Register::A] = value_to_store;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    cpu.WriteToMemory(address & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    cpu.WriteToMemory(address, value_to_store);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_store);
+  } else {
+    TODO(fmt::format("ShiftRight<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_store & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, value_to_store == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, value_to_shift & 0x1);
 }
 
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
@@ -949,6 +1008,29 @@ template <AddressingMode MODE> CPU::LogicalAND<MODE>::LogicalAND(uint16_t _value
 }
 
 template <AddressingMode MODE> CPU::ShiftLeft<MODE>::ShiftLeft(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    this->size = 1;
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    this->size = 3;
+    this->cycles = 7;
+  } else {
+    std::unreachable();
+  }
+
+  address = _value;
+}
+
+template <AddressingMode MODE> CPU::ShiftRight<MODE>::ShiftRight(uint16_t _value) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Accumulator) {

@@ -79,6 +79,11 @@ enum class OpCode : uint8_t {
   ASL_ZeroPageX = 0x16,   // Arithmetic Shift Left (ASL) Zero Page,X
   ASL_Absolute = 0x0E,    // Arithmetic Shift Left (ASL) Absolute
   ASL_AbsoluteX = 0x1E,   // Arithmetic Shift Left (ASL) Absolute,X
+  LSR_Accumulator = 0x4A, // Logical Shift Right (LSR) Accumulator
+  LSR_ZeroPage = 0x46,    // Logical Shift Right (LSR) Zero Page
+  LSR_ZeroPageX = 0x56,   // Logical Shift Right (LSR) Zero Page,X
+  LSR_Absolute = 0x04E,   // Logical Shift Right (LSR) Absolute
+  LSR_AbsoluteX = 0x5E,   // Logical Shift Right (LSR) Absolute,X
   INC_ZeroPage = 0xE6,    // Increment Memory (INC) Zero Page
   INC_ZeroPageX = 0xF6,   // Increment Memory (INC) Zero Page,X
   INC_Absolute = 0xEE,    // Increment Memory (INC) Absolute
@@ -127,6 +132,14 @@ enum class OpCode : uint8_t {
   CPY_Immediate = 0xC0, // Compare Y Register Immediate
   CPY_ZeroPage = 0xC4,  // Compare Y Register Zero Page
   CPY_Absolute = 0xCC,  // Compare Y Register Absolute
+  CMP_Immediate = 0xC9, // Compare Accumulator Immediate
+  CMP_ZeroPage = 0xC5,  // Compare Accumulator Zero Page
+  CMP_ZeroPageX = 0xD5, // Compare Accumulator Zero Page,X
+  CMP_Absolute = 0xCD,  // Compare Accumulator Absolute
+  CMP_AbsoluteX = 0xDD, // Compare Accumulator Absolute,X
+  CMP_AbsoluteY = 0xD9, // Compare Accumulator Absolute,Y
+  CMP_IndirectX = 0xC1, // Compare Accumulator (Indirect,X)
+  CMP_IndirectY = 0xD1, // Compare Accumulator (Indirect),Y
   SEC = 0x38,           // Set Carry Flag
   SED = 0xF8,           // Set Decimal Flag
   SEI = 0x78,           // Set Interrupt Disable
