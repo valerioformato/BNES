@@ -84,6 +84,11 @@ public:
     inline void Apply([[maybe_unused]] CPU &cpu) const;
   };
 
+  struct NoOperation : DecodedInstruction {
+    NoOperation() : DecodedInstruction{.size = 1, .cycles = 2} {}
+    void Apply([[maybe_unused]] CPU &cpu) const {};
+  };
+
   template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction {
     LoadRegister() = delete;
     explicit LoadRegister(uint16_t);
@@ -373,7 +378,9 @@ public:
       TransferRegisterTo<Register::Y, Register::A>,
       // Stack
       PushAccumulator,
-      PullAccumulator
+      PullAccumulator,
+      //
+      NoOperation
       >;
   // clang-format on
 

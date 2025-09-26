@@ -249,6 +249,8 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return SetStatusFlag<StatusFlag::DecimalMode>{};
   case OpCode::SEI:
     return SetStatusFlag<StatusFlag::InterruptDisable>{};
+  case OpCode::NOP:
+    return NoOperation{};
   default:
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }

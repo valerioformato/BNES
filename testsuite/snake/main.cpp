@@ -7,6 +7,30 @@
 #include "SDL/Init.h"
 #include "SDL/WindowHandle.h"
 
+class SnakeCPU : public BNES::HW::CPU {
+public:
+  using CPU::ReadFromMemory;
+  using CPU::SetProgramStartAddress;
+  using CPU::WriteToMemory;
+
+  BNES::ErrorOr<void> LoadProgram(std::span<const uint8_t> program) {
+    uint16_t start_address = 0x600;
+    for (const auto &byte : program) {
+      WriteToMemory(start_address++, byte);
+    }
+
+    return {};
+  }
+
+  void RunOneInstruction() {
+    std::array<uint8_t, 3> bytes{};
+    for (size_t i = 0; i < 3; ++i) {
+      bytes[i] = ReadFromMemory(ProgramCounter() + i);
+    }
+    RunInstruction(DecodeInstruction(bytes));
+  }
+};
+
 int main() {
   constexpr std::array<uint8_t, 309> program = {
       0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9, 0x02, 0x85, 0x02, 0xa9, 0x04,
@@ -29,6 +53,7 @@ int main() {
 
   auto clock = std::chrono::high_resolution_clock{};
   auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
+  auto cpu_freq = std::chrono::duration<double>(1.0f / 17900000.0f); // 1.79 MHz
 
   // Initialize SDL
   if (auto result = BNES::SDL::Init(); !result) {
@@ -57,11 +82,49 @@ int main() {
   SDL_Event e;
   SDL_zero(e);
 
-  BNES::HW::CPU cpu;
+  SnakeCPU cpu;
   cpu.LoadProgram(program);
+  cpu.SetProgramStartAddress(0x600);
+  cpu.Init();
 
   unsigned int x{0};
   unsigned int y{0};
+
+  auto update_video_buffer = [&cpu](BNES::SDL::Buffer &target_buffer) {
+    auto buffer_pixels = target_buffer.Pixels();
+
+    std::ranges::generate(buffer_pixels, [&cpu]() mutable {
+      constexpr uint16_t start_address{0x200};
+      uint16_t addr = start_address;
+
+      switch (cpu.ReadFromMemory(addr++)) {
+      case 0:
+        return BNES::SDL::Pixel{0, 0, 0, 255}; // Black
+      case 1:
+        return BNES::SDL::Pixel{255, 255, 255, 255}; // White
+      case 2:
+      case 9:
+        return BNES::SDL::Pixel{128, 128, 128, 255}; // Gray
+      case 3:
+      case 10:
+        return BNES::SDL::Pixel{255, 0, 0, 255}; // Red
+      case 4:
+      case 11:
+        return BNES::SDL::Pixel{0, 255, 0, 255}; // Green
+      case 5:
+      case 12:
+        return BNES::SDL::Pixel{0, 0, 255, 255}; // Blue
+      case 6:
+      case 13:
+        return BNES::SDL::Pixel{255, 0, 255, 255}; // Magenta
+      case 7:
+      case 14:
+        return BNES::SDL::Pixel{255, 255, 0, 255}; // Yellow
+      default:
+        return BNES::SDL::Pixel{0, 255, 255, 255}; // Cyan
+      };
+    });
+  };
 
   // The main loop
   while (quit == false) {
@@ -76,12 +139,10 @@ int main() {
       }
     }
 
-    texture.Buffer().WritePixel(x, y, BNES::SDL::Pixel{255, 0, 0, 255}); // Write a red pixel
-    ++x;
-    if (x >= texture.Buffer().Width()) {
-      x = 0;
-      ++y;
-    }
+    cpu.RunOneInstruction();
+
+    update_video_buffer(texture.Buffer());
+
     texture.Update();
 
     // Set a blue background to distinguish from black texture
@@ -93,7 +154,7 @@ int main() {
     SDL_RenderPresent(window_handle.Renderer());
 
     // lock 60 fps for now
-    std::this_thread::sleep_for(frame_duration - (clock.now() - begin));
+    std::this_thread::sleep_for(cpu_freq - (clock.now() - begin));
   }
 
   // Clean up

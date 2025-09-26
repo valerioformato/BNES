@@ -4,9 +4,6 @@
 
 #include "Buffer.h"
 
-#include <ranges>
-#include <span>
-
 namespace BNES::SDL {
 
 Buffer::Buffer(const Buffer &other) : m_data(SDL_CreateSurface(other.m_data->w, other.m_data->h, Pixel::FORMAT)) {
@@ -27,8 +24,17 @@ ErrorOr<void> Buffer::WritePixel(uint32_t x, uint32_t y, Pixel pixel) {
     return make_error(std::make_error_code(std::errc::invalid_argument), "Pixel coordinates out of bounds");
   }
 
-  const std::span<Pixel> pixels(reinterpret_cast<Pixel *>(m_data->pixels), m_data->w * m_data->h);
-  pixels[idx] = pixel;
+  m_pixels[idx] = pixel;
+
+  return {};
+}
+
+ErrorOr<void> Buffer::WritePixel(uint32_t idx, Pixel pixel) {
+  if (idx > (m_data->w * m_data->h)) {
+    return make_error(std::make_error_code(std::errc::invalid_argument), "Pixel coordinates out of bounds");
+  }
+
+  m_pixels[idx] = pixel;
 
   return {};
 }

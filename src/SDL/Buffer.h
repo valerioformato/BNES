@@ -7,6 +7,7 @@
 
 #include "SDL/Media.h"
 
+#include <span>
 #include <vector>
 
 namespace BNES::SDL {
@@ -41,13 +42,20 @@ public:
   SurfaceHandle AsSurface() { return SurfaceHandle{m_data, true}; };
 
   ErrorOr<void> WritePixel(uint32_t x, uint32_t y, Pixel pixel);
+  ErrorOr<void> WritePixel(uint32_t index, Pixel pixel);
+
+  [[nodiscard]] std::span<const Pixel> Pixels() const { return m_pixels; }
+  [[nodiscard]] std::span<Pixel> Pixels() { return m_pixels; }
 
 private:
-  explicit Buffer(SDL_Surface *data) : m_data{data} {}
+  explicit Buffer(SDL_Surface *data)
+      : m_data{data},
+        m_pixels{reinterpret_cast<Pixel *>(m_data->pixels), static_cast<unsigned long long>(m_data->w * m_data->h)} {}
 
   size_t PixelIndex(uint32_t x, uint32_t y) const;
 
   SDL_Surface *m_data{nullptr};
+  std::span<Pixel> m_pixels;
 };
 
 ErrorOr<Buffer> MakeBuffer(uint32_t width, uint32_t height);
