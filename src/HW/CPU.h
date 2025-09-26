@@ -27,7 +27,7 @@ public:
   };
 
   static constexpr size_t STACK_MEM_SIZE = 2048;
-  static constexpr size_t PROG_MEM_SIZE = 32767;
+  static constexpr size_t PROG_MEM_SIZE = 0x8000;
 
   ErrorOr<void> LoadProgram(std::span<const uint8_t> program);
 
@@ -38,9 +38,15 @@ public:
   [[nodiscard]] std::bitset<8> StatusFlags() const { return m_status; }
   [[nodiscard]] bool TestStatusFlag(StatusFlag flag) const { return m_status.test(static_cast<size_t>(flag)); }
 
+  void Init() {
+    m_program_counter =
+        ReadFromMemory(ProgramStartAddressPointer) | (ReadFromMemory(ProgramStartAddressPointer + 1) << 8);
+  }
+
 private:
   static constexpr Addr StackBaseAddress{0x0100}; // Base address for the stack
   static constexpr Addr ProgramBaseAddress{0x8000};
+  static constexpr Addr ProgramStartAddressPointer{0xFFFC};
 
   EnumArray<uint8_t, Register> m_registers{}; // Array to hold CPU registers A, X, and Y
   std::bitset<8> m_status{0x00};              // Status register (flags)
@@ -60,20 +66,25 @@ protected:
   void SetStatusFlagValue(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
   void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
 
+  void SetProgramStartAddress(Addr addr) {
+    m_program_memory[ProgramStartAddressPointer - ProgramBaseAddress] = addr & 0xFF;
+    m_program_memory[ProgramStartAddressPointer - ProgramBaseAddress + 1] = (addr >> 8) & 0xFF;
+  }
+
   [[nodiscard]] const std::array<uint8_t, PROG_MEM_SIZE> &ProgramMemory() const { return m_program_memory; }
 
 public:
-  template <typename Type> struct DecodedInstruction {
+  struct DecodedInstruction {
     uint8_t size;
     uint8_t cycles;
   };
 
-  struct Break : DecodedInstruction<Break> {
+  struct Break : DecodedInstruction {
     Break() : DecodedInstruction{.size = 1, .cycles = 7} {}
     inline void Apply([[maybe_unused]] CPU &cpu) const;
   };
 
-  template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction<LoadRegister<REG, MODE>> {
+  template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction {
     LoadRegister() = delete;
     explicit LoadRegister(uint16_t);
 
@@ -82,7 +93,7 @@ public:
     uint16_t value{0};
   };
 
-  template <Register REG, AddressingMode MODE> struct StoreRegister : DecodedInstruction<StoreRegister<REG, MODE>> {
+  template <Register REG, AddressingMode MODE> struct StoreRegister : DecodedInstruction {
     StoreRegister() = delete;
     explicit StoreRegister(uint16_t addr);
 
@@ -91,7 +102,7 @@ public:
     uint16_t address{0};
   };
 
-  template <AddressingMode MODE> struct AddWithCarry : DecodedInstruction<AddWithCarry<MODE>> {
+  template <AddressingMode MODE> struct AddWithCarry : DecodedInstruction {
     AddWithCarry() = delete;
     explicit AddWithCarry(uint16_t);
 
@@ -100,7 +111,7 @@ public:
     uint16_t value{0};
   };
 
-  template <AddressingMode MODE> struct LogicalAND : DecodedInstruction<LogicalAND<MODE>> {
+  template <AddressingMode MODE> struct LogicalAND : DecodedInstruction {
     LogicalAND() = delete;
     explicit LogicalAND(uint16_t);
 
@@ -109,7 +120,7 @@ public:
     uint16_t value{0};
   };
 
-  template <AddressingMode MODE> struct ShiftLeft : DecodedInstruction<ShiftLeft<MODE>> {
+  template <AddressingMode MODE> struct ShiftLeft : DecodedInstruction {
     ShiftLeft() = delete;
     explicit ShiftLeft(uint16_t);
 
@@ -118,12 +129,12 @@ public:
     uint16_t address{0};
   };
 
-  template <Register REG> struct IncrementRegister : DecodedInstruction<IncrementRegister<REG>> {
-    IncrementRegister() : DecodedInstruction<IncrementRegister>{.size = 1, .cycles = 2} {}
+  template <Register REG> struct IncrementRegister : DecodedInstruction {
+    IncrementRegister() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
-  template <AddressingMode MODE> struct Increment : DecodedInstruction<Increment<MODE>> {
+  template <AddressingMode MODE> struct Increment : DecodedInstruction {
     Increment() = delete;
     explicit Increment(uint16_t addr);
 
@@ -132,12 +143,12 @@ public:
     uint16_t address{0};
   };
 
-  template <Register REG> struct DecrementRegister : DecodedInstruction<DecrementRegister<REG>> {
-    DecrementRegister() : DecodedInstruction<DecrementRegister>{.size = 1, .cycles = 2} {}
+  template <Register REG> struct DecrementRegister : DecodedInstruction {
+    DecrementRegister() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
-  template <AddressingMode MODE> struct Decrement : DecodedInstruction<Decrement<MODE>> {
+  template <AddressingMode MODE> struct Decrement : DecodedInstruction {
     Decrement() = delete;
     explicit Decrement(uint16_t addr);
 
@@ -146,7 +157,7 @@ public:
     uint16_t address{0};
   };
 
-  template <Register REG, AddressingMode MODE> struct CompareRegister : DecodedInstruction<CompareRegister<REG, MODE>> {
+  template <Register REG, AddressingMode MODE> struct CompareRegister : DecodedInstruction {
     CompareRegister() = delete;
     explicit CompareRegister(uint16_t);
 
@@ -155,31 +166,30 @@ public:
     uint16_t value{0};
   };
 
-  template <Register SRCREG, Register DSTREG>
-  struct TransferRegisterTo : DecodedInstruction<TransferRegisterTo<SRCREG, DSTREG>> {
-    TransferRegisterTo() : DecodedInstruction<TransferRegisterTo>{.size = 1, .cycles = 2} {}
+  template <Register SRCREG, Register DSTREG> struct TransferRegisterTo : DecodedInstruction {
+    TransferRegisterTo() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
-  struct PushAccumulator : DecodedInstruction<PushAccumulator> {
+  struct PushAccumulator : DecodedInstruction {
     PushAccumulator() : DecodedInstruction{.size = 1, .cycles = 3} {}
     inline void Apply(CPU &cpu) const;
   };
 
-  struct PullAccumulator : DecodedInstruction<PullAccumulator> {
+  struct PullAccumulator : DecodedInstruction {
     PullAccumulator() : DecodedInstruction{.size = 1, .cycles = 4} {}
     inline void Apply(CPU &cpu) const;
   };
 
-  template <Conditional COND> struct Branch : DecodedInstruction<Branch<COND>> {
+  template <Conditional COND> struct Branch : DecodedInstruction {
     Branch() = delete;
-    explicit Branch(int8_t offset_) : DecodedInstruction<Branch>{.size = 2, .cycles = 2}, offset(offset_) {}
+    explicit Branch(int8_t offset_) : DecodedInstruction{.size = 2, .cycles = 2}, offset(offset_) {}
     void Apply(CPU &cpu);
 
     int8_t offset{0}; // in branch instruction the offset is always signed
   };
 
-  template <AddressingMode MODE> struct Jump : DecodedInstruction<Jump<MODE>> {
+  template <AddressingMode MODE> struct Jump : DecodedInstruction {
     Jump() = delete;
     explicit Jump(uint16_t addr);
     void Apply(CPU &cpu) const;
@@ -187,7 +197,7 @@ public:
     uint16_t address{0};
   };
 
-  struct JumpToSubroutine : DecodedInstruction<JumpToSubroutine> {
+  struct JumpToSubroutine : DecodedInstruction {
     JumpToSubroutine() = delete;
     explicit JumpToSubroutine(uint16_t addr) : DecodedInstruction{.size = 3, .cycles = 6}, address(addr) {}
     inline void Apply(CPU &cpu) const;
@@ -195,7 +205,12 @@ public:
     uint16_t address{0};
   };
 
-  template <AddressingMode MODE> struct BitTest : DecodedInstruction<BitTest<MODE>> {
+  struct ReturnFromSubroutine : DecodedInstruction {
+    ReturnFromSubroutine() : DecodedInstruction{.size = 1, .cycles = 6} {}
+    inline void Apply(CPU &cpu) const;
+  };
+
+  template <AddressingMode MODE> struct BitTest : DecodedInstruction {
     BitTest() = delete;
     explicit BitTest(uint16_t addr);
 
@@ -204,17 +219,17 @@ public:
     uint16_t address{0};
   };
 
-  template <StatusFlag FLAG> struct ClearStatusFlag : DecodedInstruction<ClearStatusFlag<FLAG>> {
-    ClearStatusFlag() : DecodedInstruction<ClearStatusFlag>{.size = 1, .cycles = 2} {}
+  template <StatusFlag FLAG> struct ClearStatusFlag : DecodedInstruction {
+    ClearStatusFlag() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
-  template <StatusFlag FLAG> struct SetStatusFlag : DecodedInstruction<SetStatusFlag<FLAG>> {
-    SetStatusFlag() : DecodedInstruction<SetStatusFlag>{.size = 1, .cycles = 2} {}
+  template <StatusFlag FLAG> struct SetStatusFlag : DecodedInstruction {
+    SetStatusFlag() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
   };
 
-  template <AddressingMode MODE> struct ExclusiveOR : DecodedInstruction<ExclusiveOR<MODE>> {
+  template <AddressingMode MODE> struct ExclusiveOR : DecodedInstruction {
     ExclusiveOR() = delete;
     explicit ExclusiveOR(uint16_t);
 
@@ -313,6 +328,7 @@ public:
       Jump<AddressingMode::Absolute>,
       Jump<AddressingMode::Indirect>,
       JumpToSubroutine,
+      ReturnFromSubroutine,
       // ...
       BitTest<AddressingMode::ZeroPage>,
       BitTest<AddressingMode::Absolute>,
@@ -439,6 +455,21 @@ inline void CPU::JumpToSubroutine::Apply(CPU &cpu) const {
 
   // Jump to the target address
   cpu.m_program_counter = target_address;
+}
+
+inline void CPU::ReturnFromSubroutine::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#RTS
+
+  // Pull the return address from the stack
+  cpu.m_stack_pointer++;
+  uint8_t low_byte = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
+  cpu.m_stack_pointer++;
+  uint8_t high_byte = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
+
+  uint16_t return_address = (high_byte << 8) | low_byte;
+
+  // Set the program counter to the return address + 1
+  cpu.m_program_counter = return_address + 1;
 }
 
 template <AddressingMode MODE> void CPU::BitTest<MODE>::Apply(CPU &cpu) const {

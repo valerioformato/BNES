@@ -112,6 +112,7 @@ enum class OpCode : uint8_t {
   JMP_Absolute = 0x4C, // Jump Absolute (JMP)
   JMP_Indirect = 0x6C, // Jump Indirect (JMP)
   JSR = 0x20,          // Jump to Subroutine (JSR)
+  RTS = 0x60,          // Return from Subroutine (RTS)
 
   // Other Instructions
   BIT_ZeroPage = 0x24,  // Bit Test Zero Page
