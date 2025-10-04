@@ -7,6 +7,11 @@
 #include "SDL/Init.h"
 #include "SDL/WindowHandle.h"
 
+#include <algorithm>
+#include <iostream>
+#ifndef _MSC_VER
+#include <cxxabi.h>
+#endif
 class SnakeCPU : public BNES::HW::CPU {
 public:
   using CPU::ReadFromMemory;
@@ -23,12 +28,28 @@ public:
   }
 
   void RunOneInstruction() {
+    static constexpr auto cpu_freq = std::chrono::duration<double>(1.0f / 17900000.0f); // 1.79 MHz
+
+    // update the RNG at address $FE
+    WriteToMemory(0xFE, std::rand() % 256);
+
     std::array<uint8_t, 3> bytes{};
     for (size_t i = 0; i < 3; ++i) {
       bytes[i] = ReadFromMemory(ProgramCounter() + i);
     }
-    RunInstruction(DecodeInstruction(bytes));
+    auto instr = DecodeInstruction(bytes);
+    auto instr_disass = DisassembleInstruction(instr);
+    auto instr_cycles = std::visit([](auto &arg) { return arg.cycles; }, instr);
+    spdlog::debug("A: {:02X} X: {:02X} Y: {:02X} SP: {:02X} Status: {}", Registers()[Register::A],
+                  Registers()[Register::X], Registers()[Register::Y], StackPointer(), StatusFlags().to_string());
+    spdlog::debug("PC: {:04X} Opcode: {:02X} Instruction: {}", ProgramCounter(), bytes[0], instr_disass);
+
+    RunInstruction(std::move(instr));
+
+    std::this_thread::sleep_for(cpu_freq * instr_cycles * instruction_slowdown);
   }
+
+  double instruction_slowdown{1.0};
 };
 
 int main() {
@@ -51,9 +72,10 @@ int main() {
       0x91, 0x00, 0x60, 0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10, 0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60, 0xa2, 0x00, 0xea,
       0xea, 0xca, 0xd0, 0xfb, 0x60};
 
+  spdlog::set_level(spdlog::level::debug);
+
   auto clock = std::chrono::high_resolution_clock{};
-  auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
-  auto cpu_freq = std::chrono::duration<double>(1.0f / 17900000.0f); // 1.79 MHz
+  static constexpr auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
 
   // Initialize SDL
   if (auto result = BNES::SDL::Init(); !result) {
@@ -86,6 +108,8 @@ int main() {
   cpu.LoadProgram(program);
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();
+
+  cpu.instruction_slowdown = 10.0;
 
   unsigned int x{0};
   unsigned int y{0};
@@ -127,6 +151,7 @@ int main() {
   };
 
   // The main loop
+  std::chrono::time_point<std::chrono::system_clock> last_frame_update_time = clock.now();
   while (quit == false) {
     auto begin = clock.now();
 
@@ -141,20 +166,25 @@ int main() {
 
     cpu.RunOneInstruction();
 
-    update_video_buffer(texture.Buffer());
+    if (begin - last_frame_update_time > frame_duration) {
+      update_video_buffer(texture.Buffer());
 
-    texture.Update();
+      texture.Update();
 
-    // Set a blue background to distinguish from black texture
-    SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 255, 255);
-    SDL_RenderClear(window_handle.Renderer());
+      // Set a blue background to distinguish from black texture
+      SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 255, 255);
+      SDL_RenderClear(window_handle.Renderer());
 
-    texture.Render(window_handle.Renderer());
+      texture.Render(window_handle.Renderer());
 
-    SDL_RenderPresent(window_handle.Renderer());
+      SDL_RenderPresent(window_handle.Renderer());
+      last_frame_update_time = clock.now();
 
-    // lock 60 fps for now
-    std::this_thread::sleep_for(cpu_freq - (clock.now() - begin));
+      spdlog::debug("new frame!");
+    }
+
+    // or wait until we press enter
+    // std::cin.get();
   }
 
   // Clean up

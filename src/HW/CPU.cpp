@@ -277,6 +277,93 @@ void CPU::RunInstruction(Instruction &&instr) {
       instr);
 }
 
+std::string CPU::DisassembleInstruction(const Instruction &instr) {
+  return std::visit(
+      Utils::overloaded{
+          [](const Break &) -> std::string { return "BRK"; },
+          []<Register REG, AddressingMode MODE>(const LoadRegister<REG, MODE> _inst) {
+            return fmt::format("LD{} {} {:02X}", magic_enum::enum_name(REG), magic_enum::enum_name(MODE), _inst.value);
+          },
+          []<Register REG, AddressingMode MODE>(const StoreRegister<REG, MODE> _inst) {
+            return fmt::format("ST{} {} {:02X}", magic_enum::enum_name(REG), magic_enum::enum_name(MODE),
+                               _inst.address);
+          },
+          []<Register SRC, Register DST>(const TransferRegisterTo<SRC, DST> &) {
+            return fmt::format("T{}{}", magic_enum::enum_name(SRC), magic_enum::enum_name(DST));
+          },
+          [](const PushAccumulator &) -> std::string { return "PHA"; },
+          [](const PullAccumulator &) -> std::string { return "PLA"; },
+          []<AddressingMode MODE>(const AddWithCarry<MODE> _inst) {
+            return fmt::format("ADC {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
+          },
+          []<AddressingMode MODE>(const LogicalAND<MODE> _inst) {
+            return fmt::format("AND {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
+          },
+          []<AddressingMode MODE>(const ShiftLeft<MODE> _inst) {
+            return fmt::format("ASL {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
+          },
+          []<AddressingMode MODE>(const ShiftRight<MODE> _inst) {
+            return fmt::format("LSR {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
+          },
+          []<AddressingMode MODE>(const Increment<MODE> _inst) {
+            return fmt::format("INC {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
+          },
+          [](const IncrementRegister<Register::X> &) -> std::string { return "INX"; },
+          [](const IncrementRegister<Register::Y> &) -> std::string { return "INY"; },
+          [](const DecrementRegister<Register::X> &) -> std::string { return "DEX"; },
+          [](const DecrementRegister<Register::Y> &) -> std::string { return "DEY"; },
+          []<AddressingMode MODE>(const Decrement<MODE> _inst) {
+            return fmt::format("DEC {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
+          },
+          []<AddressingMode MODE>(const ExclusiveOR<MODE> _inst) {
+            return fmt::format("EOR {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
+          },
+          []<Conditional COND>(const Branch<COND> _inst) {
+            return fmt::format("B{} {:02X}", magic_enum::enum_name(COND), _inst.offset);
+          },
+          []<AddressingMode MODE>(const Jump<MODE> _inst) {
+            return fmt::format("JMP {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
+          },
+          [](const JumpToSubroutine &inst) { return fmt::format("JSR {:02X}", inst.address); },
+          [](const ReturnFromSubroutine &) -> std::string { return "RTS"; },
+          []<AddressingMode MODE>(const BitTest<MODE> _inst) {
+            return fmt::format("BIT {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
+          },
+          []<StatusFlag FLAG>(const ClearStatusFlag<FLAG> &) -> std::string {
+            switch (FLAG) {
+            case StatusFlag::Carry:
+              return "CLC";
+            case StatusFlag::DecimalMode:
+              return "CLD";
+            case StatusFlag::InterruptDisable:
+              return "CLI";
+            case StatusFlag::Overflow:
+              return "CLV";
+            default:
+              return "CL?"; // Unknown flag
+            }
+          },
+          []<StatusFlag FLAG>(const SetStatusFlag<FLAG> &) -> std::string {
+            switch (FLAG) {
+            case StatusFlag::Carry:
+              return "SEC";
+            case StatusFlag::DecimalMode:
+              return "SED";
+            case StatusFlag::InterruptDisable:
+              return "SEI";
+            default:
+              return "SE?"; // Unknown flag
+            }
+          },
+          []<Register REG, AddressingMode MODE>(const CompareRegister<REG, MODE> _inst) {
+            return fmt::format("CP{} {} {:02X}", magic_enum::enum_name(REG), magic_enum::enum_name(MODE), _inst.value);
+          },
+          [](const NoOperation &) -> std::string { return "NOP"; },
+          [](const auto &) -> std::string { return "Unimplemented disassembly"; },
+      },
+      instr);
+}
+
 uint8_t CPU::ReadFromMemory(Addr addr) const {
   if (addr < m_ram_memory.size()) {
     return m_ram_memory[addr];

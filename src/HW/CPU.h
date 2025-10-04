@@ -386,6 +386,7 @@ public:
 
   [[nodiscard]] Instruction DecodeInstruction(std::span<const uint8_t> bytes) const;
   void RunInstruction(Instruction &&instr);
+  static std::string DisassembleInstruction(const Instruction &instr);
 };
 
 inline void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {
