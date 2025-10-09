@@ -20,6 +20,8 @@ struct Pixel {
   uint8_t a{255}; // Default alpha to fully opaque
 };
 
+std::string format_as(Pixel pixel);
+
 class Buffer {
   friend ErrorOr<Buffer> MakeBuffer(uint32_t width, uint32_t height);
 
@@ -28,11 +30,17 @@ public:
   ~Buffer() { SDL_DestroySurface(m_data); }
 
   Buffer(const Buffer &);
-  Buffer(Buffer &&other) noexcept : m_data(other.m_data) { other.m_data = nullptr; }
+  Buffer(Buffer &&other) noexcept : m_data(other.m_data), m_pixels(other.m_pixels) {
+    other.m_data = nullptr;
+    other.m_pixels = {};
+  }
+
   Buffer &operator=(const Buffer &);
   Buffer &operator=(Buffer &&other) noexcept {
     m_data = other.m_data;
+    m_pixels = other.m_pixels;
     other.m_data = nullptr;
+    other.m_pixels = {};
     return *this;
   }
 
@@ -48,9 +56,9 @@ public:
   [[nodiscard]] std::span<Pixel> Pixels() { return m_pixels; }
 
 private:
-  explicit Buffer(SDL_Surface *data)
-      : m_data{data},
-        m_pixels{reinterpret_cast<Pixel *>(m_data->pixels), static_cast<unsigned long long>(m_data->w * m_data->h)} {}
+  explicit Buffer(SDL_Surface *data) : m_data{data} {
+    m_pixels = std::span<Pixel>(reinterpret_cast<Pixel *>(m_data->pixels), static_cast<size_t>(m_data->w * m_data->h));
+  }
 
   size_t PixelIndex(uint32_t x, uint32_t y) const;
 

@@ -117,10 +117,12 @@ int main() {
   auto update_video_buffer = [&cpu](BNES::SDL::Buffer &target_buffer) {
     auto buffer_pixels = target_buffer.Pixels();
 
-    std::ranges::generate(buffer_pixels, [&cpu]() mutable {
-      constexpr uint16_t start_address{0x200};
-      uint16_t addr = start_address;
+    spdlog::debug("Updating video buffer...");
+    spdlog::debug("Buffer size: {}x{} ({} pixels)", target_buffer.Width(), target_buffer.Height(),
+                  buffer_pixels.size());
 
+    static constexpr uint16_t start_address{0x200};
+    std::ranges::generate(buffer_pixels, [&cpu, addr = start_address]() mutable {
       switch (cpu.ReadFromMemory(addr++)) {
       case 0:
         return BNES::SDL::Pixel{0, 0, 0, 255}; // Black
@@ -162,6 +164,23 @@ int main() {
         // End the main loop
         quit = true;
       }
+
+      if (e.type == SDL_EVENT_KEY_DOWN) {
+        switch (e.key.key) {
+        case SDLK_UP:
+          cpu.WriteToMemory(0xFF, 0x77);
+          break;
+        case SDLK_DOWN:
+          cpu.WriteToMemory(0xFF, 0x73);
+          break;
+        case SDLK_LEFT:
+          cpu.WriteToMemory(0xFF, 0x61);
+          break;
+        case SDLK_RIGHT:
+          cpu.WriteToMemory(0xFF, 0x64);
+          break;
+        }
+      }
     }
 
     cpu.RunOneInstruction();
@@ -169,10 +188,12 @@ int main() {
     if (begin - last_frame_update_time > frame_duration) {
       update_video_buffer(texture.Buffer());
 
+      spdlog::debug("First pixel: {}", texture.Buffer().Pixels()[0]);
+
       texture.Update();
 
       // Set a blue background to distinguish from black texture
-      SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 255, 255);
+      SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 0, 255);
       SDL_RenderClear(window_handle.Renderer());
 
       texture.Render(window_handle.Renderer());

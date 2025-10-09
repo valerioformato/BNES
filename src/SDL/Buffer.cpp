@@ -6,6 +6,10 @@
 
 namespace BNES::SDL {
 
+std::string format_as(Pixel pixel) {
+  return fmt::format("[R: {}, G: {}, B: {}, A: {}]", pixel.r, pixel.g, pixel.b, pixel.a);
+}
+
 Buffer::Buffer(const Buffer &other) : m_data(SDL_CreateSurface(other.m_data->w, other.m_data->h, Pixel::FORMAT)) {
   std::span src_pixels(reinterpret_cast<Pixel *>(other.m_data->pixels), other.m_data->w * other.m_data->h);
   std::span dst_pixels(reinterpret_cast<Pixel *>(m_data->pixels), m_data->w * m_data->h);

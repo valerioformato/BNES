@@ -318,8 +318,27 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
           []<AddressingMode MODE>(const ExclusiveOR<MODE> _inst) {
             return fmt::format("EOR {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
           },
-          []<Conditional COND>(const Branch<COND> _inst) {
-            return fmt::format("B{} {:02X}", magic_enum::enum_name(COND), _inst.offset);
+          []<Conditional COND>(const Branch<COND> _inst) -> std::string {
+            switch (COND) {
+            case Conditional::Equal:
+              return fmt::format("BEQ {:02X}", uint8_t(_inst.offset));
+            case Conditional::NotEqual:
+              return fmt::format("BNE {:02X}", uint8_t(_inst.offset));
+            case Conditional::CarrySet:
+              return fmt::format("BCS {:02X}", uint8_t(_inst.offset));
+            case Conditional::CarryClear:
+              return fmt::format("BCC {:02X}", uint8_t(_inst.offset));
+            case Conditional::Minus:
+              return fmt::format("BMI {:02X}", uint8_t(_inst.offset));
+            case Conditional::Positive:
+              return fmt::format("BPL {:02X}", uint8_t(_inst.offset));
+            case Conditional::OverflowSet:
+              return fmt::format("BVS {:02X}", uint8_t(_inst.offset));
+            case Conditional::OverflowClear:
+              return fmt::format("BVC {:02X}", uint8_t(_inst.offset));
+            default:
+              return "BR?"; // Unknown condition
+            }
           },
           []<AddressingMode MODE>(const Jump<MODE> _inst) {
             return fmt::format("JMP {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
