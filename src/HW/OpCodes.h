@@ -104,6 +104,14 @@ enum class OpCode : uint8_t {
   EOR_AbsoluteY = 0x59,   // Exclusive OR (EOR) Absolute,Y
   EOR_IndirectX = 0x41,   // Exclusive OR (EOR) (Indirect,X)
   EOR_IndirectY = 0x51,   // Exclusive OR (EOR) (Indirect),Y
+  SBC_Immediate = 0xE9,   // Subtract with Carry (SBC) Immediate
+  SBC_ZeroPage = 0xE5,    // Subtract with Carry (SBC) Zero Page
+  SBC_ZeroPageX = 0xF5,   // Subtract with Carry (SBC) Zero Page,X
+  SBC_Absolute = 0xED,    // Subtract with Carry (SBC) Absolute
+  SBC_AbsoluteX = 0xFD,   // Subtract with Carry (SBC) Absolute,X
+  SBC_AbsoluteY = 0xF9,   // Subtract with Carry (SBC) Absolute,Y
+  SBC_IndirectX = 0xE1,   // Subtract with Carry (SBC) (Indirect,X)
+  SBC_IndirectY = 0xF1,   // Subtract with Carry (SBC) (Indirect),Y
 
   // Branch instructions
   BEQ = 0xF0,          // Branch if Equal (BEQ)

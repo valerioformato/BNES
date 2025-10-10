@@ -742,5 +742,133 @@ SCENARIO("6502 instruction decoding tests (math ops)") {
         REQUIRE(decoded_instruction.address == 0x0300);
       }
     }
+
+    WHEN("We try to decode a SBC immediate instruction") {
+      std::vector<uint8_t> bytes = {0xE9, 0x42}; // SBC #$42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::Immediate>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a SBC zero-page instruction") {
+      std::vector<uint8_t> bytes = {0xE5, 0x42}; // SBC $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a SBC zero-page,X instruction") {
+      std::vector<uint8_t> bytes = {0xF5, 0x42}; // SBC $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a SBC absolute instruction") {
+      std::vector<uint8_t> bytes = {0xED, 0x00, 0x03}; // SBC $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a SBC absolute,X instruction") {
+      std::vector<uint8_t> bytes = {0xFD, 0x00, 0x03}; // SBC $0300,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a SBC absolute,Y instruction") {
+      std::vector<uint8_t> bytes = {0xF9, 0x00, 0x03}; // SBC $0300,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a SBC indirect,X instruction") {
+      std::vector<uint8_t> bytes = {0xE1, 0x42}; // SBC ($42,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a SBC indirect,Y instruction") {
+      std::vector<uint8_t> bytes = {0xF1, 0x42}; // SBC ($42),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
   }
 }

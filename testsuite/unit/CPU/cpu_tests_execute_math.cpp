@@ -625,6 +625,254 @@ SCENARIO("6502 instruction execution tests (math ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
       }
     }
+
+    WHEN("We execute a SBC immediate instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true); // Carry flag must be set for no borrow
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::Immediate>{0x10};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x40, with flags clear") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      instr.value = 0x50;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00, with zero and carry flags set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false); // Borrow is needed
+      instr.value = 0x10;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x3F, with carry set (result is 0x50 - 0x10 - 1)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x3F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      instr.value = 0xB0;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0xA0, with negative flag set and carry clear (borrow occurred)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xA0);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == true); // Overflow: positive - negative = negative
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x50); // 80 in decimal (positive)
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      instr.value = 0xF0; // -16 in two's complement
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x60, no overflow") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x60);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false); // No overflow: same as immediate mode case
+      }
+    }
+
+    WHEN("We execute a SBC zero-page instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x50, 0x10); // Write test value to zero-page address
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x40, with flags clear") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x51, 0x50);
+      instr.value = 0x51;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00, with zero and carry flags set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      cpu.SetRegister(CPU::Register::A, 0x50); // 80 in decimal
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x52, 0xF0); // -16 in two's complement
+      instr.value = 0x52;
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x60, no overflow") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x60);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false); // No overflow: same as immediate mode case
+      }
+    }
+
+    WHEN("We execute a SBC zero-page,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x55, 0x10); // Write test value to zero-page address 0x50 + 0x05
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the zero-page,X value 0x40") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+    }
+
+    WHEN("We execute a SBC absolute instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0300, 0x10); // Write test value to valid RAM address
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::Absolute>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the absolute value 0x40") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+    }
+
+    WHEN("We execute a SBC absolute,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0305, 0x10); // Write test value to valid RAM address + X
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the absolute,X value 0x40") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+    }
+
+    WHEN("We execute a SBC absolute,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0305, 0x10); // Write test value to valid RAM address + Y
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::AbsoluteY>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the absolute,Y value 0x40") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+    }
+
+    WHEN("We execute a SBC indirect,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+
+      // Set up indirect addressing: pointer at 0x25 (0x20 + 0x05) points to 0x0300
+      cpu.WriteToMemory(0x25, 0x00);   // Low byte of target address
+      cpu.WriteToMemory(0x26, 0x03);   // High byte of target address
+      cpu.WriteToMemory(0x0300, 0x10); // Value at target address
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::IndirectX>{0x20};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the indirect,X value 0x40") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+    }
+
+    WHEN("We execute a SBC indirect,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+
+      // Set up indirect addressing: pointer at 0x20 points to 0x0300, then add Y
+      cpu.WriteToMemory(0x20, 0x00);   // Low byte of base address
+      cpu.WriteToMemory(0x21, 0x03);   // High byte of base address
+      cpu.WriteToMemory(0x0305, 0x10); // Value at target address (0x0300 + 0x05)
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::IndirectY>{0x20};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain the indirect,Y value 0x40") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+    }
   }
 }
 

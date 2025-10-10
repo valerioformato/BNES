@@ -116,6 +116,15 @@ public:
     uint16_t value{0};
   };
 
+  template <AddressingMode MODE> struct SubtractWithCarry : DecodedInstruction {
+    SubtractWithCarry() = delete;
+    explicit SubtractWithCarry(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t value{0};
+  };
+
   template <AddressingMode MODE> struct LogicalAND : DecodedInstruction {
     LogicalAND() = delete;
     explicit LogicalAND(uint16_t);
@@ -297,6 +306,14 @@ public:
       AddWithCarry<AddressingMode::AbsoluteY>,
       AddWithCarry<AddressingMode::IndirectX>,
       AddWithCarry<AddressingMode::IndirectY>,
+      SubtractWithCarry<AddressingMode::Immediate>,
+      SubtractWithCarry<AddressingMode::ZeroPage>,
+      SubtractWithCarry<AddressingMode::ZeroPageX>,
+      SubtractWithCarry<AddressingMode::Absolute>,
+      SubtractWithCarry<AddressingMode::AbsoluteX>,
+      SubtractWithCarry<AddressingMode::AbsoluteY>,
+      SubtractWithCarry<AddressingMode::IndirectX>,
+      SubtractWithCarry<AddressingMode::IndirectY>,
       LogicalAND<AddressingMode::Immediate>,
       LogicalAND<AddressingMode::ZeroPage>,
       LogicalAND<AddressingMode::ZeroPageX>,
@@ -676,6 +693,51 @@ template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) con
   cpu.SetStatusFlagValue(StatusFlag::Overflow, ((M ^ result) & (N ^ result) & 0x80) != 0);
 }
 
+template <AddressingMode MODE> void CPU::SubtractWithCarry<MODE>::Apply(CPU &cpu) const {
+  uint8_t value_to_add = 0;
+  if constexpr (MODE == AddressingMode::Immediate) {
+    value_to_add = value & 0xFF; // Immediate value is already in the instruction
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_add = cpu.ReadFromMemory(value & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_add = cpu.ReadFromMemory((value + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_add = cpu.ReadFromMemory(value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_add = cpu.ReadFromMemory(value + cpu.m_registers[Register::X]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    value_to_add = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    value_to_add = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    value_to_add = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
+  } else {
+    TODO(fmt::format("SubtractWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  uint16_t intermediate_result =
+      cpu.m_registers[Register::A] - value_to_add - (1 - cpu.TestStatusFlag(StatusFlag::Carry));
+
+  // These will be useful to compute the overflow bit
+  // NOTE: This is actually quite tricky, see https://www.righto.com/2012/12/the-6502-overflow-flag-explained.html for a
+  // full explanation of the overflow bit
+  // For SBC, we convert to addition: A - B = A + (~B) + 1 (with carry acting as the +1)
+  uint8_t M = cpu.m_registers[Register::A];             // M is the original value in the accumulator
+  uint8_t N = ~(value_to_add & 0xFF);                   // N is the one's complement of the value being subtracted
+  uint8_t result = uint8_t(intermediate_result & 0xFF); // Result is the final value after subtraction
+
+  cpu.m_registers[Register::A] = result;
+
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, !(intermediate_result & 0x100)); // Inverted for subtraction
+  // Overflow formula is the same as ADC when using one's complement
+  cpu.SetStatusFlagValue(StatusFlag::Overflow, ((M ^ result) & (N ^ result) & 0x80) != 0);
+}
+
 template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const {
   uint8_t value_to_and = 0;
   if constexpr (MODE == AddressingMode::Immediate) {
@@ -698,7 +760,7 @@ template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const
     Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
     value_to_and = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
-    TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+    TODO(fmt::format("LogicalAND<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
   cpu.m_registers[Register::A] = cpu.m_registers[Register::A] & value_to_and;
@@ -1062,6 +1124,30 @@ template <AddressingMode MODE> CPU::ShiftRight<MODE>::ShiftRight(uint16_t _value
 }
 
 template <AddressingMode MODE> CPU::AddWithCarry<MODE>::AddWithCarry(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute || MODE == AddressingMode::AbsoluteX ||
+                       MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    this->cycles = 6;
+  } else {
+    std::unreachable();
+  }
+
+  value = _value;
+}
+
+template <AddressingMode MODE> CPU::SubtractWithCarry<MODE>::SubtractWithCarry(uint16_t _value) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Immediate) {
