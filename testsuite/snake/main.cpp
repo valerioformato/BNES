@@ -72,7 +72,7 @@ int main() {
       0x91, 0x00, 0x60, 0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10, 0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60, 0xa2, 0x00, 0xea,
       0xea, 0xca, 0xd0, 0xfb, 0x60};
 
-  spdlog::set_level(spdlog::level::debug);
+  // spdlog::set_level(spdlog::level::debug);
 
   auto clock = std::chrono::high_resolution_clock{};
   static constexpr auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
@@ -153,14 +153,17 @@ int main() {
   };
 
   auto dump_snake_data = [&cpu]() {
-    spdlog::info("Snake: head: ({}, {}), tail: ({}, {}), length: {}", cpu.ReadFromMemory(0x10),
-                 cpu.ReadFromMemory(0x11), cpu.ReadFromMemory(0x14), cpu.ReadFromMemory(0x15),
-                 cpu.ReadFromMemory(0x03));
+    spdlog::debug("Snake: head: ({}, {}), tail: ({}, {}), length: {}", cpu.ReadFromMemory(0x10),
+                  cpu.ReadFromMemory(0x11), cpu.ReadFromMemory(0x14), cpu.ReadFromMemory(0x15),
+                  cpu.ReadFromMemory(0x03));
   };
 
   auto dump_apple_data = [&cpu]() {
     auto apple_color = cpu.ReadFromMemory(cpu.ReadFromMemory(0x00) | (cpu.ReadFromMemory(0x01) << 8));
-    spdlog::info("Apple: ({}, {}) color: {}", cpu.ReadFromMemory(0x00), cpu.ReadFromMemory(0x01), apple_color);
+    auto apple_loc = std::make_pair(cpu.ReadFromMemory(0x00), cpu.ReadFromMemory(0x01));
+    spdlog::info("Apple: ({}, {}) color: {:X}", cpu.ReadFromMemory(0x00), cpu.ReadFromMemory(0x01), apple_color);
+
+    return apple_loc.first | (apple_loc.second << 8);
   };
 
   // The main loop
@@ -194,18 +197,25 @@ int main() {
       }
     }
 
-    cpu.RunOneInstruction();
+    try {
+      cpu.RunOneInstruction();
+    } catch (...) {
+      quit = true;
+    }
 
     if (begin - last_frame_update_time > frame_duration) {
-      dump_apple_data();
+      auto apple_address = dump_apple_data();
       dump_snake_data();
 
       update_video_buffer(texture.Buffer());
 
       texture.Update();
 
-      // Set a blue background to distinguish from black texture
-      SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 0, 255);
+      spdlog::info("Apple pixel color: {} at location {}", texture.Buffer().Pixels()[apple_address - 0x200],
+                   apple_address - 0x200);
+      spdlog::info("Inside the buffer: 0x{:X}",
+                   static_cast<uint32_t *>(texture.Buffer().AsSurface().Handle()->pixels)[apple_address - 0x200]);
+
       SDL_RenderClear(window_handle.Renderer());
 
       texture.Render(window_handle.Renderer());

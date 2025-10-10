@@ -12,7 +12,7 @@
 
 namespace BNES::SDL {
 struct Pixel {
-  static constexpr auto FORMAT = SDL_PIXELFORMAT_RGBA8888;
+  static constexpr auto FORMAT = SDL_PIXELFORMAT_ABGR8888;
 
   uint8_t r{0};
   uint8_t g{0};
