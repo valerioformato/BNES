@@ -123,7 +123,7 @@ int main() {
 
     static constexpr uint16_t start_address{0x200};
     std::ranges::generate(buffer_pixels, [&cpu, addr = start_address]() mutable {
-      switch (cpu.ReadFromMemory(addr++)) {
+      switch (cpu.ReadFromMemory(addr++) & 0x0F) {
       case 0:
         return BNES::SDL::Pixel{0, 0, 0, 255}; // Black
       case 1:
@@ -150,6 +150,17 @@ int main() {
         return BNES::SDL::Pixel{0, 255, 255, 255}; // Cyan
       };
     });
+  };
+
+  auto dump_snake_data = [&cpu]() {
+    spdlog::info("Snake: head: ({}, {}), tail: ({}, {}), length: {}", cpu.ReadFromMemory(0x10),
+                 cpu.ReadFromMemory(0x11), cpu.ReadFromMemory(0x14), cpu.ReadFromMemory(0x15),
+                 cpu.ReadFromMemory(0x03));
+  };
+
+  auto dump_apple_data = [&cpu]() {
+    auto apple_color = cpu.ReadFromMemory(cpu.ReadFromMemory(0x00) | (cpu.ReadFromMemory(0x01) << 8));
+    spdlog::info("Apple: ({}, {}) color: {}", cpu.ReadFromMemory(0x00), cpu.ReadFromMemory(0x01), apple_color);
   };
 
   // The main loop
@@ -186,9 +197,10 @@ int main() {
     cpu.RunOneInstruction();
 
     if (begin - last_frame_update_time > frame_duration) {
-      update_video_buffer(texture.Buffer());
+      dump_apple_data();
+      dump_snake_data();
 
-      spdlog::debug("First pixel: {}", texture.Buffer().Pixels()[0]);
+      update_video_buffer(texture.Buffer());
 
       texture.Update();
 
