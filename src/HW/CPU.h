@@ -1,8 +1,8 @@
 #ifndef BNES_HW_CPU_H
 #define BNES_HW_CPU_H
 
+#include "../common/Types/EnumArray.h"
 #include "HW/OpCodes.h"
-#include "common/EnumArray.h"
 #include "common/Utils.h"
 
 #include <bitset>

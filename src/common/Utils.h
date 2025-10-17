@@ -5,7 +5,7 @@
 #ifndef BNES_UTILS_H
 #define BNES_UTILS_H
 
-#include "common/Types.h"
+#include "Types/Error.h"
 
 #include "spdlog/spdlog.h"
 

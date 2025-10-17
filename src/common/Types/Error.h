@@ -35,8 +35,4 @@ namespace BNES {
 template <typename T> using ErrorOr = std::expected<T, Error>;
 } // namespace BNES
 
-namespace BNES::Utils {
-template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-} // namespace BNES::Utils
 #endif // TYPES_H

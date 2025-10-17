@@ -1,4 +1,5 @@
 #include "HW/CPU.h"
+#include "common/Types/overloaded.h"
 
 namespace BNES::HW {
 ErrorOr<void> CPU::LoadProgram(std::span<const uint8_t> program) {
