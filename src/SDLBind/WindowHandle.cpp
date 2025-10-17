@@ -1,4 +1,4 @@
-#include "SDL/WindowHandle.h"
+#include "SDLBind/WindowHandle.h"
 
 #include <spdlog/spdlog.h>
 
@@ -9,18 +9,15 @@ ErrorOr<TextureHandle> WindowHandle::CreateTexture(Buffer &&buffer) const {
   return std::move(MakeTextureFromBuffer(m_renderer, std::move(buffer)));
 }
 
-ErrorOr<WindowHandle> MakeWindow() { return MakeWindow(WindowHandle::DefaultHeight, WindowHandle::DefaultWidth); }
+ErrorOr<WindowHandle> MakeWindow() { return MakeWindow(WindowHandle::WindowSpec{}); }
 
-ErrorOr<WindowHandle> MakeWindow(unsigned int width, unsigned int height) {
-  return MakeWindow(width, height, "BNES emulator");
-}
-
-ErrorOr<WindowHandle> MakeWindow(unsigned int width, unsigned int height, std::string_view title) {
+ErrorOr<WindowHandle> MakeWindow(WindowHandle::WindowSpec spec) {
   // Create window and renderer for this window
   SDL_Window *window_ptr{nullptr};
   SDL_Renderer *renderer_ptr{nullptr};
 
-  if (SDL_CreateWindowAndRenderer(title.data(), width, height, 0, &window_ptr, &renderer_ptr) == false) {
+  if (SDL_CreateWindowAndRenderer(spec.title.data(), spec.width, spec.height, std::to_underlying(spec.flags),
+                                  &window_ptr, &renderer_ptr) == false) {
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 

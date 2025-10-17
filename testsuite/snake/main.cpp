@@ -3,9 +3,9 @@
 //
 
 #include "HW/CPU.h"
-#include "SDL/Buffer.h"
-#include "SDL/Init.h"
-#include "SDL/WindowHandle.h"
+#include "SDLBind/Buffer.h"
+#include "SDLBind/Init.h"
+#include "SDLBind/WindowHandle.h"
 
 #include <algorithm>
 #include <iostream>
@@ -83,7 +83,7 @@ int main() {
     return 1;
   }
 
-  auto window_handle = BNES::SDL::MakeWindow(320, 320).value();
+  auto window_handle = BNES::SDL::MakeWindow({.width = 320, .height = 320, .title = "6502 Snake"}).value();
   auto screen_surface = window_handle.Surface();
 
   auto buffer = BNES::SDL::MakeBuffer(32, 32).value();
@@ -163,7 +163,7 @@ int main() {
   };
 
   // The main loop
-  std::chrono::time_point<std::chrono::system_clock> last_frame_update_time = clock.now();
+  std::chrono::time_point last_frame_update_time = clock.now();
   while (quit == false) {
     auto begin = clock.now();
 

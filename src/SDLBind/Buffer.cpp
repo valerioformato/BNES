@@ -23,8 +23,8 @@ Buffer &Buffer::operator=(const Buffer &other) {
 }
 
 ErrorOr<void> Buffer::WritePixel(uint32_t x, uint32_t y, Pixel pixel) {
-  auto idx = PixelIndex(x, y);
-  if (idx > (m_data->w * m_data->h)) {
+  uint32_t idx = PixelIndex(x, y);
+  if (idx > uint32_t(m_data->w * m_data->h)) {
     return make_error(std::make_error_code(std::errc::invalid_argument), "Pixel coordinates out of bounds");
   }
 
@@ -34,7 +34,7 @@ ErrorOr<void> Buffer::WritePixel(uint32_t x, uint32_t y, Pixel pixel) {
 }
 
 ErrorOr<void> Buffer::WritePixel(uint32_t idx, Pixel pixel) {
-  if (idx > (m_data->w * m_data->h)) {
+  if (idx > uint32_t(m_data->w * m_data->h)) {
     return make_error(std::make_error_code(std::errc::invalid_argument), "Pixel coordinates out of bounds");
   }
 

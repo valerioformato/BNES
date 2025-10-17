@@ -5,7 +5,7 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include "SDL/Media.h"
+#include "SDLBind/Media.h"
 
 #include <span>
 #include <vector>

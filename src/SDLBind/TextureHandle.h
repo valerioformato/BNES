@@ -5,7 +5,7 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include "SDL/Buffer.h"
+#include "SDLBind/Buffer.h"
 
 #include <SDL3/SDL.h>
 

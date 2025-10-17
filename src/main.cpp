@@ -1,6 +1,6 @@
-#include "SDL/Buffer.h"
-#include "SDL/Init.h"
-#include "SDL/WindowHandle.h"
+#include "SDLBind/Buffer.h"
+#include "SDLBind/Init.h"
+#include "SDLBind/WindowHandle.h"
 
 #include <string>
 
@@ -23,10 +23,10 @@ int main(int argc, char **argv) { // Final exit code
     return 1;
   }
 
-  auto window_handle = BNES::SDL::MakeWindow(640, 480).value();
+  auto window_handle = BNES::SDL::MakeWindow().value();
   auto screen_surface = window_handle.Surface();
 
-  auto buffer = BNES::SDL::MakeBuffer(640, 480).value();
+  auto buffer = BNES::SDL::MakeBuffer(screen_surface.Handle()->w, screen_surface.Handle()->h).value();
   auto maybe_texture = window_handle.CreateTexture(std::move(buffer));
   if (!maybe_texture) {
     spdlog::error("Unable to create texture: {}", maybe_texture.error().Message());
