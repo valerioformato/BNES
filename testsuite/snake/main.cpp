@@ -117,10 +117,6 @@ int main() {
   auto update_video_buffer = [&cpu](BNES::SDL::Buffer &target_buffer) {
     auto buffer_pixels = target_buffer.Pixels();
 
-    spdlog::debug("Updating video buffer...");
-    spdlog::debug("Buffer size: {}x{} ({} pixels)", target_buffer.Width(), target_buffer.Height(),
-                  buffer_pixels.size());
-
     static constexpr uint16_t start_address{0x200};
     std::ranges::generate(buffer_pixels, [&cpu, addr = start_address]() mutable {
       switch (cpu.ReadFromMemory(addr++) & 0x0F) {
@@ -204,17 +200,12 @@ int main() {
     }
 
     if (begin - last_frame_update_time > frame_duration) {
-      auto apple_address = dump_apple_data();
-      dump_snake_data();
+      // auto apple_address = dump_apple_data();
+      // dump_snake_data();
 
       update_video_buffer(texture.Buffer());
 
       texture.Update();
-
-      spdlog::info("Apple pixel color: {} at location {}", texture.Buffer().Pixels()[apple_address - 0x200],
-                   apple_address - 0x200);
-      spdlog::info("Inside the buffer: 0x{:X}",
-                   static_cast<uint32_t *>(texture.Buffer().AsSurface().Handle()->pixels)[apple_address - 0x200]);
 
       SDL_RenderClear(window_handle.Renderer());
 
