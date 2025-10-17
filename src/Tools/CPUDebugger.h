@@ -7,23 +7,34 @@
 
 #include "HW/CPU.h"
 #include "SDLBind/WindowHandle.h"
+#include "common/Types/non_owning_ptr.h"
 
-namespace BNES {
-namespace Tools {
+namespace BNES::Tools {
 
 class CPUDebugger {
 public:
-  ErrorOr<void> InitWindow();
+  class Window {
+  public:
+    explicit Window(SDL::Buffer &&buffer);
 
-  void AttachToCPU(HW::CPU &cpu);
+    void Update();
+
+    SDL::WindowHandle m_window_handle;
+    SDL::TextureHandle m_texture;
+  };
+
+public:
+  CPUDebugger() = delete;
+  explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::MakeBuffer(800, 600).value()) {}
+
+  void Update();
 
 private:
-  SDL::WindowHandle m_window_handle;
+  non_owning_ptr<const HW::CPU *> m_cpu;
 
-  // std::shared_ptr<HW::CPU> m_cpu{nullptr};
+  Window m_window;
 };
 
-} // namespace Tools
-} // namespace BNES
+} // namespace BNES::Tools
 
 #endif // CPUDEBUGGER_H

@@ -6,6 +6,7 @@
 #include "SDLBind/Buffer.h"
 #include "SDLBind/Init.h"
 #include "SDLBind/WindowHandle.h"
+#include "Tools/CPUDebugger.h"
 
 #include <algorithm>
 #include <iostream>
@@ -109,10 +110,9 @@ int main() {
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();
 
-  cpu.instruction_slowdown = 10.0;
+  BNES::Tools::CPUDebugger debugger(cpu);
 
-  unsigned int x{0};
-  unsigned int y{0};
+  // cpu.instruction_slowdown = 10.0;
 
   auto update_video_buffer = [&cpu](BNES::SDL::Buffer &target_buffer) {
     auto buffer_pixels = target_buffer.Pixels();
@@ -202,6 +202,8 @@ int main() {
     if (begin - last_frame_update_time > frame_duration) {
       // auto apple_address = dump_apple_data();
       // dump_snake_data();
+
+      debugger.Update();
 
       update_video_buffer(texture.Buffer());
 
