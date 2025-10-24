@@ -7,6 +7,7 @@
 #include "SDLBind/Init.h"
 #include "SDLBind/WindowHandle.h"
 #include "Tools/CPUDebugger.h"
+#include "common/Time.h"
 
 #include <algorithm>
 #include <iostream>
@@ -29,7 +30,7 @@ public:
   }
 
   void RunOneInstruction() {
-    static constexpr auto cpu_freq = std::chrono::duration<double>(1.0f / 17900000.0f); // 1.79 MHz
+    static constexpr auto cpu_freq = std::chrono::duration<double>(1.0f / 1790000.0f); // 1.79 MHz
 
     // update the RNG at address $FE
     WriteToMemory(0xFE, std::rand() % 256);
@@ -40,14 +41,14 @@ public:
     }
     auto instr = DecodeInstruction(bytes);
     auto instr_disass = DisassembleInstruction(instr);
-    auto instr_cycles = std::visit([](auto &arg) { return arg.cycles; }, instr);
-    spdlog::debug("A: {:02X} X: {:02X} Y: {:02X} SP: {:02X} Status: {}", Registers()[Register::A],
+    unsigned int instr_cycles = std::visit([](DecodedInstruction &arg) { return arg.cycles; }, instr);
+    spdlog::trace("A: {:02X} X: {:02X} Y: {:02X} SP: {:02X} Status: {}", Registers()[Register::A],
                   Registers()[Register::X], Registers()[Register::Y], StackPointer(), StatusFlags().to_string());
-    spdlog::debug("PC: {:04X} Opcode: {:02X} Instruction: {}", ProgramCounter(), bytes[0], instr_disass);
+    spdlog::trace("PC: {:04X} Opcode: {:02X} Instruction: {}", ProgramCounter(), bytes[0], instr_disass);
 
     RunInstruction(std::move(instr));
 
-    std::this_thread::sleep_for(cpu_freq * instr_cycles * instruction_slowdown);
+    BNES::Chrono::sleep_for(cpu_freq * instr_cycles * instruction_slowdown);
   }
 
   double instruction_slowdown{1.0};
@@ -73,7 +74,9 @@ int main() {
       0x91, 0x00, 0x60, 0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10, 0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60, 0xa2, 0x00, 0xea,
       0xea, 0xca, 0xd0, 0xfb, 0x60};
 
-  // spdlog::set_level(spdlog::level::debug);
+  // spdlog::set_level(spdlog::level::trace);
+
+  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
 
   auto clock = std::chrono::high_resolution_clock{};
   static constexpr auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
@@ -110,9 +113,9 @@ int main() {
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();
 
-  BNES::Tools::CPUDebugger debugger(cpu);
+  // BNES::Tools::CPUDebugger debugger(cpu);
 
-  // cpu.instruction_slowdown = 10.0;
+  cpu.instruction_slowdown = 100.0;
 
   auto update_video_buffer = [&cpu](BNES::SDL::Buffer &target_buffer) {
     auto buffer_pixels = target_buffer.Pixels();
@@ -170,7 +173,7 @@ int main() {
     // Get event data
     while (SDL_PollEvent(&e) == true) {
       // If event is quit type
-      if (e.type == SDL_EVENT_QUIT) {
+      if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
         // End the main loop
         quit = true;
       }
@@ -203,20 +206,20 @@ int main() {
       // auto apple_address = dump_apple_data();
       // dump_snake_data();
 
-      debugger.Update();
+      // debugger.Update();
 
       update_video_buffer(texture.Buffer());
 
       texture.Update();
 
-      SDL_RenderClear(window_handle.Renderer());
+      // SDL_RenderClear(window_handle.Renderer());
 
       texture.Render(window_handle.Renderer());
 
       SDL_RenderPresent(window_handle.Renderer());
       last_frame_update_time = clock.now();
 
-      spdlog::debug("new frame!");
+      // spdlog::debug("new frame!");
     }
 
     // or wait until we press enter

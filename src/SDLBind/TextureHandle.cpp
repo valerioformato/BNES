@@ -37,8 +37,6 @@ void TextureHandle::Update() {
 
   if (SDL_UpdateTexture(m_texture, nullptr, surface->pixels, surface->pitch) == false) {
     spdlog::error("Failed to update texture: {}", SDL_GetError());
-  } else {
-    spdlog::debug("Texture update successful");
   }
 }
 

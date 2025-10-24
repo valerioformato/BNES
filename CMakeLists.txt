@@ -75,6 +75,7 @@ endif ()
 add_subdirectory(src)
 
 if (ENABLE_BNES_TESTS)
+    message(STATUS "Enabling tests...")
     add_subdirectory(vendor/Catch2)
 
     enable_testing()
