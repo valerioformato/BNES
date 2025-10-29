@@ -6,7 +6,7 @@
 
 namespace BNES::SDL {
 ErrorOr<TextureHandle> WindowHandle::CreateTexture(Buffer &&buffer) const {
-  return std::move(MakeTextureFromBuffer(m_renderer, std::move(buffer)));
+  return MakeTextureFromBuffer(m_renderer, std::move(buffer));
 }
 
 ErrorOr<WindowHandle> MakeWindow() { return MakeWindow(WindowHandle::WindowSpec{}); }
