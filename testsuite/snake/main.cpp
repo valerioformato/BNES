@@ -76,7 +76,7 @@ int main() {
 
   // spdlog::set_level(spdlog::level::trace);
 
-  SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+  // SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
 
   auto clock = std::chrono::high_resolution_clock{};
   static constexpr auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);

@@ -6,6 +6,7 @@
 #define TEXTURE_H
 
 #include "SDLBind/Buffer.h"
+#include "SDLBind/Font.h"
 
 #include <SDL3/SDL.h>
 
@@ -46,24 +47,17 @@ private:
   ::BNES::SDL::Buffer m_buffer;
 
   friend ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, ::BNES::SDL::Buffer &&buffer);
+  friend ErrorOr<TextureHandle> MakeTextureFromText(std::string_view content, SDL_Color color);
+  friend ErrorOr<TextureHandle> MakeTextureFromTextWrapped(std::string_view content, FontHandle font, SDL_Color color,
+                                                           unsigned int width);
 };
 
-inline ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&buffer) {
-  // Try creating texture with STREAMING access first (more compatible)
-  SDL_Texture *texture =
-      SDL_CreateTexture(renderer, Pixel::FORMAT, SDL_TEXTUREACCESS_STATIC, buffer.Width(), buffer.Height());
-
-  if (!texture) {
-    spdlog::error("Failed to create STATIC texture: {}", SDL_GetError());
-    return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
-  }
-
-  TextureHandle result;
-  result.m_buffer = std::move(buffer);
-  result.m_texture = texture;
-
-  return result;
-}
+ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&buffer);
+#if defined(SDL_TTF_MAJOR_VERSION)
+ErrorOr<TextureHandle> MakeTextureFromText(std::string_view content, FontHandle font, SDL_Color color);
+ErrorOr<TextureHandle> MakeTextureFromTextWrapped(std::string_view content, FontHandle font, SDL_Color color,
+                                                  unsigned int width);
+#endif
 } // namespace BNES::SDL
 
 #endif // TEXTURE_H
