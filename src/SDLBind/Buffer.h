@@ -55,11 +55,11 @@ public:
   [[nodiscard]] std::span<const Pixel> Pixels() const { return m_pixels; }
   [[nodiscard]] std::span<Pixel> Pixels() { return m_pixels; }
 
-private:
   explicit Buffer(SDL_Surface *data) : m_data{data} {
     m_pixels = std::span<Pixel>(reinterpret_cast<Pixel *>(m_data->pixels), static_cast<size_t>(m_data->w * m_data->h));
   }
 
+private:
   size_t PixelIndex(uint32_t x, uint32_t y) const;
 
   SDL_Surface *m_data{nullptr};

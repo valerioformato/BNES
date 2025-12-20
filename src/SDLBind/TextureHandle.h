@@ -47,16 +47,18 @@ private:
   ::BNES::SDL::Buffer m_buffer;
 
   friend ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, ::BNES::SDL::Buffer &&buffer);
-  friend ErrorOr<TextureHandle> MakeTextureFromText(std::string_view content, SDL_Color color);
-  friend ErrorOr<TextureHandle> MakeTextureFromTextWrapped(std::string_view content, FontHandle font, SDL_Color color,
-                                                           unsigned int width);
+  friend ErrorOr<TextureHandle> MakeTextureFromText(SDL_Renderer *renderer, std::string_view content,
+                                                    const FontHandle &font, SDL_Color color);
+  friend ErrorOr<TextureHandle> MakeTextureFromTextWrapped(SDL_Renderer *renderer, std::string_view content,
+                                                           const FontHandle &font, SDL_Color color, unsigned int width);
 };
 
 ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&buffer);
 #if defined(SDL_TTF_MAJOR_VERSION)
-ErrorOr<TextureHandle> MakeTextureFromText(std::string_view content, FontHandle font, SDL_Color color);
-ErrorOr<TextureHandle> MakeTextureFromTextWrapped(std::string_view content, FontHandle font, SDL_Color color,
-                                                  unsigned int width);
+ErrorOr<TextureHandle> MakeTextureFromText(SDL_Renderer *renderer, std::string_view content, const FontHandle &font,
+                                           SDL_Color color);
+ErrorOr<TextureHandle> MakeTextureFromTextWrapped(SDL_Renderer *renderer, std::string_view content,
+                                                  const FontHandle &font, SDL_Color color, unsigned int width);
 #endif
 } // namespace BNES::SDL
 

@@ -58,10 +58,11 @@ ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&bu
 }
 
 #if defined(SDL_TTF_MAJOR_VERSION)
-ErrorOr<TextureHandle> MakeTextureFromText(std::string_view content, FontHandle font, SDL_Color color) {}
+ErrorOr<TextureHandle> MakeTextureFromText(SDL_Renderer *renderer, std::string_view content, const FontHandle &font,
+                                           SDL_Color color) {}
 
-ErrorOr<TextureHandle> MakeTextureFromTextWrapped(std::string_view content, FontHandle font, SDL_Color color,
-                                                  unsigned int width) {
+ErrorOr<TextureHandle> MakeTextureFromTextWrapped(SDL_Renderer *renderer, std::string_view content,
+                                                  const FontHandle &font, SDL_Color color, unsigned int width) {
   SDL_Surface *surface;
 
   if (surface = TTF_RenderText_Blended_Wrapped(font.font, content.data(), content.size(), color, width);
@@ -70,11 +71,17 @@ ErrorOr<TextureHandle> MakeTextureFromTextWrapped(std::string_view content, Font
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 
-  // SDL_Texture *texture;
-  // if (texture = SDL_CreateTextureFromSurface(renderer, surface); texture == nullptr) {
-  //   spdlog::error("Failed to create texture: {}", SDL_GetError());
-  //   return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
-  // }
+  SDL_Texture *texture;
+  if (texture = SDL_CreateTextureFromSurface(renderer, surface); texture == nullptr) {
+    spdlog::error("Failed to create texture: {}", SDL_GetError());
+    return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
+  }
+
+  TextureHandle result;
+  result.m_buffer = Buffer{surface};
+  result.m_texture = texture;
+
+  return result;
 }
 #endif
 

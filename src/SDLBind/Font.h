@@ -26,9 +26,9 @@ class FontHandle {
 public:
   // FontHandle() = default;
   // ~FontHandle() { TTF_CloseFont(font); }
-  // FontHandle(const FontHandle &) = default;
+  // FontHandle(const FontHandle &) = delete;
   // FontHandle(FontHandle &&) = default;
-  // FontHandle &operator=(const FontHandle &) = default;
+  // FontHandle &operator=(const FontHandle &) = delete;
   // FontHandle &operator=(FontHandle &&) = default;
 
   bool operator==(const FontHandle &other) const { return name == other.name || font == other.font; }
