@@ -2,10 +2,10 @@
 // Created by vformato on 9/16/25.
 //
 
+#include "../../src/SDLBind/Graphics/Buffer.h"
+#include "../../src/SDLBind/Graphics/Window.h"
 #include "HW/CPU.h"
-#include "SDLBind/Buffer.h"
 #include "SDLBind/Init.h"
-#include "SDLBind/WindowHandle.h"
 #include "Tools/CPUDebugger.h"
 #include "common/Time.h"
 
@@ -87,7 +87,7 @@ int main() {
     return 1;
   }
 
-  auto window_handle = BNES::SDL::MakeWindow({.width = 320, .height = 320, .title = "6502 Snake"}).value();
+  auto window_handle = BNES::SDL::FromSpec({.width = 320, .height = 320, .title = "6502 Snake"}).value();
   auto screen_surface = window_handle.Surface();
 
   auto buffer = BNES::SDL::MakeBuffer(32, 32).value();

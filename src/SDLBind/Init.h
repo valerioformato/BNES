@@ -5,8 +5,9 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <algorithm>
 
-#include <utility>
+#include <ranges>
 
 namespace BNES::SDL {
 
@@ -29,6 +30,7 @@ inline ErrorOr<void> Init() {
 
 inline void Quit() {
   // Quit SDL subsystems
+  TTF_Quit();
   SDL_Quit();
 }
 

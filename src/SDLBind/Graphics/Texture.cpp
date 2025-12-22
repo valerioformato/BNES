@@ -2,15 +2,14 @@
 // Created by Valerio Formato on 30-Jul-25.
 //
 
-#include "TextureHandle.h"
+#include "SDLBind/Graphics/Texture.h"
 
-#include <span>
 #include <spdlog/spdlog.h>
 
 namespace BNES::SDL {
-TextureHandle::~TextureHandle() { SDL_DestroyTexture(m_texture); }
+Texture::~Texture() { SDL_DestroyTexture(m_texture); }
 
-void TextureHandle::Render(SDL_Renderer *renderer, const SDL_FRect *dest) {
+void Texture::Render(SDL_Renderer *renderer, const SDL_FRect *dest) {
   // Check if texture is valid before rendering
   if (!m_texture) {
     spdlog::error("Attempting to render null texture");
@@ -31,16 +30,18 @@ void TextureHandle::Render(SDL_Renderer *renderer, const SDL_FRect *dest) {
   }
 }
 
-void TextureHandle::Update() {
+ErrorOr<void> Texture::Update() {
   // For regular textures, we need to update from the surface
-  SDL_Surface *surface = m_buffer.AsSurface().Handle();
+  SDL_Surface *surface = m_buffer.Surface().SDLType();
 
   if (SDL_UpdateTexture(m_texture, nullptr, surface->pixels, surface->pitch) == false) {
-    spdlog::error("Failed to update texture: {}", SDL_GetError());
+    return make_error(std::make_error_code(std::errc::invalid_argument), SDL_GetError());
   }
+
+  return {};
 }
 
-ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&buffer) {
+ErrorOr<Texture> Texture::FromBuffer(SDL_Renderer *renderer, ::BNES::SDL::Buffer &&buffer) {
   // Try creating texture with STREAMING access first (more compatible)
   SDL_Texture *texture =
       SDL_CreateTexture(renderer, Pixel::FORMAT, SDL_TEXTUREACCESS_STATIC, buffer.Width(), buffer.Height());
@@ -50,7 +51,7 @@ ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&bu
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 
-  TextureHandle result;
+  Texture result;
   result.m_buffer = std::move(buffer);
   result.m_texture = texture;
 
@@ -58,14 +59,14 @@ ErrorOr<TextureHandle> MakeTextureFromBuffer(SDL_Renderer *renderer, Buffer &&bu
 }
 
 #if defined(SDL_TTF_MAJOR_VERSION)
-ErrorOr<TextureHandle> MakeTextureFromText(SDL_Renderer *renderer, std::string_view content, const FontHandle &font,
-                                           SDL_Color color) {}
-
-ErrorOr<TextureHandle> MakeTextureFromTextWrapped(SDL_Renderer *renderer, std::string_view content,
-                                                  const FontHandle &font, SDL_Color color, unsigned int width) {
+ErrorOr<Texture> Texture::FromText(SDL_Renderer *renderer, TextSpec spec) {
   SDL_Surface *surface;
+  auto &[content, font, color, wrapping, width] = spec;
 
-  if (surface = TTF_RenderText_Blended_Wrapped(font.font, content.data(), content.size(), color, width);
+  if (surface =
+          wrapping == TextWrapping::Wrapped
+              ? TTF_RenderText_Blended_Wrapped(font.font, content.data(), content.size(), color.ToSDL_Color(), width)
+              : TTF_RenderText_Blended(font.font, content.data(), content.size(), color.ToSDL_Color());
       surface == nullptr) {
     spdlog::error("Failed to render text: {}", SDL_GetError());
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
@@ -77,12 +78,13 @@ ErrorOr<TextureHandle> MakeTextureFromTextWrapped(SDL_Renderer *renderer, std::s
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 
-  TextureHandle result;
-  result.m_buffer = Buffer{surface};
+  Texture result;
+  result.m_buffer = std::move(::BNES::SDL::Buffer{surface});
   result.m_texture = texture;
 
   return result;
 }
+
 #endif
 
 } // namespace BNES::SDL

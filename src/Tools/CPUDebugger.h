@@ -5,8 +5,8 @@
 #ifndef CPUDEBUGGER_H
 #define CPUDEBUGGER_H
 
+#include "../SDLBind/Graphics/Window.h"
 #include "HW/CPU.h"
-#include "SDLBind/WindowHandle.h"
 #include "common/Types/non_owning_ptr.h"
 
 namespace BNES::Tools {
@@ -19,13 +19,13 @@ public:
 
     void Update();
 
-    SDL::WindowHandle m_window_handle;
-    SDL::TextureHandle m_texture;
+    SDL::Window m_window_handle;
+    SDL::Texture m_texture;
   };
 
 public:
   CPUDebugger() = delete;
-  explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::MakeBuffer(800, 600).value()) {}
+  explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
 
   void Update();
 

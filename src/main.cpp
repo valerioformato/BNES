@@ -1,6 +1,6 @@
-#include "SDLBind/Buffer.h"
+#include "SDLBind/Graphics/Buffer.h"
+#include "SDLBind/Graphics/Window.h"
 #include "SDLBind/Init.h"
-#include "SDLBind/WindowHandle.h"
 
 #include <string>
 
@@ -23,7 +23,7 @@ int main(int argc, char **argv) { // Final exit code
     return 1;
   }
 
-  auto window_handle = BNES::SDL::MakeWindow().value();
+  auto window_handle = BNES::SDL::CreateDefault().value();
   auto screen_surface = window_handle.Surface();
 
   auto buffer = BNES::SDL::MakeBuffer(screen_surface.Handle()->w, screen_surface.Handle()->h).value();

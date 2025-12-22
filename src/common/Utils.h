@@ -9,7 +9,6 @@
 
 #include "spdlog/spdlog.h"
 
-#include <chrono>
 #include <source_location>
 #include <string_view>
 
@@ -29,7 +28,17 @@
                   "Do not return a reference from a fallible expression");                                             \
     if (!_temporary_result.has_value()) [[unlikely]]                                                                   \
       return std::unexpected(_temporary_result.error());                                                               \
-    _temporary_result.value();                                                                                         \
+    std::forward<decltype(_temporary_result)>(_temporary_result).value();                                              \
+  })
+
+#define TRY_MOVE(expression)                                                                                           \
+  ({                                                                                                                   \
+    auto &&_temporary_result = (expression);                                                                           \
+    static_assert(!std::is_lvalue_reference_v<std::remove_cvref_t<decltype(_temporary_result)>::value_type>,           \
+                  "Do not return a reference from a fallible expression");                                             \
+    if (!_temporary_result.has_value()) [[unlikely]]                                                                   \
+      return std::unexpected(_temporary_result.error());                                                               \
+    std::move(_temporary_result.value());                                                                              \
   })
 
 #define TRY_REPEATED(expression, max_tries)                                                                            \

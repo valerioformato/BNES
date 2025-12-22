@@ -1,17 +1,21 @@
-#include "SDLBind/WindowHandle.h"
+#include "SDLBind/Graphics/Window.h"
 
 #include <spdlog/spdlog.h>
 
-#include <stdexcept>
-
 namespace BNES::SDL {
-ErrorOr<TextureHandle> WindowHandle::CreateTexture(Buffer &&buffer) const {
-  return MakeTextureFromBuffer(m_renderer, std::move(buffer));
+
+Window::~Window() {
+  SDL_DestroyWindow(m_window);
+  SDL_DestroyRenderer(m_renderer);
 }
 
-ErrorOr<WindowHandle> MakeWindow() { return MakeWindow(WindowHandle::WindowSpec{}); }
+ErrorOr<Texture> Window::CreateTexture(Buffer &&buffer) const {
+  return Texture::FromBuffer(m_renderer, std::move(buffer));
+}
 
-ErrorOr<WindowHandle> MakeWindow(WindowHandle::WindowSpec spec) {
+ErrorOr<Window> Window::CreateDefault() { return FromSpec(WindowSpec{}); }
+
+ErrorOr<Window> Window::FromSpec(WindowSpec spec) {
   // Create window and renderer for this window
   SDL_Window *window_ptr{nullptr};
   SDL_Renderer *renderer_ptr{nullptr};
@@ -21,6 +25,6 @@ ErrorOr<WindowHandle> MakeWindow(WindowHandle::WindowSpec spec) {
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 
-  return WindowHandle{window_ptr, renderer_ptr};
+  return Window{window_ptr, renderer_ptr};
 }
 } // namespace BNES::SDL
