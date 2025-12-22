@@ -212,8 +212,10 @@ BNES::ErrorOr<int> snake_main() {
       texture.Render(window_handle.Renderer());
 
       SDL_RenderPresent(window_handle.Renderer());
-      last_frame_update_time = clock.now();
 
+      debugger.Update();
+
+      last_frame_update_time = clock.now();
       // spdlog::debug("new frame!");
     }
 

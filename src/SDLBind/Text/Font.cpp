@@ -12,15 +12,17 @@ std::unordered_map<size_t, Font> Fonts;
 }
 
 ErrorOr<Font> Font::Get(std::string name, FontVariant variant) {
-  if (auto font_itr = Fonts.find(Hash(name, variant)); font_itr == Fonts.end()) {
+  if (auto font_itr = Fonts.find(Hash(name, variant)); font_itr != Fonts.end()) {
     return font_itr->second;
+  } else {
+    return FromFile(name, variant);
   }
 
   return make_error(std::errc::invalid_argument,
                     fmt::format("Font {}-{} not found", name, magic_enum::enum_name(variant)));
 }
 
-ErrorOr<Font> Font::FromFile(std::string name, FontVariant variant) {
+ErrorOr<Font> Font::FromFile(std::string_view name, FontVariant variant) {
   static std::filesystem::path path{"assets/fonts/"};
 
   auto file_name = fmt::format("{}-{}.ttf", name, magic_enum::enum_name(variant));
@@ -35,6 +37,7 @@ ErrorOr<Font> Font::FromFile(std::string name, FontVariant variant) {
   } else {
     auto [handle, result] = Fonts.insert({Hash(name, variant), Font{
                                                                    .name = font_path.string(),
+                                                                   .variant = variant,
                                                                    .font = font,
                                                                }});
 

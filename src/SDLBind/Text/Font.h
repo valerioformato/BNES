@@ -37,7 +37,7 @@ private:
   static size_t Hash(std::string_view name, FontVariant variant) {
     return std::hash<std::string>{}(fmt::format("{}-{}", name, magic_enum::enum_name(variant)));
   };
-  static ErrorOr<Font> FromFile(std::string name, FontVariant variant);
+  static ErrorOr<Font> FromFile(std::string_view name, FontVariant variant);
 
   friend class std::hash<Font>;
 };

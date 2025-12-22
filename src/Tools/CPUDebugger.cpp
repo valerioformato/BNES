@@ -23,7 +23,7 @@ ErrorOr<void> CPUDebugger::Window::Update(SDL::TextSpec text_content) {
 
   m_texture = TRY(SDL::Texture::FromText(m_window.Renderer(), text_content));
 
-  TRY(m_texture.Update());
+  m_texture.Render(m_window.Renderer());
 
   SDL_RenderPresent(m_window.Renderer());
 
