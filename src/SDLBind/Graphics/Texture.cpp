@@ -79,7 +79,7 @@ ErrorOr<Texture> Texture::FromText(SDL_Renderer *renderer, TextSpec spec) {
   }
 
   Texture result;
-  result.m_buffer = std::move(::BNES::SDL::Buffer{surface});
+  result.m_buffer = ::BNES::SDL::Buffer{surface};
   result.m_texture = texture;
 
   return result;

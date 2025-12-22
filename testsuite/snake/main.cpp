@@ -54,7 +54,7 @@ public:
   double instruction_slowdown{1.0};
 };
 
-int main() {
+BNES::ErrorOr<int> snake_main() {
   constexpr std::array<uint8_t, 309> program = {
       0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9, 0x02, 0x85, 0x02, 0xa9, 0x04,
       0x85, 0x03, 0xa9, 0x11, 0x85, 0x10, 0xa9, 0x10, 0x85, 0x12, 0xa9, 0x0f, 0x85, 0x14, 0xa9, 0x04, 0x85, 0x11, 0x85,
@@ -87,16 +87,11 @@ int main() {
     return 1;
   }
 
-  auto window_handle = BNES::SDL::FromSpec({.width = 320, .height = 320, .title = "6502 Snake"}).value();
+  auto window_handle = TRY(BNES::SDL::Window::FromSpec({.width = 320, .height = 320, .title = "6502 Snake"}));
   auto screen_surface = window_handle.Surface();
 
-  auto buffer = BNES::SDL::MakeBuffer(32, 32).value();
-  auto maybe_texture = window_handle.CreateTexture(std::move(buffer));
-  if (!maybe_texture) {
-    spdlog::error("Unable to create texture: {}", maybe_texture.error().Message());
-    return 1;
-  }
-  auto &texture = maybe_texture.value();
+  auto buffer = TRY(BNES::SDL::Buffer::FromSize(32, 32));
+  auto texture = TRY(window_handle.CreateTexture(std::move(buffer)));
 
   window_handle.SetRenderScale(10.0f, 10.0f);
   texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST); // Pixelated scaling
@@ -210,7 +205,7 @@ int main() {
 
       update_video_buffer(texture.Buffer());
 
-      texture.Update();
+      TRY(texture.Update());
 
       // SDL_RenderClear(window_handle.Renderer());
 
@@ -228,6 +223,16 @@ int main() {
 
   // Clean up
   BNES::SDL::Quit();
+
+  return 0;
+}
+
+int main() {
+  auto result = snake_main();
+  if (!result) {
+    spdlog::error("Error: {}", result.error().Message());
+    return result.error().Code().value();
+  }
 
   return 0;
 }

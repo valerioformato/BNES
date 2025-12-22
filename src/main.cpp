@@ -12,7 +12,7 @@ void close() {
 
 namespace fs = std::filesystem;
 
-int main(int argc, char **argv) { // Final exit code
+BNES::ErrorOr<int> nes_main(int argc, char **argv) { // Final exit code
 
   auto clock = std::chrono::high_resolution_clock{};
   auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
@@ -23,10 +23,10 @@ int main(int argc, char **argv) { // Final exit code
     return 1;
   }
 
-  auto window_handle = BNES::SDL::CreateDefault().value();
+  auto window_handle = TRY(BNES::SDL::Window::CreateDefault());
   auto screen_surface = window_handle.Surface();
 
-  auto buffer = BNES::SDL::MakeBuffer(screen_surface.Handle()->w, screen_surface.Handle()->h).value();
+  auto buffer = TRY(BNES::SDL::Buffer::FromSize(screen_surface.Width(), screen_surface.Height()));
   auto maybe_texture = window_handle.CreateTexture(std::move(buffer));
   if (!maybe_texture) {
     spdlog::error("Unable to create texture: {}", maybe_texture.error().Message());
@@ -63,7 +63,7 @@ int main(int argc, char **argv) { // Final exit code
       x = 0;
       ++y;
     }
-    texture.Update();
+    TRY(texture.Update());
 
     // Set a blue background to distinguish from black texture
     SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 255, 255);
@@ -79,6 +79,16 @@ int main(int argc, char **argv) { // Final exit code
 
   // Clean up
   BNES::SDL::Quit();
+
+  return 0;
+}
+
+int main(int argc, char **argv) {
+  auto result = nes_main(argc, argv);
+  if (!result) {
+    spdlog::error("Error: {}", result.error().Message());
+    return result.error().Code().value();
+  }
 
   return 0;
 }
