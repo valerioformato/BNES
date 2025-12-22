@@ -21,7 +21,7 @@ ErrorOr<Font> Font::FromFile(std::string name, FontVariant variant) {
     return make_error(std::errc::no_such_file_or_directory, fmt::format("Font does not exist: {}", font_path.string()));
   }
 
-  if (auto font = TTF_OpenFont(font_path.c_str(), 14); font == nullptr) {
+  if (auto font = TTF_OpenFont(font_path.string().c_str(), 14); font == nullptr) {
     return make_error(std::errc::no_such_file_or_directory, fmt::format("Cannot load font: {}", SDL_GetError()));
   } else {
     auto [handle, result] = Fonts.insert(Font{
