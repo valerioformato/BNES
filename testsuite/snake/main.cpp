@@ -108,7 +108,7 @@ BNES::ErrorOr<int> snake_main() {
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();
 
-  // BNES::Tools::CPUDebugger debugger(cpu);
+  BNES::Tools::CPUDebugger debugger(cpu);
 
   cpu.instruction_slowdown = 100.0;
 

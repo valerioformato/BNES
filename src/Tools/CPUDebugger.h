@@ -17,13 +17,13 @@ public:
   public:
     explicit Window(SDL::Buffer &&buffer);
 
-    void Update();
+    ErrorOr<void> Update(SDL::TextSpec text_content);
 
-    SDL::Window m_window_handle;
+    SDL::Window m_window;
     SDL::Texture m_texture;
+    SDL::Font m_font;
   };
 
-public:
   CPUDebugger() = delete;
   explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
 

@@ -8,7 +8,16 @@
 
 namespace BNES::SDL {
 namespace {
-std::unordered_set<Font> Fonts;
+std::unordered_map<size_t, Font> Fonts;
+}
+
+ErrorOr<Font> Font::Get(std::string name, FontVariant variant) {
+  if (auto font_itr = Fonts.find(Hash(name, variant)); font_itr == Fonts.end()) {
+    return font_itr->second;
+  }
+
+  return make_error(std::errc::invalid_argument,
+                    fmt::format("Font {}-{} not found", name, magic_enum::enum_name(variant)));
 }
 
 ErrorOr<Font> Font::FromFile(std::string name, FontVariant variant) {
@@ -24,17 +33,17 @@ ErrorOr<Font> Font::FromFile(std::string name, FontVariant variant) {
   if (auto font = TTF_OpenFont(font_path.string().c_str(), 14); font == nullptr) {
     return make_error(std::errc::no_such_file_or_directory, fmt::format("Cannot load font: {}", SDL_GetError()));
   } else {
-    auto [handle, result] = Fonts.insert(Font{
-        .name = font_path.string(),
-        .font = font,
-    });
+    auto [handle, result] = Fonts.insert({Hash(name, variant), Font{
+                                                                   .name = font_path.string(),
+                                                                   .font = font,
+                                                               }});
 
     if (!result) {
       spdlog::error("Could not insert font into font {} table", file_name);
       return make_error(std::errc::not_enough_memory, fmt::format("Could not insert font {}", file_name));
     }
 
-    return *handle;
+    return handle->second;
   };
 }
 } // namespace BNES::SDL
