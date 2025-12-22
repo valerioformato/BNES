@@ -87,7 +87,8 @@ jobs:
             libxkbcommon-dev \
             libdrm-dev \
             libgbm-dev \
-            libdecor-0-dev
+            libdecor-0-dev \
+            libfreetype6-dev
 
       - name: Install modern GCC
         if: runner.os == 'Linux' && matrix.c_compiler == 'gcc'
