@@ -90,6 +90,8 @@ inline std::vector<std::string> TokenizeString(const std::string &str, const cha
 }
 } // namespace String
 
+using my_ssize_t = std::make_signed_t<size_t>;
+
 namespace Raw {
 template <typename T> void ReadFromBinary(T &output, std::ifstream &binary_file) {
   binary_file.read(reinterpret_cast<char *>(&output), sizeof(output));
@@ -100,7 +102,7 @@ template <typename T> void ReadNFromBinary(std::vector<T> &output, size_t n_item
 }
 
 inline bool SkipBytes(size_t n_bytes, std::ifstream &binary_file) {
-  ssize_t new_pos = static_cast<ssize_t>(binary_file.tellg()) + static_cast<ssize_t>(n_bytes);
+  my_ssize_t new_pos = static_cast<my_ssize_t>(binary_file.tellg()) + static_cast<my_ssize_t>(n_bytes);
   binary_file.seekg(new_pos);
 
   return (binary_file.rdstate() & std::ios::failbit) == 0;

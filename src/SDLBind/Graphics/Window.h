@@ -27,7 +27,6 @@ struct WindowSpec {
 
   unsigned int width{DefaultWidth};
   unsigned int height{DefaultHeight};
-  std::array<unsigned int, 2> position;
   std::string_view title{"BNES Emulator"};
   WindowFlag flags{WindowFlag::None};
 };
