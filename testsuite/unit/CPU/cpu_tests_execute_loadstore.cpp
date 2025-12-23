@@ -20,7 +20,7 @@ public:
   using CPU::WriteToMemory;
 };
 
-SCENARIO("6502 instruction execution tests (loads)") {
+SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
     CPUMock cpu{bus};
@@ -759,7 +759,7 @@ SCENARIO("6502 instruction execution tests (loads)") {
   }
 }
 
-SCENARIO("6502 instruction execution tests (stores)") {
+SCENARIO("6502 instruction execution tests (stores)", "[CPU][Stores]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
     CPUMock cpu{bus};

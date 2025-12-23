@@ -529,7 +529,7 @@ template <AddressingMode MODE> void CPU::BitTest<MODE>::Apply(CPU &cpu) const {
   uint8_t value{0};
   if constexpr (MODE == AddressingMode::ZeroPage) {
     Addr addr = address & 0xFF;
-    value = cpu.m_ram_memory[addr];
+    value = cpu.ReadFromMemory(addr);
   } else if constexpr (MODE == AddressingMode::Absolute) {
     value = cpu.ReadFromMemory(address);
   } else {
@@ -550,19 +550,19 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
   } else if constexpr (MODE == AddressingMode::ZeroPage) {
     // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
     Addr addr = value & 0xFF;
-    cpu.m_registers[REG] = cpu.m_ram_memory[addr];
+    cpu.m_registers[REG] = cpu.ReadFromMemory(addr);
   } else if constexpr (MODE == AddressingMode::ZeroPageX) {
     // Zero page addressing with X offset means the memory address is in the range 0x00 to 0xFF, and the X register
     // is added to the zero page address.
     // If the result exceeds 0xFF, it wraps around to 0x00.
     Addr addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    cpu.m_registers[REG] = cpu.m_ram_memory[addr];
+    cpu.m_registers[REG] = cpu.ReadFromMemory(addr);
   } else if constexpr (MODE == AddressingMode::ZeroPageY) {
     // Zero page addressing with Y offset means the memory address is in the range 0x00 to 0xFF, and the Y register
     // is added to the zero page address.
     // If the result exceeds 0xFF, it wraps around to 0x00.
     Addr addr = (value + cpu.m_registers[Register::Y]) & 0xFF;
-    cpu.m_registers[REG] = cpu.m_ram_memory[addr];
+    cpu.m_registers[REG] = cpu.ReadFromMemory(addr);
   } else if constexpr (MODE == AddressingMode::Absolute) {
     // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
     cpu.m_registers[REG] = cpu.ReadFromMemory(value);
@@ -606,19 +606,19 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, M
   if constexpr (MODE == AddressingMode::ZeroPage) {
     // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
     Addr addr = address & 0xFF;
-    cpu.m_ram_memory[addr] = cpu.m_registers[REG];
+    cpu.WriteToMemory(addr, cpu.m_registers[REG]);
   } else if constexpr (MODE == AddressingMode::ZeroPageX) {
     // Zero page addressing with X offset means the memory address is in the range 0x00 to 0xFF, and the X register
     // is added to the zero page address.
     // If the result exceeds 0xFF, it wraps around to 0x00.
     Addr addr = (address + cpu.m_registers[Register::X]) & 0xFF;
-    cpu.m_ram_memory[addr] = cpu.m_registers[REG];
+    cpu.WriteToMemory(addr, cpu.m_registers[REG]);
   } else if constexpr (MODE == AddressingMode::ZeroPageY) {
     // Zero page addressing with Y offset means the memory address is in the range 0x00 to 0xFF, and the Y register
     // is added to the zero page address.
     // If the result exceeds 0xFF, it wraps around to 0x00.
     Addr addr = (address + cpu.m_registers[Register::Y]) & 0xFF;
-    cpu.m_ram_memory[addr] = cpu.m_registers[REG];
+    cpu.WriteToMemory(addr, cpu.m_registers[REG]);
   } else if constexpr (MODE == AddressingMode::Absolute) {
     // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
     cpu.WriteToMemory(address, cpu.m_registers[REG]);

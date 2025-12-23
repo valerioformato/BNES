@@ -6,6 +6,7 @@
 #define BUS_H
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace BNES::HW {

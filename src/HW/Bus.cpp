@@ -26,6 +26,8 @@ void Bus::Write(Addr address, uint8_t data) {
     // mask out bit 12 and 13 to simulate mirroring
     address &= 0b11111111111;
     m_ram[address] = data;
+
+    return;
   } else if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
     TODO("PPU not implemented yet");
   }
