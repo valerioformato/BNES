@@ -100,7 +100,7 @@ template <typename T> void ReadNFromBinary(std::vector<T> &output, size_t n_item
 }
 
 inline bool SkipBytes(size_t n_bytes, std::ifstream &binary_file) {
-  ssize_t new_pos = static_cast<ssize_t>(binary_file.tellg()) + n_bytes;
+  ssize_t new_pos = static_cast<ssize_t>(binary_file.tellg()) + static_cast<ssize_t>(n_bytes);
   binary_file.seekg(new_pos);
 
   return (binary_file.rdstate() & std::ios::failbit) == 0;
