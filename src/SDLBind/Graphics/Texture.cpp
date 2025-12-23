@@ -9,25 +9,38 @@
 namespace BNES::SDL {
 Texture::~Texture() { SDL_DestroyTexture(m_texture); }
 
-void Texture::Render(SDL_Renderer *renderer, const SDL_FRect *dest) {
+ErrorOr<void> Texture::Render(SDL_Renderer *renderer) {
   // Check if texture is valid before rendering
   if (!m_texture) {
-    spdlog::error("Attempting to render null texture");
-    return;
+    return make_error(std::errc::invalid_argument, "Attempting to render null texture");
   }
 
-  // Use provided destination or default to full texture size
-  SDL_FRect dstRect;
-  if (dest) {
-    dstRect = *dest;
-  } else {
-    dstRect = {0.0f, 0.0f, static_cast<float>(m_buffer.Width()), static_cast<float>(m_buffer.Height())};
-  }
+  SDL_FRect dstRect = {0.0f, 0.0f, static_cast<float>(m_buffer.Width()), static_cast<float>(m_buffer.Height())};
 
   // Render texture
   if (SDL_RenderTexture(renderer, m_texture, nullptr, &dstRect) == false) {
-    spdlog::error("Failed to render texture: {}", SDL_GetError());
+    return make_error(std::errc::invalid_argument, fmt::format("Failed to render texture: {}", SDL_GetError()));
   }
+
+  return {};
+}
+
+ErrorOr<void> Texture::RenderAtPosition(SDL_Renderer *renderer, std::array<int, 2> position) {
+  // Check if texture is valid before rendering
+  if (!m_texture) {
+    return make_error(std::errc::invalid_argument, "Attempting to render null texture");
+  }
+
+  auto [x, y] = position;
+  SDL_FRect dstRect = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(m_buffer.Width()),
+                       static_cast<float>(m_buffer.Height())};
+
+  // Render texture
+  if (SDL_RenderTexture(renderer, m_texture, nullptr, &dstRect) == false) {
+    return make_error(std::errc::invalid_argument, fmt::format("Failed to render texture: {}", SDL_GetError()));
+  }
+
+  return {};
 }
 
 ErrorOr<void> Texture::Update() {

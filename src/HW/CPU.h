@@ -14,6 +14,8 @@
 
 namespace BNES::HW {
 class CPU {
+  friend class CPUDebugger;
+
 public:
   using Addr = Bus::Addr;
 
@@ -407,9 +409,12 @@ public:
       >;
   // clang-format on
 
+  Instruction m_current_instruction{NoOperation{}};
+
   [[nodiscard]] Instruction DecodeInstruction(std::span<const uint8_t> bytes) const;
   void RunInstruction(Instruction &&instr);
-  static std::string DisassembleInstruction(const Instruction &instr);
+  [[nodiscard]] static std::string DisassembleInstruction(const Instruction &instr);
+  [[nodiscard]] Instruction CurrentInstruction() const { return m_current_instruction; }
 };
 
 inline void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {

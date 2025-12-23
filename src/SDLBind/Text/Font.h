@@ -33,6 +33,8 @@ public:
 
   static ErrorOr<Font> Get(std::string name, FontVariant variant);
 
+  [[nodiscard]] unsigned int LineSkip() const { return TTF_GetFontLineSkip(font); }
+
 private:
   static size_t Hash(std::string_view name, FontVariant variant) {
     return std::hash<std::string>{}(fmt::format("{}-{}", name, magic_enum::enum_name(variant)));

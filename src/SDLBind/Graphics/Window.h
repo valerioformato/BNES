@@ -21,6 +21,17 @@ enum class WindowFlag {
   Maximized = SDL_WINDOW_MAXIMIZED,
 };
 
+struct WindowSpec {
+  static constexpr unsigned int DefaultWidth{800};
+  static constexpr unsigned int DefaultHeight{600};
+
+  unsigned int width{DefaultWidth};
+  unsigned int height{DefaultHeight};
+  std::array<unsigned int, 2> position;
+  std::string_view title{"BNES Emulator"};
+  WindowFlag flags{WindowFlag::None};
+};
+
 class Window {
 public:
   Window() = default;
@@ -55,6 +66,10 @@ public:
     return {};
   }
 
+  std::array<int, 2> Position() const;
+  std::array<int, 2> Size() const;
+
+  [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const;
   void SetRenderScale(float scale_x, float scale_y) const { SDL_SetRenderScale(m_renderer, scale_x, scale_y); }
 
 private:
@@ -63,17 +78,7 @@ private:
   SDL_Window *m_window{nullptr};
   SDL_Renderer *m_renderer{nullptr};
 
-  static constexpr unsigned int DefaultWidth{800};
-  static constexpr unsigned int DefaultHeight{600};
-
 public:
-  struct WindowSpec {
-    unsigned int width{DefaultWidth};
-    unsigned int height{DefaultHeight};
-    std::string_view title{"BNES Emulator"};
-    WindowFlag flags{WindowFlag::None};
-  };
-
   [[nodiscard]] static ErrorOr<Window> CreateDefault();
   [[nodiscard]] static ErrorOr<Window> FromSpec(WindowSpec);
 };

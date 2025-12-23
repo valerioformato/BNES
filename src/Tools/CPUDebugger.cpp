@@ -5,10 +5,13 @@
 #include "Tools/CPUDebugger.h"
 #include "SDLBind/Text/TextSpec.h"
 
+#include <algorithm>
+#include <ranges>
+
 namespace BNES::Tools {
 
 CPUDebugger::Window::Window(SDL::Buffer &&buffer)
-    : m_window(SDL::Window::FromSpec(SDL::Window::WindowSpec{
+    : m_window(SDL::Window::FromSpec(SDL::WindowSpec{
                                          .width = buffer.Width(),
                                          .height = buffer.Height(),
                                          .title = "CPU Debugger",
@@ -18,12 +21,20 @@ CPUDebugger::Window::Window(SDL::Buffer &&buffer)
       m_texture(m_window.CreateTexture(std::move(buffer)).value()),
       m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}
 
-ErrorOr<void> CPUDebugger::Window::Update(SDL::TextSpec text_content) {
+ErrorOr<void> CPUDebugger::Window::Update(std::span<SDL::TextSpec> text_content) {
   SDL_RenderClear(m_window.Renderer());
 
-  m_texture = TRY(SDL::Texture::FromText(m_window.Renderer(), text_content));
+  auto maybe_textures = text_content | std::views::transform([this](SDL::TextSpec spec) {
+                          return SDL::Texture::FromText(m_window.Renderer(), spec);
+                        });
 
-  m_texture.Render(m_window.Renderer());
+  unsigned int y_pos = 0;
+  std::ranges::for_each(maybe_textures, [this, &y_pos](auto &&maybe_texture) {
+    if (maybe_texture.has_value()) {
+      maybe_texture->RenderAtPosition(m_window.Renderer(), {0, y_pos});
+      y_pos += m_font.LineSkip();
+    }
+  });
 
   SDL_RenderPresent(m_window.Renderer());
 
@@ -33,17 +44,22 @@ ErrorOr<void> CPUDebugger::Window::Update(SDL::TextSpec text_content) {
 void CPUDebugger::Update() {
   using CPU = HW::CPU;
 
-  const std::string register_debug =
-      fmt::format("A: {} X: {} Y: {}", m_cpu->Registers()[CPU::Register::A], m_cpu->Registers()[CPU::Register::X],
-                  m_cpu->Registers()[CPU::Register::Y]);
+  std::vector<std::string> lines;
+  lines.push_back(fmt::format("A: {} X: {} Y: {}", m_cpu->Registers()[CPU::Register::A],
+                              m_cpu->Registers()[CPU::Register::X], m_cpu->Registers()[CPU::Register::Y],
+                              CPU::DisassembleInstruction(m_cpu->CurrentInstruction())));
+  lines.push_back(fmt::format("{}", CPU::DisassembleInstruction(m_cpu->CurrentInstruction())));
 
-  const SDL::TextSpec content{
-      .content = register_debug,
-      .font = m_window.m_font,
-      .color = SDL::Color{255, 255, 255, 255},
-  };
+  auto text_content = lines | std::views::transform([this](auto &&line) {
+                        return SDL::TextSpec{
+                            .content = line,
+                            .font = m_window.m_font,
+                            .color = SDL::Color{255, 255, 255, 255},
+                        };
+                      }) |
+                      std::ranges::to<std::vector<SDL::TextSpec>>();
 
-  m_window.Update(content);
+  m_window.Update(text_content);
 }
 
 } // namespace BNES::Tools

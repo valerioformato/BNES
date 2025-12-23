@@ -17,7 +17,7 @@ public:
   public:
     explicit Window(SDL::Buffer &&buffer);
 
-    ErrorOr<void> Update(SDL::TextSpec text_content);
+    ErrorOr<void> Update(std::span<SDL::TextSpec> text_content);
 
     SDL::Window m_window;
     SDL::Texture m_texture;
@@ -26,6 +26,10 @@ public:
 
   CPUDebugger() = delete;
   explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
+
+  [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const {
+    return m_window.m_window.SetPosition(x, y);
+  };
 
   void Update();
 

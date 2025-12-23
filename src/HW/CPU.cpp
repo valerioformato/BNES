@@ -277,6 +277,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
 }
 
 void CPU::RunInstruction(Instruction &&instr) {
+  m_current_instruction = instr;
   std::visit<void>(
       [this](auto &instruction) {
         // Run the instruction on the CPU

@@ -37,7 +37,8 @@ public:
 
   void SetScaleMode(SDL_ScaleMode scale_mode) const { SDL_SetTextureScaleMode(m_texture, scale_mode); }
 
-  void Render(SDL_Renderer *renderer, const SDL_FRect *dest = nullptr);
+  [[nodiscard]] ErrorOr<void> Render(SDL_Renderer *renderer);
+  [[nodiscard]] ErrorOr<void> RenderAtPosition(SDL_Renderer *renderer, std::array<int, 2> position);
 
   [[nodiscard]] uint32_t Width() const { return m_buffer.Width(); }
   [[nodiscard]] uint32_t Height() const { return m_buffer.Height(); }

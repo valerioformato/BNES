@@ -112,7 +112,16 @@ BNES::ErrorOr<int> snake_main() {
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();
 
+  auto [main_window_x, main_window_y] = window_handle.Position();
+  auto [main_window_size_x, main_window_size_y] = window_handle.Size();
+
   BNES::Tools::CPUDebugger debugger(cpu);
+  // This doesn't work on Wayland cause applications cannot request absolute window positioning
+  if (auto result = getenv("WAYLAND_DISPLAY"); result == nullptr) {
+    TRY(debugger.SetPosition(main_window_x + main_window_size_x, main_window_y));
+  } else {
+    spdlog::warn("Cannot set debugger window position on Wayland ({})", result);
+  }
 
   cpu.instruction_slowdown = 100.0;
 
