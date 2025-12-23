@@ -25,6 +25,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(SDL_STATIC ON)
 add_subdirectory(vendor/SDL)
 set(BUILD_SHARED_LIBS OFF)
+set(SDLTTF_VENDORED
+    ON
+    CACHE BOOL "Use vendored libraries for SDL_ttf" FORCE
+)
 add_subdirectory(vendor/SDL_ttf)
 
 add_subdirectory(vendor/magic_enum)
