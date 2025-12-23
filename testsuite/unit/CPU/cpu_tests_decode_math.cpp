@@ -10,7 +10,8 @@ using namespace BNES::HW;
 
 SCENARIO("6502 instruction decoding tests (math ops)") {
   GIVEN("A freshly initialized cpu") {
-    CPU cpu;
+    Bus bus;
+    CPU cpu{bus};
 
     WHEN("We try to decode a INX instruction") {
       std::vector<uint8_t> bytes = {0xE8}; // INX

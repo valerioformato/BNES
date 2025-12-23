@@ -2,7 +2,9 @@
 #define BNES_HW_CPU_H
 
 #include "../common/Types/EnumArray.h"
+#include "HW/Bus.h"
 #include "HW/OpCodes.h"
+#include "common/Types/non_owning_ptr.h"
 #include "common/Utils.h"
 
 #include <bitset>
@@ -13,7 +15,7 @@
 namespace BNES::HW {
 class CPU {
 public:
-  using Addr = uint16_t;
+  using Addr = Bus::Addr;
 
   enum class Register : uint8_t { A = 0, X, Y };
   enum class StatusFlag : uint8_t {
@@ -28,6 +30,8 @@ public:
 
   static constexpr size_t STACK_MEM_SIZE = 2048;
   static constexpr size_t PROG_MEM_SIZE = 0x8000;
+
+  explicit CPU(Bus &bus) : m_bus{&bus} {}
 
   ErrorOr<void> LoadProgram(std::span<const uint8_t> program);
 
@@ -52,6 +56,7 @@ private:
   std::bitset<8> m_status{0x00};              // Status register (flags)
   uint8_t m_stack_pointer{0xFF};              // Stack pointer initialized to 0xFF
   Addr m_program_counter{ProgramBaseAddress}; // Program counter
+  non_owning_ptr<Bus *> m_bus;                // Memory bus
 
   std::array<uint8_t, STACK_MEM_SIZE> m_ram_memory{}; // CPU memory (2kB)
   std::array<uint8_t, PROG_MEM_SIZE> m_program_memory{};
@@ -59,9 +64,10 @@ private:
 protected:
   class NonMaskableInterrupt : public std::exception {};
 
-  // Mostly used for unit testing purposes
   [[nodiscard]] uint8_t ReadFromMemory(Addr addr) const;
   void WriteToMemory(Addr addr, uint8_t value);
+
+  // Mostly used for unit testing purposes
   void SetRegister(Register reg, uint8_t value);
   void SetStatusFlagValue(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
   void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }

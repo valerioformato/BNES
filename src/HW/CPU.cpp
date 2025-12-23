@@ -401,28 +401,14 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
 }
 
 uint8_t CPU::ReadFromMemory(Addr addr) const {
-  if (addr < m_ram_memory.size()) {
-    return m_ram_memory[addr];
-  }
-
-  if (addr >= m_ram_memory.size() && addr < ProgramBaseAddress) {
-    TODO("implement the rest of the memory map for the CPU");
-  }
-
   if (addr > ProgramBaseAddress && addr < ProgramBaseAddress + m_program_memory.size()) {
     return m_program_memory[addr - ProgramBaseAddress];
   }
 
-  throw std::out_of_range("Address out of range for RAM or program memory");
+  return m_bus->Read(addr);
 }
 
-void CPU::WriteToMemory(Addr addr, uint8_t value) {
-  if (addr < m_ram_memory.size()) {
-    m_ram_memory[addr] = value;
-  } else {
-    throw std::out_of_range("Address out of range for RAM memory");
-  }
-}
+void CPU::WriteToMemory(Addr addr, uint8_t value) { return m_bus->Write(addr, value); }
 
 void CPU::SetRegister(Register reg, uint8_t value) {
   m_registers[reg] = value;

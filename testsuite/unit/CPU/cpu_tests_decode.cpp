@@ -10,7 +10,8 @@ using namespace BNES::HW;
 
 SCENARIO("6502 instruction decoding tests (all the rest)") {
   GIVEN("A freshly initialized cpu") {
-    CPU cpu;
+    Bus bus;
+    CPU cpu{bus};
 
     WHEN("We try to decode a BRK instruction") {
       std::vector<uint8_t> bytes = {0x00}; // BRK

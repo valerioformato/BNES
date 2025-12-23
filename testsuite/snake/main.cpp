@@ -20,6 +20,8 @@ public:
   using CPU::SetProgramStartAddress;
   using CPU::WriteToMemory;
 
+  SnakeCPU(BNES::HW::Bus &bus) : CPU(bus) {}
+
   BNES::ErrorOr<void> LoadProgram(std::span<const uint8_t> program) {
     uint16_t start_address = 0x600;
     for (const auto &byte : program) {
@@ -103,7 +105,9 @@ BNES::ErrorOr<int> snake_main() {
   SDL_Event e;
   SDL_zero(e);
 
-  SnakeCPU cpu;
+  BNES::HW::Bus bus;
+
+  SnakeCPU cpu{bus};
   cpu.LoadProgram(program);
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();

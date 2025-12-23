@@ -12,6 +12,8 @@ using namespace BNES::HW;
 class CPUMock : public CPU {
   // This mock class is used to expose private methods for testing purposes.
 public:
+  CPUMock(BNES::HW::Bus &bus) : CPU(bus) {}
+
   using CPU::NonMaskableInterrupt;
   using CPU::ProgramMemory;
   using CPU::ReadFromMemory;
@@ -137,7 +139,8 @@ std::array programs = {
 
 SCENARIO("6502 code execution (small test programs)") {
   GIVEN("a new CPU instance") {
-    CPUMock cpu;
+    BNES::HW::Bus bus;
+    CPUMock cpu{bus};
 
     WHEN("We run a test program") {
       auto program = GENERATE(from_range(programs));

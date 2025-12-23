@@ -10,7 +10,8 @@ using namespace BNES::HW;
 
 SCENARIO("6502 instruction decoding tests (loads)") {
   GIVEN("A freshly initialized cpu") {
-    CPU cpu;
+    Bus bus;
+    CPU cpu{bus};
 
     WHEN("We try to decode a LDA immediate instruction") {
       std::vector<uint8_t> bytes = {0xA9, 0x42}; // LDA #$42
@@ -300,7 +301,8 @@ SCENARIO("6502 instruction decoding tests (loads)") {
 
 SCENARIO("6502 instruction decoding tests (stores)") {
   GIVEN("A freshly initialized cpu") {
-    CPU cpu;
+    Bus bus;
+    CPU cpu{bus};
 
     WHEN("We try to decode a STA zero page instruction") {
       std::vector<uint8_t> bytes = {0x85, 0x42}; // STA $42

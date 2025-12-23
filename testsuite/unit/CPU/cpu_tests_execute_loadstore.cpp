@@ -13,6 +13,8 @@ template <size_t N> using ByteArray = std::array<uint8_t, N>;
 class CPUMock : public CPU {
   // This mock class is used to expose private methods for testing purposes.
 public:
+  CPUMock(BNES::HW::Bus &bus) : CPU(bus) {}
+
   using CPU::ReadFromMemory;
   using CPU::SetRegister;
   using CPU::WriteToMemory;
@@ -20,7 +22,8 @@ public:
 
 SCENARIO("6502 instruction execution tests (loads)") {
   GIVEN("A freshly initialized cpu") {
-    CPUMock cpu;
+    Bus bus;
+    CPUMock cpu{bus};
     auto original_program_counter = cpu.ProgramCounter();
 
     WHEN("We execute a LDA immediate instruction") {
@@ -758,7 +761,8 @@ SCENARIO("6502 instruction execution tests (loads)") {
 
 SCENARIO("6502 instruction execution tests (stores)") {
   GIVEN("A freshly initialized cpu") {
-    CPUMock cpu;
+    Bus bus;
+    CPUMock cpu{bus};
     auto original_program_counter = cpu.ProgramCounter();
 
     WHEN("We execute a STA zero-page instruction") {

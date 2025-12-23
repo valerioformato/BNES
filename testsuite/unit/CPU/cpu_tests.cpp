@@ -10,13 +10,16 @@ using namespace BNES::HW;
 class CPUMock : public CPU {
   // This mock class is used to expose private methods for testing purposes.
 public:
+  CPUMock(BNES::HW::Bus &bus) : CPU(bus) {}
+
   using CPU::ProgramMemory;
 };
 
 SCENARIO("6502 initialization") {
   GIVEN("a new CPU instance") {
 
-    CPUMock cpu;
+    BNES::HW::Bus bus;
+    CPUMock cpu{bus};
 
     WHEN("the CPU is initialized") {
       THEN("the CPU registers should be in their default state") {
