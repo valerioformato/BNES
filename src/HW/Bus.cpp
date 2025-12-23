@@ -15,6 +15,13 @@ uint8_t Bus::Read(Addr address) {
     return m_ram[address];
   } else if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
     TODO("PPU not implemented yet");
+  } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {
+    Addr rom_address = address - ROM_START_REGISTER;
+    // check if mirroring is needed
+    if (m_rom.program_rom.size() == 0x4000 && address >= 0x4000) {
+      rom_address %= 0x4000;
+    }
+    return m_rom.program_rom[rom_address];
   }
 
   spdlog::error("Bus read request for address {}: Address out of range", address);
@@ -30,6 +37,9 @@ void Bus::Write(Addr address, uint8_t data) {
     return;
   } else if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
     TODO("PPU not implemented yet");
+  } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {
+    spdlog::error("CANNOT WRITE TO ROM MEMORY!!!");
+    throw std::runtime_error("Can't write to ROM memory");
   }
 
   spdlog::error("Bus write request for address {}: Address out of range", address);

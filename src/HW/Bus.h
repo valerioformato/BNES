@@ -5,6 +5,9 @@
 #ifndef BUS_H
 #define BUS_H
 
+#include "HW/Rom.h"
+#include "common/Types/non_owning_ptr.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -18,12 +21,20 @@ public:
   static constexpr size_t MAX_ADDRESSABLE_RAM_ADDRESS = 0x1FFF;
   static constexpr size_t PPU_START_REGISTER = 0x2000;
   static constexpr size_t MAX_ADDRESSABLE_PPU_ADDRESS = 0x3FFF;
+  static constexpr size_t ROM_START_REGISTER = 0x8000;
+  static constexpr size_t MAX_ADDRESSABLE_ROM_ADDRESS = 0xFFFF;
+
+  [[nodiscard]] ErrorOr<void> LoadRom(std::string_view rom_file) {
+    m_rom = TRY(Rom::FromFile(rom_file));
+    return {};
+  }
 
   [[nodiscard]] uint8_t Read(Addr address);
   void Write(Addr address, uint8_t data);
 
 private:
   std::array<uint8_t, RAM_MEM_SIZE> m_ram{0};
+  Rom m_rom;
 };
 } // namespace BNES::HW
 

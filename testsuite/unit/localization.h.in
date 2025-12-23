@@ -1,0 +1,20 @@
+/*
+ * localization.h
+ *
+ *  Created on: Feb 07, 2023
+ *      Author: Valerio Formato
+ */
+
+#ifndef LOCALIZATION_H_IN_
+#define LOCALIZATION_H_IN_
+
+#include <string_view>
+
+namespace localization {
+// Project paths
+constexpr std::string_view PROJECT_SOURCE_DIR{"@PROJECT_SOURCE_DIR@"};
+constexpr std::string_view PROJECT_BINARY_DIR{"@PROJECT_BINARY_DIR@"};
+constexpr std::string_view PROJECT_INSTALL_PREFIX{"@PROJECT_INSTALL_PREFIX@"};
+} // namespace localization
+
+#endif /* LOCALIZATION_H_IN_ */

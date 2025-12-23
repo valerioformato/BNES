@@ -9,6 +9,7 @@
 
 #include "spdlog/spdlog.h"
 
+#include <fstream>
 #include <source_location>
 #include <string_view>
 
@@ -89,6 +90,22 @@ inline std::vector<std::string> TokenizeString(const std::string &str, const cha
 }
 } // namespace String
 
+namespace Raw {
+template <typename T> void ReadFromBinary(T &output, std::ifstream &binary_file) {
+  binary_file.read(reinterpret_cast<char *>(&output), sizeof(output));
+}
+
+template <typename T> void ReadNFromBinary(std::vector<T> &output, size_t n_items, std::ifstream &binary_file) {
+  binary_file.read(reinterpret_cast<char *>(output.data()), n_items * sizeof(T));
+}
+
+inline bool SkipBytes(size_t n_bytes, std::ifstream &binary_file) {
+  ssize_t new_pos = static_cast<ssize_t>(binary_file.tellg()) + n_bytes;
+  binary_file.seekg(new_pos);
+
+  return (binary_file.rdstate() & std::ios::failbit) == 0;
+}
+} // namespace Raw
 } // namespace BNES::Utils
 
 #endif // BNES_UTILS_H

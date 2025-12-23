@@ -1,10 +1,14 @@
-set(test_SRC run_unit_tests.cpp
-        CPU/cpu_tests_decode_math.cpp
-        CPU/cpu_tests_execute_math.cpp)
+set(test_SRC run_unit_tests.cpp)
 
-add_subdirectory(CPU)
+add_subdirectory(HW)
+
+# Configure the localization header
+configure_file(localization.h.in ${CMAKE_CURRENT_BINARY_DIR}/localization.h @ONLY)
 
 add_executable(run_unit_tests ${test_SRC})
+
+# Set the include folder of the localization header
+target_include_directories(run_unit_tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # Link against your project libraries and Catch2
 target_include_directories(run_unit_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)

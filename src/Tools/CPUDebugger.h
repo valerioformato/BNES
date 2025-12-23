@@ -20,7 +20,6 @@ public:
     ErrorOr<void> Update(SDL::TextSpec text_content);
 
     SDL::Window m_window;
-    // SDL::Texture m_texture;
     SDL::Font m_font;
   };
 

@@ -19,7 +19,6 @@ CPUDebugger::Window::Window(SDL::Buffer &&buffer)
                                          .flags = SDL::WindowFlag::None,
                                      })
                    .value()),
-      // m_texture(m_window.CreateTexture(std::move(buffer)).value()),
       m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}
 
 ErrorOr<void> CPUDebugger::Window::Update(SDL::TextSpec text_content) {
