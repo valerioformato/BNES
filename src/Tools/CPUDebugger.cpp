@@ -42,7 +42,7 @@ void CPUDebugger::Update() {
   lines.push_back(fmt::format("{}", CPU::DisassembleInstruction(m_cpu->CurrentInstruction())));
 
   std::string content = std::reduce(begin(lines), end(lines), std::string{},
-                                    [](auto &current, auto &text) { return fmt::format("{}{}\n", current, text); });
+                                    [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });
 
   SDL::TextSpec text_content{
       .content = content,

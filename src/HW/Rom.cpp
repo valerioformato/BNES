@@ -4,6 +4,7 @@
 
 #include "Rom.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 
