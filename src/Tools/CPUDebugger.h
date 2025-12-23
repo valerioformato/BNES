@@ -17,10 +17,10 @@ public:
   public:
     explicit Window(SDL::Buffer &&buffer);
 
-    ErrorOr<void> Update(std::span<SDL::TextSpec> text_content);
+    ErrorOr<void> Update(SDL::TextSpec text_content);
 
     SDL::Window m_window;
-    SDL::Texture m_texture;
+    // SDL::Texture m_texture;
     SDL::Font m_font;
   };
 

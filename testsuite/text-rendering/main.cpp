@@ -65,8 +65,7 @@ BNES::ErrorOr<int> test_main() {
 
       // SDL_RenderClear(window_handle.Renderer());
 
-      auto dest = new SDL_FRect(100, 100, texture.Buffer().Width(), texture.Buffer().Height());
-      texture.Render(window_handle.Renderer(), dest);
+      TRY(texture.RenderAtPosition(window_handle.Renderer(), {100, 100}));
 
       SDL_RenderPresent(window_handle.Renderer());
       last_frame_update_time = clock.now();
