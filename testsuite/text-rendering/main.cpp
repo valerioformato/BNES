@@ -27,7 +27,7 @@ BNES::ErrorOr<int> test_main() {
       TRY(BNES::SDL::Window::FromSpec({.width = 1024, .height = 768, .title = "Text rendering tests"}));
   auto screen_surface = window_handle.Surface();
 
-  auto font = TRY(BNES::SDL::Font::FromFile("SpaceMono", BNES::SDL::FontVariant::Regular));
+  auto font = TRY(BNES::SDL::Font::Get("SpaceMono", BNES::SDL::FontVariant::Regular));
   auto texture =
       TRY(BNES::SDL::Texture::FromText(window_handle.Renderer(), {
                                                                      .content = "Testing testing",
