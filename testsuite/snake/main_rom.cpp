@@ -70,7 +70,6 @@ BNES::ErrorOr<int> snake_main() {
   window_handle.SetRenderScale(10.0f, 10.0f);
   texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST); // Pixelated scaling
 
-  // The quit flag
   bool quit{false}, step{false}, stepping{false};
 
   // The event data

@@ -11,6 +11,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace BNES::HW {
 class Bus {
