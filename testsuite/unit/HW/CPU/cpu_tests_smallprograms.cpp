@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <stdexcept>
 
 using namespace BNES::HW;
 
@@ -15,6 +16,7 @@ class CPUMock : public CPU {
 public:
   CPUMock(BNES::HW::Bus &bus) : CPU(bus) {}
 
+  // Expose protected exception type
   using CPU::GetBus;
   using CPU::NonMaskableInterrupt;
   using CPU::ReadFromMemory;
@@ -23,13 +25,32 @@ public:
   using CPU::WriteToMemory;
 };
 
+// Helper to load a program with padding to ensure safe instruction decoding
+BNES::ErrorOr<void> LoadProgramWithPadding(BNES::HW::Bus &bus, const std::vector<uint8_t> &program) {
+  // For test programs, we need to ensure the ROM is large enough to handle
+  // indirect jumps and other operations. We'll pad to at least 16KB (0x4000)
+  // which is a common NES ROM size that gets mirrored.
+  constexpr size_t MIN_ROM_SIZE = 0x4000; // 16KB
+  std::vector<uint8_t> padded_program = program;
+  padded_program.resize(std::max(program.size() + 3, MIN_ROM_SIZE), 0x00); // Pad with BRK
+  return bus.LoadIntoProgramRom(padded_program);
+}
+
 void SimpleRun(CPUMock &cpu) {
   while (true) {
-    std::span bytes(std::next(cpu.GetBus().Rom().program_rom.begin(), cpu.ProgramCounter() - 0x8000), 3ul);
+    auto pc = cpu.ProgramCounter();
+
+    // Read instruction bytes directly from bus (which will handle ROM, RAM, etc.)
+    std::array<uint8_t, 3> instr_bytes{};
+    for (size_t i = 0; i < 3; ++i) {
+      instr_bytes[i] = cpu.ReadFromMemory(pc + i);
+    }
+
+    std::span bytes(instr_bytes.begin(), 3);
     try {
       cpu.RunInstruction(cpu.DecodeInstruction(bytes));
     } catch (const CPUMock::NonMaskableInterrupt &) {
-      // NMI is not handled in this test
+      // NMI is not handled in this test (BRK was executed)
       break;
     } catch ([[maybe_unused]] const std::out_of_range &e) {
       // Out of range access, we stop the execution
@@ -146,7 +167,7 @@ SCENARIO("6502 code execution (small test programs)") {
     WHEN("We run a test program") {
       auto program = GENERATE(from_range(programs));
 
-      REQUIRE(bus.LoadIntoProgramRom(program.code).has_value());
+      REQUIRE(LoadProgramWithPadding(bus, program.code).has_value());
       cpu.SetProgramStartAddress(0x8000);
 
       REQUIRE_NOTHROW(SimpleRun(cpu));

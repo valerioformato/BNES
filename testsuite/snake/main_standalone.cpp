@@ -14,13 +14,13 @@
 #ifndef _MSC_VER
 #include <cxxabi.h>
 #endif
-class SnakeCPU : public BNES::HW::CPU {
+class NESTestCPU : public BNES::HW::CPU {
 public:
   using CPU::ReadFromMemory;
   using CPU::SetProgramStartAddress;
   using CPU::WriteToMemory;
 
-  SnakeCPU(BNES::HW::Bus &bus) : CPU(bus) {}
+  NESTestCPU(BNES::HW::Bus &bus) : CPU(bus) {}
 
   BNES::ErrorOr<void> LoadProgram(std::span<const uint8_t> program) {
     uint16_t start_address = 0x600;
@@ -108,7 +108,7 @@ BNES::ErrorOr<int> snake_main() {
   BNES::HW::Bus bus;
   TRY(bus.LoadRom("assets/roms/snake.nes"));
 
-  SnakeCPU cpu{bus};
+  NESTestCPU cpu{bus};
   cpu.LoadProgram(program);
   cpu.SetProgramStartAddress(0x600);
   cpu.Init();

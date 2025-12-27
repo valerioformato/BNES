@@ -15,9 +15,6 @@
 
 namespace BNES::HW {
 class Bus {
-  // For unit tests
-  friend class CPUMock;
-
 public:
   using Addr = std::uint16_t;
 
@@ -43,7 +40,7 @@ public:
 
 private:
   std::array<uint8_t, RAM_MEM_SIZE> m_ram{0};
-  ::BNES::HW::Rom m_rom;
+  ::BNES::HW::Rom m_rom{};
 };
 } // namespace BNES::HW
 

@@ -4,6 +4,8 @@
 
 #include "Rom.h"
 
+#include "spdlog/sinks/stdout_color_sinks-inl.h"
+
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -11,6 +13,8 @@
 
 namespace BNES::HW {
 ErrorOr<Rom> Rom::FromFile(std::string_view path) {
+  static auto logger = spdlog::stdout_color_st("Rom::FromFile");
+
   std::filesystem::path p(path);
   if (!std::filesystem::exists(p)) {
     return make_error(std::errc::no_such_file_or_directory, fmt::format("File {} not found", path));
@@ -30,21 +34,23 @@ ErrorOr<Rom> Rom::FromFile(std::string_view path) {
     return make_error(std::errc::not_supported, fmt::format("Could not find NES header in file {}", path));
   }
 
+  logger->debug("Found NES header tag in file {}", path);
+
   uint8_t n_prg_rom_banks = 0;
   Utils::Raw::ReadFromBinary(n_prg_rom_banks, input_file);
 
   uint8_t n_chr_rom_banks = 0;
   Utils::Raw::ReadFromBinary(n_chr_rom_banks, input_file);
 
-  spdlog::debug("NES ROM banks: {}", n_prg_rom_banks);
-  spdlog::debug("NES CHR banks: {}", n_chr_rom_banks);
+  logger->debug("NES ROM banks: {}", n_prg_rom_banks);
+  logger->debug("NES CHR banks: {}", n_chr_rom_banks);
 
   uint8_t cbyte1, cbyte2;
   Utils::Raw::ReadFromBinary(cbyte1, input_file);
   Utils::Raw::ReadFromBinary(cbyte2, input_file);
 
   uint8_t mapper = (cbyte2 & 0xF0) | (cbyte1 >> 4);
-  spdlog::debug("Mapper: {}", mapper);
+  logger->debug("Mapper: {}", mapper);
 
   uint8_t is_nes_v2 = (cbyte2 >> 2) & 0b11;
   if (is_nes_v2 != 0) {
@@ -74,6 +80,9 @@ ErrorOr<Rom> Rom::FromFile(std::string_view path) {
 
   size_t prg_rom_start = 16 + (skip_trainer ? 512 : 0);
   size_t chr_rom_start = prg_rom_start + prg_rom_size;
+
+  logger->debug("PRG ROM size: {}", prg_rom_size);
+  logger->debug("CHR ROM size: {}", chr_rom_size);
 
   auto dst = prg_rom_start - input_file.tellg();
   Utils::Raw::SkipBytes(dst, input_file);

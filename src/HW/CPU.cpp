@@ -251,6 +251,18 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return CompareRegister<Register::A, AddressingMode::Immediate>{bytes[1]};
   case OpCode::CMP_ZeroPage:
     return CompareRegister<Register::A, AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::CMP_ZeroPageX:
+    return CompareRegister<Register::A, AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::CMP_Absolute:
+    return CompareRegister<Register::A, AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::CMP_AbsoluteX:
+    return CompareRegister<Register::A, AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::CMP_AbsoluteY:
+    return CompareRegister<Register::A, AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::CMP_IndirectX:
+    return CompareRegister<Register::A, AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::CMP_IndirectY:
+    return CompareRegister<Register::A, AddressingMode::IndirectY>{bytes[1]};
   case OpCode::SEC:
     return SetStatusFlag<StatusFlag::Carry>{};
   case OpCode::SED:
@@ -286,110 +298,150 @@ void CPU::RunInstruction(Instruction &&instr) {
       instr);
 }
 
+// Helper function to format operands in proper 6502 assembly notation
+namespace {
+template <AddressingMode MODE> std::string FormatOperand(uint16_t value) {
+  if constexpr (MODE == AddressingMode::Immediate) {
+    return fmt::format("#${:02X}", value);
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    return fmt::format("${:02X}", value);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    return fmt::format("${:02X},X", value);
+  } else if constexpr (MODE == AddressingMode::ZeroPageY) {
+    return fmt::format("${:02X},Y", value);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    return fmt::format("${:04X}", value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    return fmt::format("${:04X},X", value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    return fmt::format("${:04X},Y", value);
+  } else if constexpr (MODE == AddressingMode::Indirect) {
+    return fmt::format("(${:04X})", value);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    return fmt::format("(${:02X},X)", value);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    return fmt::format("(${:02X}),Y", value);
+  } else if constexpr (MODE == AddressingMode::Accumulator) {
+    return "A";
+  } else {
+    return "???";
+  }
+}
+} // namespace
+
 std::string CPU::DisassembleInstruction(const Instruction &instr) {
-  return std::visit(
-      Utils::overloaded{
-          [](const Break &) -> std::string { return "BRK"; },
-          []<Register REG, AddressingMode MODE>(const LoadRegister<REG, MODE> _inst) {
-            return fmt::format("LD{} {} {:02X}", magic_enum::enum_name(REG), magic_enum::enum_name(MODE), _inst.value);
-          },
-          []<Register REG, AddressingMode MODE>(const StoreRegister<REG, MODE> _inst) {
-            return fmt::format("ST{} {} {:02X}", magic_enum::enum_name(REG), magic_enum::enum_name(MODE),
-                               _inst.address);
-          },
-          []<Register SRC, Register DST>(const TransferRegisterTo<SRC, DST> &) {
-            return fmt::format("T{}{}", magic_enum::enum_name(SRC), magic_enum::enum_name(DST));
-          },
-          [](const PushAccumulator &) -> std::string { return "PHA"; },
-          [](const PullAccumulator &) -> std::string { return "PLA"; },
-          []<AddressingMode MODE>(const AddWithCarry<MODE> _inst) {
-            return fmt::format("ADC {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
-          },
-          []<AddressingMode MODE>(const LogicalAND<MODE> _inst) {
-            return fmt::format("AND {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
-          },
-          []<AddressingMode MODE>(const ShiftLeft<MODE> _inst) {
-            return fmt::format("ASL {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
-          },
-          []<AddressingMode MODE>(const ShiftRight<MODE> _inst) {
-            return fmt::format("LSR {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
-          },
-          []<AddressingMode MODE>(const Increment<MODE> _inst) {
-            return fmt::format("INC {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
-          },
-          [](const IncrementRegister<Register::X> &) -> std::string { return "INX"; },
-          [](const IncrementRegister<Register::Y> &) -> std::string { return "INY"; },
-          [](const DecrementRegister<Register::X> &) -> std::string { return "DEX"; },
-          [](const DecrementRegister<Register::Y> &) -> std::string { return "DEY"; },
-          []<AddressingMode MODE>(const Decrement<MODE> _inst) {
-            return fmt::format("DEC {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
-          },
-          []<AddressingMode MODE>(const ExclusiveOR<MODE> _inst) {
-            return fmt::format("EOR {} {:02X}", magic_enum::enum_name(MODE), _inst.value);
-          },
-          []<Conditional COND>(const Branch<COND> _inst) -> std::string {
-            switch (COND) {
-            case Conditional::Equal:
-              return fmt::format("BEQ {:02X}", uint8_t(_inst.offset));
-            case Conditional::NotEqual:
-              return fmt::format("BNE {:02X}", uint8_t(_inst.offset));
-            case Conditional::CarrySet:
-              return fmt::format("BCS {:02X}", uint8_t(_inst.offset));
-            case Conditional::CarryClear:
-              return fmt::format("BCC {:02X}", uint8_t(_inst.offset));
-            case Conditional::Minus:
-              return fmt::format("BMI {:02X}", uint8_t(_inst.offset));
-            case Conditional::Positive:
-              return fmt::format("BPL {:02X}", uint8_t(_inst.offset));
-            case Conditional::OverflowSet:
-              return fmt::format("BVS {:02X}", uint8_t(_inst.offset));
-            case Conditional::OverflowClear:
-              return fmt::format("BVC {:02X}", uint8_t(_inst.offset));
-            default:
-              return "BR?"; // Unknown condition
-            }
-          },
-          []<AddressingMode MODE>(const Jump<MODE> _inst) {
-            return fmt::format("JMP {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
-          },
-          [](const JumpToSubroutine &inst) { return fmt::format("JSR {:02X}", inst.address); },
-          [](const ReturnFromSubroutine &) -> std::string { return "RTS"; },
-          []<AddressingMode MODE>(const BitTest<MODE> _inst) {
-            return fmt::format("BIT {} {:02X}", magic_enum::enum_name(MODE), _inst.address);
-          },
-          []<StatusFlag FLAG>(const ClearStatusFlag<FLAG> &) -> std::string {
-            switch (FLAG) {
-            case StatusFlag::Carry:
-              return "CLC";
-            case StatusFlag::DecimalMode:
-              return "CLD";
-            case StatusFlag::InterruptDisable:
-              return "CLI";
-            case StatusFlag::Overflow:
-              return "CLV";
-            default:
-              return "CL?"; // Unknown flag
-            }
-          },
-          []<StatusFlag FLAG>(const SetStatusFlag<FLAG> &) -> std::string {
-            switch (FLAG) {
-            case StatusFlag::Carry:
-              return "SEC";
-            case StatusFlag::DecimalMode:
-              return "SED";
-            case StatusFlag::InterruptDisable:
-              return "SEI";
-            default:
-              return "SE?"; // Unknown flag
-            }
-          },
-          []<Register REG, AddressingMode MODE>(const CompareRegister<REG, MODE> _inst) {
-            return fmt::format("CP{} {} {:02X}", magic_enum::enum_name(REG), magic_enum::enum_name(MODE), _inst.value);
-          },
-          [](const NoOperation &) -> std::string { return "NOP"; },
-          [](const auto &) -> std::string { return "Unimplemented disassembly"; },
-      },
-      instr);
+  return std::visit(Utils::overloaded{
+                        [](const Break &) -> std::string { return "BRK"; },
+                        []<Register REG, AddressingMode MODE>(const LoadRegister<REG, MODE> _inst) {
+                          return fmt::format("LD{} {}", magic_enum::enum_name(REG), FormatOperand<MODE>(_inst.value));
+                        },
+                        []<Register REG, AddressingMode MODE>(const StoreRegister<REG, MODE> _inst) {
+                          return fmt::format("ST{} {}", magic_enum::enum_name(REG), FormatOperand<MODE>(_inst.address));
+                        },
+                        []<Register SRC, Register DST>(const TransferRegisterTo<SRC, DST> &) {
+                          return fmt::format("T{}{}", magic_enum::enum_name(SRC), magic_enum::enum_name(DST));
+                        },
+                        [](const PushAccumulator &) -> std::string { return "PHA"; },
+                        [](const PullAccumulator &) -> std::string { return "PLA"; },
+                        []<AddressingMode MODE>(const AddWithCarry<MODE> _inst) {
+                          return fmt::format("ADC {}", FormatOperand<MODE>(_inst.value));
+                        },
+                        []<AddressingMode MODE>(const SubtractWithCarry<MODE> _inst) {
+                          return fmt::format("SBC {}", FormatOperand<MODE>(_inst.value));
+                        },
+                        []<AddressingMode MODE>(const LogicalAND<MODE> _inst) {
+                          return fmt::format("AND {}", FormatOperand<MODE>(_inst.value));
+                        },
+                        []<AddressingMode MODE>(const ShiftLeft<MODE> _inst) {
+                          if constexpr (MODE == AddressingMode::Accumulator) {
+                            return std::string("ASL A");
+                          } else {
+                            return fmt::format("ASL {}", FormatOperand<MODE>(_inst.address));
+                          }
+                        },
+                        []<AddressingMode MODE>(const ShiftRight<MODE> _inst) {
+                          if constexpr (MODE == AddressingMode::Accumulator) {
+                            return std::string("LSR A");
+                          } else {
+                            return fmt::format("LSR {}", FormatOperand<MODE>(_inst.address));
+                          }
+                        },
+                        []<AddressingMode MODE>(const Increment<MODE> _inst) {
+                          return fmt::format("INC {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        [](const IncrementRegister<Register::X> &) -> std::string { return "INX"; },
+                        [](const IncrementRegister<Register::Y> &) -> std::string { return "INY"; },
+                        [](const DecrementRegister<Register::X> &) -> std::string { return "DEX"; },
+                        [](const DecrementRegister<Register::Y> &) -> std::string { return "DEY"; },
+                        []<AddressingMode MODE>(const Decrement<MODE> _inst) {
+                          return fmt::format("DEC {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        []<AddressingMode MODE>(const ExclusiveOR<MODE> _inst) {
+                          return fmt::format("EOR {}", FormatOperand<MODE>(_inst.value));
+                        },
+                        []<Conditional COND>(const Branch<COND> _inst) -> std::string {
+                          switch (COND) {
+                          case Conditional::Equal:
+                            return fmt::format("BEQ ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::NotEqual:
+                            return fmt::format("BNE ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::CarrySet:
+                            return fmt::format("BCS ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::CarryClear:
+                            return fmt::format("BCC ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::Minus:
+                            return fmt::format("BMI ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::Positive:
+                            return fmt::format("BPL ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::OverflowSet:
+                            return fmt::format("BVS ${:02X}", uint8_t(_inst.offset));
+                          case Conditional::OverflowClear:
+                            return fmt::format("BVC ${:02X}", uint8_t(_inst.offset));
+                          default:
+                            return "BR?"; // Unknown condition
+                          }
+                        },
+                        []<AddressingMode MODE>(const Jump<MODE> _inst) {
+                          return fmt::format("JMP {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        [](const JumpToSubroutine &inst) { return fmt::format("JSR ${:04X}", inst.address); },
+                        [](const ReturnFromSubroutine &) -> std::string { return "RTS"; },
+                        []<AddressingMode MODE>(const BitTest<MODE> _inst) {
+                          return fmt::format("BIT {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        []<StatusFlag FLAG>(const ClearStatusFlag<FLAG> &) -> std::string {
+                          switch (FLAG) {
+                          case StatusFlag::Carry:
+                            return "CLC";
+                          case StatusFlag::DecimalMode:
+                            return "CLD";
+                          case StatusFlag::InterruptDisable:
+                            return "CLI";
+                          case StatusFlag::Overflow:
+                            return "CLV";
+                          default:
+                            return "CL?"; // Unknown flag
+                          }
+                        },
+                        []<StatusFlag FLAG>(const SetStatusFlag<FLAG> &) -> std::string {
+                          switch (FLAG) {
+                          case StatusFlag::Carry:
+                            return "SEC";
+                          case StatusFlag::DecimalMode:
+                            return "SED";
+                          case StatusFlag::InterruptDisable:
+                            return "SEI";
+                          default:
+                            return "SE?"; // Unknown flag
+                          }
+                        },
+                        []<Register REG, AddressingMode MODE>(const CompareRegister<REG, MODE> _inst) {
+                          return fmt::format("CP{} {}", magic_enum::enum_name(REG), FormatOperand<MODE>(_inst.value));
+                        },
+                        [](const NoOperation &) -> std::string { return "NOP"; },
+                        [](const auto &) -> std::string { return "Unimplemented disassembly"; },
+                    },
+                    instr);
 }
 
 uint8_t CPU::ReadFromMemory(Addr addr) const { return m_bus->Read(addr); }
