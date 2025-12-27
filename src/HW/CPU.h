@@ -35,8 +35,6 @@ public:
 
   explicit CPU(Bus &bus) : m_bus{&bus} {}
 
-  ErrorOr<void> LoadProgram(std::span<const uint8_t> program);
-
   // Helper functions to inspect the state of the CPU
   [[nodiscard]] EnumArray<uint8_t, Register> Registers() const { return m_registers; };
   [[nodiscard]] uint8_t StackPointer() const { return m_stack_pointer; }
@@ -75,12 +73,9 @@ protected:
   void SetStatusFlagValue(StatusFlag flag, bool value) { m_status.set(static_cast<size_t>(flag), value); }
   void ToggleStatusFlag(StatusFlag flag) { m_status.flip(static_cast<size_t>(flag)); }
 
-  void SetProgramStartAddress(Addr addr) {
-    m_program_memory[ProgramStartAddressPointer - ProgramBaseAddress] = addr & 0xFF;
-    m_program_memory[ProgramStartAddressPointer - ProgramBaseAddress + 1] = (addr >> 8) & 0xFF;
-  }
+  void SetProgramStartAddress(Addr addr) { m_program_counter = addr; }
 
-  [[nodiscard]] const std::array<uint8_t, PROG_MEM_SIZE> &ProgramMemory() const { return m_program_memory; }
+  const Bus &GetBus() const { return *m_bus; }
 
 public:
   struct DecodedInstruction {

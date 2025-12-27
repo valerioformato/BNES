@@ -14,6 +14,9 @@
 
 namespace BNES::HW {
 class Bus {
+  // For unit tests
+  friend class CPUMock;
+
 public:
   using Addr = std::uint16_t;
 
@@ -32,9 +35,14 @@ public:
   [[nodiscard]] uint8_t Read(Addr address);
   void Write(Addr address, uint8_t data);
 
+  // Used mainly in unit tests...
+  ErrorOr<void> LoadIntoProgramRom(std::span<const uint8_t> program);
+
+  [[nodiscard]] const ::BNES::HW::Rom &Rom() const { return m_rom; };
+
 private:
   std::array<uint8_t, RAM_MEM_SIZE> m_ram{0};
-  Rom m_rom;
+  ::BNES::HW::Rom m_rom;
 };
 } // namespace BNES::HW
 

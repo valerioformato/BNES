@@ -2,15 +2,6 @@
 #include "common/Types/overloaded.h"
 
 namespace BNES::HW {
-ErrorOr<void> CPU::LoadProgram(std::span<const uint8_t> program) {
-  if (program.size() > m_program_memory.size()) {
-    return make_error(std::make_error_code(std::errc::not_enough_memory), "Program too large to fit in memory");
-  }
-  std::ranges::copy(program, m_program_memory.begin());
-
-  return {};
-}
-
 CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   assert(!bytes.empty());
 

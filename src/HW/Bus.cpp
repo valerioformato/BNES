@@ -45,4 +45,17 @@ void Bus::Write(Addr address, uint8_t data) {
   spdlog::error("Bus write request for address {}: Address out of range", address);
 }
 
+ErrorOr<void> Bus::LoadIntoProgramRom(std::span<const uint8_t> program) {
+  if (program.size() > (MAX_ADDRESSABLE_ROM_ADDRESS - ROM_START_REGISTER)) {
+    return make_error(std::make_error_code(std::errc::not_enough_memory), "Program too large to fit in memory");
+  }
+
+  if (program.size() > m_rom.program_rom.size()) {
+    m_rom.program_rom.resize(program.size());
+  }
+  std::ranges::copy(program, m_rom.program_rom.begin());
+
+  return {};
+}
+
 } // namespace BNES::HW

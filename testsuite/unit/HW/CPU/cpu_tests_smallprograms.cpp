@@ -1,8 +1,9 @@
 #include "HW/CPU.h"
-#include "catch2/generators/catch_generators.hpp"
-#include "catch2/generators/catch_generators_range.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_range.hpp>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <numeric>
@@ -14,8 +15,8 @@ class CPUMock : public CPU {
 public:
   CPUMock(BNES::HW::Bus &bus) : CPU(bus) {}
 
+  using CPU::GetBus;
   using CPU::NonMaskableInterrupt;
-  using CPU::ProgramMemory;
   using CPU::ReadFromMemory;
   using CPU::SetProgramStartAddress;
   using CPU::SetRegister;
@@ -24,7 +25,7 @@ public:
 
 void SimpleRun(CPUMock &cpu) {
   while (true) {
-    std::span bytes(std::next(cpu.ProgramMemory().begin(), cpu.ProgramCounter() - 0x8000), 3ul);
+    std::span bytes(std::next(cpu.GetBus().Rom().program_rom.begin(), cpu.ProgramCounter() - 0x8000), 3ul);
     try {
       cpu.RunInstruction(cpu.DecodeInstruction(bytes));
     } catch (const CPUMock::NonMaskableInterrupt &) {
@@ -145,16 +146,14 @@ SCENARIO("6502 code execution (small test programs)") {
     WHEN("We run a test program") {
       auto program = GENERATE(from_range(programs));
 
-      REQUIRE(cpu.LoadProgram(program.code).has_value());
+      REQUIRE(bus.LoadIntoProgramRom(program.code).has_value());
       cpu.SetProgramStartAddress(0x8000);
-
-      cpu.Init();
 
       REQUIRE_NOTHROW(SimpleRun(cpu));
 
+      REQUIRE(cpu.ProgramCounter() == program.expected_program_counter);
       REQUIRE(cpu.Registers() == program.expected_register_values);
       REQUIRE(cpu.StatusFlags() == program.expected_status);
-      REQUIRE(cpu.ProgramCounter() == program.expected_program_counter);
       for (const auto &[start_address, data] : program.expected_memory_slices) {
         for (uint16_t i = 0; i < MemorySlice::SIZE; ++i) {
           REQUIRE(cpu.ReadFromMemory(start_address + i) == data[i]);
