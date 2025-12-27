@@ -401,13 +401,7 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
       instr);
 }
 
-uint8_t CPU::ReadFromMemory(Addr addr) const {
-  if (addr > ProgramBaseAddress && addr < ProgramBaseAddress + m_program_memory.size()) {
-    return m_program_memory[addr - ProgramBaseAddress];
-  }
-
-  return m_bus->Read(addr);
-}
+uint8_t CPU::ReadFromMemory(Addr addr) const { return m_bus->Read(addr); }
 
 void CPU::WriteToMemory(Addr addr, uint8_t value) { return m_bus->Write(addr, value); }
 

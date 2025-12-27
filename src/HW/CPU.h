@@ -47,6 +47,7 @@ public:
   void Init() {
     m_program_counter =
         ReadFromMemory(ProgramStartAddressPointer) | (ReadFromMemory(ProgramStartAddressPointer + 1) << 8);
+    spdlog::debug("Init PC: {}", m_program_counter);
   }
 
 private:

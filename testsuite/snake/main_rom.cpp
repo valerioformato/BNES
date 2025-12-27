@@ -71,7 +71,7 @@ BNES::ErrorOr<int> snake_main() {
   texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST); // Pixelated scaling
 
   // The quit flag
-  bool quit{false};
+  bool quit{false}, step{false}, stepping{false};
 
   // The event data
   SDL_Event e;
@@ -81,7 +81,6 @@ BNES::ErrorOr<int> snake_main() {
   TRY(bus.LoadRom("assets/roms/snake.nes"));
 
   SnakeCPU cpu{bus};
-  // cpu.SetProgramStartAddress(0x600);
   cpu.Init();
 
   auto [main_window_x, main_window_y] = window_handle.Position();
@@ -172,15 +171,26 @@ BNES::ErrorOr<int> snake_main() {
         case SDLK_RIGHT:
           cpu.WriteToMemory(0xFF, 0x64);
           break;
+        case SDLK_S:
+          step = true;
+          stepping = true;
+          break;
         }
       }
     }
 
-    try {
+    if (stepping) {
+      try {
+        if (step) {
+          cpu.RunOneInstruction();
+          step = false;
+        }
+      } catch (std::exception &e) {
+        spdlog::error("unexpected error: {}", e.what());
+        quit = true;
+      }
+    } else {
       cpu.RunOneInstruction();
-    } catch (std::exception &e) {
-      spdlog::error("unexpected error: {}", e.what());
-      quit = true;
     }
 
     if (begin - last_frame_update_time > frame_duration) {
