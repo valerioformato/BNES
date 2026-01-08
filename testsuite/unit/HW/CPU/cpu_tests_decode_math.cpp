@@ -8,7 +8,7 @@
 
 using namespace BNES::HW;
 
-SCENARIO("6502 instruction decoding tests (math ops)") {
+SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
     CPU cpu{bus};

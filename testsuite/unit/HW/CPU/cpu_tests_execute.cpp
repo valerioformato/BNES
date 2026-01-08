@@ -22,7 +22,7 @@ public:
   using CPU::WriteToMemory;
 };
 
-SCENARIO("6502 instruction execution tests (all the rest)") {
+SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
     CPUMock cpu{bus};
@@ -769,6 +769,166 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       cpu.RunInstruction(pla_instr);
       THEN("Third pull should get the first pushed value") {
         REQUIRE(cpu.Registers()[CPU::Register::A] == 0x11);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+    }
+
+    WHEN("We execute a PHP instruction") {
+      auto php_instr = CPU::PushStatusRegister{};
+
+      // Set up some status flags
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
+
+      auto initial_stack_pointer = cpu.StackPointer();
+      auto initial_status = cpu.StatusFlags();
+
+      // Execute the PHP instruction
+      cpu.RunInstruction(php_instr);
+
+      THEN("The status register should be pushed onto the stack") {
+        REQUIRE(cpu.StatusFlags() == initial_status);             // Status flags unchanged
+        REQUIRE(cpu.StackPointer() == initial_stack_pointer - 1); // Stack pointer decremented
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        // Check that the status value was written to the stack
+        // Note: PHP sets bits 4 and 5 (Break and unused) when pushing
+        uint8_t expected_status = static_cast<uint8_t>(initial_status.to_ulong()) | 0x30;
+        REQUIRE(cpu.ReadFromMemory(0x0100 + initial_stack_pointer) == expected_status);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+      auto second_stack_pointer = cpu.StackPointer();
+
+      // Change some flags and push again
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, true);
+      auto second_status = cpu.StatusFlags();
+      cpu.RunInstruction(php_instr);
+
+      THEN("Multiple status values can be pushed onto the stack") {
+        REQUIRE(cpu.StatusFlags() == second_status);
+        REQUIRE(cpu.StackPointer() == second_stack_pointer - 1);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        // Check that the new value was written to the stack
+        uint8_t expected_status = static_cast<uint8_t>(second_status.to_ulong()) | 0x30;
+        REQUIRE(cpu.ReadFromMemory(0x0100 + second_stack_pointer) == expected_status);
+      }
+    }
+
+    WHEN("We execute a PLP instruction") {
+      auto php_instr = CPU::PushStatusRegister{};
+      auto plp_instr = CPU::PullStatusRegister{};
+
+      // Set up initial status flags
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, false);
+
+      // Push the status register onto the stack
+      cpu.RunInstruction(php_instr);
+      auto stack_pointer_after_push = cpu.StackPointer();
+
+      // Change the status flags to different values
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Now execute the PLP instruction
+      cpu.RunInstruction(plp_instr);
+
+      THEN("The status register should be pulled from the stack") {
+        REQUIRE(cpu.StackPointer() == stack_pointer_after_push + 1); // Stack pointer incremented
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        // Check that status flags match the original (ignoring Break and unused flags)
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+      }
+
+      // Test pulling different status values
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Negative, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Overflow, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::InterruptDisable, true);
+
+      cpu.RunInstruction(php_instr);
+      original_program_counter = cpu.ProgramCounter();
+      auto current_sp = cpu.StackPointer();
+
+      // Change flags again
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
+
+      cpu.RunInstruction(plp_instr);
+
+      THEN("Different status values can be pulled correctly") {
+        REQUIRE(cpu.StackPointer() == uint8_t(current_sp + 1));
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true);
+      }
+    }
+
+    WHEN("We execute PHP and PLP in sequence (stack LIFO behavior)") {
+      auto php_instr = CPU::PushStatusRegister{};
+      auto plp_instr = CPU::PullStatusRegister{};
+
+      // Push first status state
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
+      cpu.RunInstruction(php_instr);
+
+      // Push second status state
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
+      cpu.RunInstruction(php_instr);
+
+      // Push third status state
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, true);
+      cpu.RunInstruction(php_instr);
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Change flags to something else
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Zero, false);
+
+      // Pull values back - should be in reverse order (LIFO)
+      cpu.RunInstruction(plp_instr);
+      THEN("First pull should restore the last pushed status") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(plp_instr);
+      THEN("Second pull should restore the second-to-last pushed status") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(plp_instr);
+      THEN("Third pull should restore the first pushed status") {
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
       }
     }
@@ -1638,7 +1798,6 @@ SCENARIO("6502 instruction execution tests (all the rest)") {
       auto jsr_instr = CPU::JumpToSubroutine{0x3000};
       auto rts_instr = CPU::ReturnFromSubroutine{};
       auto initial_pc = cpu.ProgramCounter();
-      auto initial_stack_pointer = cpu.StackPointer();
       // Execute JSR to set up stack
       cpu.RunInstruction(jsr_instr);
       REQUIRE(cpu.ProgramCounter() == 0x3000);

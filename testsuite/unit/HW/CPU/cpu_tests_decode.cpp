@@ -8,7 +8,7 @@
 
 using namespace BNES::HW;
 
-SCENARIO("6502 instruction decoding tests (all the rest)") {
+SCENARIO("6502 instruction decoding tests (all the rest)", "[Decode]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
     CPU cpu{bus};
@@ -109,6 +109,36 @@ SCENARIO("6502 instruction decoding tests (all the rest)") {
 
       THEN("It should decode as a PLA instruction with correct cycle count and size") {
         using ExpectedInstruction = CPU::PullAccumulator;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a PHP instruction") {
+      std::vector<uint8_t> bytes = {0x08}; // PHP
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a PHP instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::PushStatusRegister;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a PLP instruction") {
+      std::vector<uint8_t> bytes = {0x28}; // PLP
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a PLP instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::PullStatusRegister;
         REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
 
         auto decoded_instruction = std::get<ExpectedInstruction>(instruction);

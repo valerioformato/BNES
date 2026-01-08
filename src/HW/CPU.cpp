@@ -88,6 +88,10 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return PushAccumulator{};
   case OpCode::PLA:
     return PullAccumulator{};
+  case OpCode::PHP:
+    return PushStatusRegister{};
+  case OpCode::PLP:
+    return PullStatusRegister{};
     // Math instructions
   case OpCode::ADC_Immediate:
     return AddWithCarry<AddressingMode::Immediate>{bytes[1]};
@@ -197,7 +201,23 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return ExclusiveOR<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::EOR_IndirectY:
     return ExclusiveOR<AddressingMode::IndirectY>{bytes[1]};
-  // Branch instructions
+  case OpCode::ORA_Immediate:
+    return BitwiseOR<AddressingMode::Immediate>{bytes[1]};
+  case OpCode ::ORA_ZeroPage:
+    return BitwiseOR<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::ORA_ZeroPageX:
+    return BitwiseOR<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::ORA_Absolute:
+    return BitwiseOR<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ORA_AbsoluteX:
+    return BitwiseOR<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ORA_AbsoluteY:
+    return BitwiseOR<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ORA_IndirectX:
+    return BitwiseOR<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::ORA_IndirectY:
+    return BitwiseOR<AddressingMode::IndirectY>{bytes[1]};
+    // Branch instructions
   case OpCode::BEQ:
     return Branch<Conditional::Equal>{int8_t(bytes[1])};
   case OpCode::BNE:
@@ -343,6 +363,8 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                         },
                         [](const PushAccumulator &) -> std::string { return "PHA"; },
                         [](const PullAccumulator &) -> std::string { return "PLA"; },
+                        [](const PushStatusRegister &) -> std::string { return "PHP"; },
+                        [](const PullStatusRegister &) -> std::string { return "PLP"; },
                         []<AddressingMode MODE>(const AddWithCarry<MODE> _inst) {
                           return fmt::format("ADC {}", FormatOperand<MODE>(_inst.value));
                         },

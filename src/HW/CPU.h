@@ -208,6 +208,16 @@ public:
     inline void Apply(CPU &cpu) const;
   };
 
+  struct PushStatusRegister : DecodedInstruction {
+    PushStatusRegister() : DecodedInstruction{.size = 1, .cycles = 3} {}
+    inline void Apply(CPU &cpu) const;
+  };
+
+  struct PullStatusRegister : DecodedInstruction {
+    PullStatusRegister() : DecodedInstruction{.size = 1, .cycles = 4} {}
+    inline void Apply(CPU &cpu) const;
+  };
+
   template <Conditional COND> struct Branch : DecodedInstruction {
     Branch() = delete;
     explicit Branch(int8_t offset_) : DecodedInstruction{.size = 2, .cycles = 2}, offset(offset_) {}
@@ -259,6 +269,15 @@ public:
   template <AddressingMode MODE> struct ExclusiveOR : DecodedInstruction {
     ExclusiveOR() = delete;
     explicit ExclusiveOR(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t value{0};
+  };
+
+  template <AddressingMode MODE> struct BitwiseOR : DecodedInstruction {
+    BitwiseOR() = delete;
+    explicit BitwiseOR(uint16_t);
 
     void Apply(CPU &cpu) const;
 
@@ -356,7 +375,15 @@ public:
       ExclusiveOR<AddressingMode::AbsoluteY>,
       ExclusiveOR<AddressingMode::IndirectX>,
       ExclusiveOR<AddressingMode::IndirectY>,
-      // Branch
+      BitwiseOR<AddressingMode::Immediate>,
+      BitwiseOR<AddressingMode::ZeroPage>,
+      BitwiseOR<AddressingMode::ZeroPageX>,
+      BitwiseOR<AddressingMode::Absolute>,
+      BitwiseOR<AddressingMode::AbsoluteX>,
+      BitwiseOR<AddressingMode::AbsoluteY>,
+      BitwiseOR<AddressingMode::IndirectX>,
+      BitwiseOR<AddressingMode::IndirectY>,
+  // Branch
       Branch<Conditional::Equal>,
       Branch<Conditional::NotEqual>,
       Branch<Conditional::CarrySet>,
@@ -400,6 +427,8 @@ public:
       // Stack
       PushAccumulator,
       PullAccumulator,
+      PushStatusRegister,
+      PullStatusRegister,
       //
       NoOperation
       >;
@@ -432,6 +461,20 @@ inline void CPU::PullAccumulator::Apply(CPU &cpu) const {
 
   cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
   cpu.SetStatusFlagValue(StatusFlag::Negative, (cpu.m_registers[Register::A] & 0x80) != 0);
+}
+
+inline void CPU::PushStatusRegister::Apply(CPU &cpu) const {
+  uint8_t status_word = cpu.m_status.to_ulong() | 0x30;
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, status_word);
+  cpu.m_stack_pointer--;
+}
+
+inline void CPU::PullStatusRegister::Apply(CPU &cpu) const {
+  cpu.m_stack_pointer++;
+  cpu.m_status = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer) & 0xCF;
+
+  // TODO: Note that the effect of changing I is delayed one instruction because the flag is changed after IRQ is
+  //       polled, delaying the effect until IRQ is polled in the next instruction like with CLI and SEI.
 }
 
 template <Conditional COND> inline void CPU::Branch<COND>::Apply(CPU &cpu) {
@@ -977,6 +1020,38 @@ template <AddressingMode MODE> void CPU::ExclusiveOR<MODE>::Apply(CPU &cpu) cons
   cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
 }
 
+template <AddressingMode MODE> void CPU::BitwiseOR<MODE>::Apply(CPU &cpu) const {
+  uint8_t value_to_or{0};
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    value_to_or = value & 0xFF; // Immediate value is already in the instruction
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_or = cpu.ReadFromMemory(value & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_or = cpu.ReadFromMemory((value + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_or = cpu.ReadFromMemory(value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_or = cpu.ReadFromMemory(value + cpu.m_registers[Register::X]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    value_to_or = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    value_to_or = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    value_to_or = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
+  } else {
+    TODO(fmt::format("ExclusiveOR<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.m_registers[Register::A] |= value_to_or;
+
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+}
+
 // Constructors
 template <CPU::Register REG, AddressingMode MODE> CPU::LoadRegister<REG, MODE>::LoadRegister(uint16_t _value) {
   this->size = 2;
@@ -1225,6 +1300,30 @@ template <AddressingMode MODE> CPU::BitTest<MODE>::BitTest(uint16_t addr) {
 }
 
 template <AddressingMode MODE> CPU::ExclusiveOR<MODE>::ExclusiveOR(uint16_t addr) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute || MODE == AddressingMode::AbsoluteX ||
+                       MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    this->cycles = 6;
+  } else {
+    std::unreachable();
+  }
+
+  value = addr;
+}
+
+template <AddressingMode MODE> CPU::BitwiseOR<MODE>::BitwiseOR(uint16_t addr) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Immediate) {

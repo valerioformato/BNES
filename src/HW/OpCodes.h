@@ -56,6 +56,8 @@ enum class OpCode : uint8_t {
   // Stack Instructions
   PHA = 0x48, // Push Accumulator onto Stack
   PLA = 0x68, // Pull Accumulator from Stack
+  PHP = 0x08, // Push Processor status onto stack
+  PLP = 0x28, // Pull Processor status onto stack
 
   // Math instructions
   ADC_Immediate = 0x69,   // Add with Carry (ADC) Immediate
@@ -112,6 +114,14 @@ enum class OpCode : uint8_t {
   SBC_AbsoluteY = 0xF9,   // Subtract with Carry (SBC) Absolute,Y
   SBC_IndirectX = 0xE1,   // Subtract with Carry (SBC) (Indirect,X)
   SBC_IndirectY = 0xF1,   // Subtract with Carry (SBC) (Indirect),Y
+  ORA_Immediate = 0x09,   // Bitwise OR with accumulator (ORA) Immediate
+  ORA_ZeroPage = 0x05,    // Bitwise OR with accumulator (ORA) Zero Page
+  ORA_ZeroPageX = 0x15,   // Bitwise OR with accumulator (ORA) Zero Page,X
+  ORA_Absolute = 0x0D,    // Bitwise OR with accumulator (ORA) Absolute
+  ORA_AbsoluteX = 0x1D,   // Bitwise OR with accumulator (ORA) Absolute,X
+  ORA_AbsoluteY = 0x19,   // Bitwise OR with accumulator (ORA) Absolute,Y
+  ORA_IndirectX = 0x01,   // Bitwise OR with accumulator (ORA) (Indirect,X)
+  ORA_IndirectY = 0x11,   // Bitwise OR with accumulator (ORA) (Immediate),Y
 
   // Branch instructions
   BEQ = 0xF0,          // Branch if Equal (BEQ)
