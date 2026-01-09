@@ -51,7 +51,7 @@ enum class OpCode : uint8_t {
   TAX = 0xAA, // Transfer Accumulator to X
   TAY = 0xA8, // Transfer Accumulator to Y
   TXA = 0x8A, // Transfer X to Accumulator
-  TYA = 0x9A, // Transfer Y to Accumulator
+  TYA = 0x98, // Transfer Y to Accumulator
 
   // Stack Instructions
   PHA = 0x48, // Push Accumulator onto Stack

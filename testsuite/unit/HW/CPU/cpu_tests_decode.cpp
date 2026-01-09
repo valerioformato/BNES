@@ -74,7 +74,7 @@ SCENARIO("6502 instruction decoding tests (all the rest)", "[Decode]") {
     }
 
     WHEN("We try to decode a TYA instruction") {
-      std::vector<uint8_t> bytes = {0x9A}; // TYA
+      std::vector<uint8_t> bytes = {0x98}; // TYA
       auto instruction = cpu.DecodeInstruction(bytes);
 
       THEN("It should decode as a TYA instruction with correct cycle count and size") {
