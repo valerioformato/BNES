@@ -4,6 +4,9 @@ set(test_SRC
     HW/CPU/cpu_tests_decode.cpp
     HW/CPU/cpu_tests_decode_loadstore.cpp
     HW/CPU/cpu_tests_decode_math.cpp
+    HW/CPU/cpu_tests_disassemble.cpp
+    HW/CPU/cpu_tests_disassemble_loadstore.cpp
+    HW/CPU/cpu_tests_disassemble_math.cpp
     HW/CPU/cpu_tests_execute.cpp
     HW/CPU/cpu_tests_execute_loadstore.cpp
     HW/CPU/cpu_tests_execute_math.cpp
