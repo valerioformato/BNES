@@ -198,6 +198,15 @@ public:
     void Apply(CPU &cpu) const;
   };
 
+  struct TransferStackPointerToX : DecodedInstruction {
+    TransferStackPointerToX() : DecodedInstruction{.size = 1, .cycles = 2} {};
+    void Apply(CPU &cpu) const;
+  };
+
+  struct TransferXToStackPointer : DecodedInstruction {
+    TransferXToStackPointer() : DecodedInstruction{.size = 1, .cycles = 2} {};
+    void Apply(CPU &cpu) const;
+  };
   struct PushAccumulator : DecodedInstruction {
     PushAccumulator() : DecodedInstruction{.size = 1, .cycles = 3} {}
     inline void Apply(CPU &cpu) const;
@@ -424,6 +433,8 @@ public:
       TransferRegisterTo<Register::A, Register::Y>,
       TransferRegisterTo<Register::X, Register::A>,
       TransferRegisterTo<Register::Y, Register::A>,
+      TransferStackPointerToX,
+      TransferXToStackPointer,
       // Stack
       PushAccumulator,
       PullAccumulator,
@@ -963,6 +974,15 @@ void CPU::TransferRegisterTo<SRCREG, DSTREG>::Apply(CPU &cpu) const {
   cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[DSTREG] == 0);
   cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[DSTREG] & 0x80);
 }
+
+inline void CPU::TransferStackPointerToX::Apply(CPU &cpu) const {
+  cpu.m_registers[Register::X] = cpu.m_stack_pointer;
+
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::X] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::X] & 0x80);
+}
+
+inline void CPU::TransferXToStackPointer::Apply(CPU &cpu) const { cpu.m_stack_pointer = cpu.m_registers[Register::X]; }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG, MODE>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX (or #CPY)

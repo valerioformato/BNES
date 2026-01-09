@@ -933,6 +933,81 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       }
     }
 
+    WHEN("We execute a TSX instruction") {
+      auto tsx_instr = CPU::TransferStackPointerToX{};
+
+      // Stack pointer should be at 0xFF initially
+      auto initial_sp = cpu.StackPointer();
+
+      // Execute TSX
+      cpu.RunInstruction(tsx_instr);
+
+      THEN("X register should contain the stack pointer value and flags should be set correctly") {
+        REQUIRE(cpu.Registers()[CPU::Register::X] == initial_sp);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFF has bit 7 set
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Push some values to change stack pointer
+      auto pha_instr = CPU::PushAccumulator{};
+      auto load_a = CPU::LoadRegister<CPU::Register::A, AddressingMode::Immediate>{0x42};
+      cpu.RunInstruction(load_a);
+      cpu.RunInstruction(pha_instr); // SP now 0xFE
+      cpu.RunInstruction(pha_instr); // SP now 0xFD
+      cpu.RunInstruction(pha_instr); // SP now 0xFC
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Execute TSX again
+      cpu.RunInstruction(tsx_instr);
+
+      THEN("X register should contain the updated stack pointer") {
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0xFC);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFC has bit 7 set
+      }
+    }
+
+    WHEN("We execute a TXS instruction") {
+      auto txs_instr = CPU::TransferXToStackPointer{};
+      auto load_x = CPU::LoadRegister<CPU::Register::X, AddressingMode::Immediate>{0x80};
+
+      // Load X with a specific value
+      cpu.RunInstruction(load_x);
+      original_program_counter = cpu.ProgramCounter();
+
+      // Execute TXS
+      cpu.RunInstruction(txs_instr);
+
+      THEN("Stack pointer should be set to X register value and flags should not change") {
+        REQUIRE(cpu.StackPointer() == 0x80);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        // TXS does not affect status flags
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // From LDX #$80
+      }
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Load X with zero and transfer
+      load_x.value = 0x00;
+      cpu.RunInstruction(load_x);
+      original_program_counter = cpu.ProgramCounter();
+      cpu.RunInstruction(txs_instr);
+
+      THEN("Stack pointer should be set to zero") {
+        REQUIRE(cpu.StackPointer() == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        // TXS does not affect status flags (zero flag should be set by LDX, not TXS)
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
+
     WHEN("We execute a BIT zero-page instructions") {
       // Set up memory with test values
       cpu.WriteToMemory(0x50, 0xC0); // 11000000 - bits 7 and 6 set (Negative and Overflow)

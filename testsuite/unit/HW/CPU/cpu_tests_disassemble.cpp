@@ -55,6 +55,20 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
       THEN("It should disassemble to 'TYA'") { REQUIRE(disassembly == "TYA"); }
     }
 
+    WHEN("We disassemble a TSX instruction") {
+      auto instruction = CPU::TransferStackPointerToX{};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'TSX'") { REQUIRE(disassembly == "TSX"); }
+    }
+
+    WHEN("We disassemble a TXS instruction") {
+      auto instruction = CPU::TransferXToStackPointer{};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'TXS'") { REQUIRE(disassembly == "TXS"); }
+    }
+
     WHEN("We disassemble a PHA instruction") {
       auto instruction = CPU::PushAccumulator{};
       auto disassembly = cpu.DisassembleInstruction(instruction);

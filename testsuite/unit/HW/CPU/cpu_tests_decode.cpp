@@ -88,6 +88,36 @@ SCENARIO("6502 instruction decoding tests (all the rest)", "[Decode]") {
       }
     }
 
+    WHEN("We try to decode a TSX instruction") {
+      std::vector<uint8_t> bytes = {0xBA}; // TSX
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a TSX instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::TransferStackPointerToX;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a TXS instruction") {
+      std::vector<uint8_t> bytes = {0x9A}; // TXS
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode as a TXS instruction with correct cycle count and size") {
+        using ExpectedInstruction = CPU::TransferXToStackPointer;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
     WHEN("We try to decode a PHA instruction") {
       std::vector<uint8_t> bytes = {0x48}; // PHA
       auto instruction = cpu.DecodeInstruction(bytes);

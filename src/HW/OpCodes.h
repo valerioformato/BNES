@@ -52,8 +52,9 @@ enum class OpCode : uint8_t {
   TAY = 0xA8, // Transfer Accumulator to Y
   TXA = 0x8A, // Transfer X to Accumulator
   TYA = 0x98, // Transfer Y to Accumulator
-
-  // Stack Instructions
+  TSX = 0xBA, // Transfer Stack Pointer to X
+  TXS = 0x9A, // Transfer X to Stack Pointer
+              // Stack Instructions
   PHA = 0x48, // Push Accumulator onto Stack
   PLA = 0x68, // Pull Accumulator from Stack
   PHP = 0x08, // Push Processor status onto stack

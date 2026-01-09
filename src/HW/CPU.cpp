@@ -74,7 +74,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return StoreRegister<Register::A, AddressingMode::IndirectX>{bytes[1]};
   case OpCode::STA_IndirectY:
     return StoreRegister<Register::A, AddressingMode::IndirectY>{bytes[1]};
-  // ...
+  // Transfer instructions
   case OpCode::TAX:
     return TransferRegisterTo<Register::A, Register::X>{};
   case OpCode::TAY:
@@ -83,6 +83,10 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return TransferRegisterTo<Register::X, Register::A>{};
   case OpCode::TYA:
     return TransferRegisterTo<Register::Y, Register::A>{};
+  case OpCode::TXS:
+    return TransferXToStackPointer{};
+  case OpCode::TSX:
+    return TransferStackPointerToX{};
     // Stack instructions
   case OpCode::PHA:
     return PushAccumulator{};
@@ -361,6 +365,8 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                         []<Register SRC, Register DST>(const TransferRegisterTo<SRC, DST> &) {
                           return fmt::format("T{}{}", magic_enum::enum_name(SRC), magic_enum::enum_name(DST));
                         },
+                        [](const TransferStackPointerToX &) -> std::string { return "TSX"; },
+                        [](const TransferXToStackPointer &) -> std::string { return "TXS"; },
                         [](const PushAccumulator &) -> std::string { return "PHA"; },
                         [](const PullAccumulator &) -> std::string { return "PLA"; },
                         [](const PushStatusRegister &) -> std::string { return "PHP"; },
