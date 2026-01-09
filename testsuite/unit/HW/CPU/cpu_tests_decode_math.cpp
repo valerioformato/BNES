@@ -871,5 +871,133 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.value == 0x42);
       }
     }
+
+    WHEN("We try to decode an ORA immediate instruction") {
+      std::vector<uint8_t> bytes = {0x09, 0x42}; // ORA #$42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::Immediate>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode an ORA zero-page instruction") {
+      std::vector<uint8_t> bytes = {0x05, 0x42}; // ORA $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode an ORA zero-page,X instruction") {
+      std::vector<uint8_t> bytes = {0x15, 0x42}; // ORA $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode an ORA absolute instruction") {
+      std::vector<uint8_t> bytes = {0x0D, 0x00, 0x03}; // ORA $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode an ORA absolute,X instruction") {
+      std::vector<uint8_t> bytes = {0x1D, 0x00, 0x03}; // ORA $0300,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode an ORA absolute,Y instruction") {
+      std::vector<uint8_t> bytes = {0x19, 0x00, 0x03}; // ORA $0300,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode an ORA (indirect,X) instruction") {
+      std::vector<uint8_t> bytes = {0x01, 0x20}; // ORA ($20,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x20);
+      }
+    }
+
+    WHEN("We try to decode an ORA (indirect),Y instruction") {
+      std::vector<uint8_t> bytes = {0x11, 0x20}; // ORA ($20),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::BitwiseOR<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x20);
+      }
+    }
   }
 }

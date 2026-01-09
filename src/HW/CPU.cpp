@@ -401,6 +401,9 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                         []<AddressingMode MODE>(const ExclusiveOR<MODE> _inst) {
                           return fmt::format("EOR {}", FormatOperand<MODE>(_inst.value));
                         },
+                        []<AddressingMode MODE>(const BitwiseOR<MODE> _inst) {
+                          return fmt::format("ORA {}", FormatOperand<MODE>(_inst.value));
+                        },
                         []<Conditional COND>(const Branch<COND> _inst) -> std::string {
                           switch (COND) {
                           case Conditional::Equal:
