@@ -157,56 +157,56 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
       auto instruction = CPU::Branch<Conditional::NotEqual>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BNE $10'") { REQUIRE(disassembly == "BNE $10"); }
+      THEN("It should disassemble to 'BNE $8012'") { REQUIRE(disassembly == "BNE $8012"); }
     }
 
     WHEN("We disassemble a BEQ instruction") {
       auto instruction = CPU::Branch<Conditional::Equal>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BEQ $10'") { REQUIRE(disassembly == "BEQ $10"); }
+      THEN("It should disassemble to 'BEQ $8012'") { REQUIRE(disassembly == "BEQ $8012"); }
     }
 
     WHEN("We disassemble a BCC instruction") {
       auto instruction = CPU::Branch<Conditional::CarryClear>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BCC $10'") { REQUIRE(disassembly == "BCC $10"); }
+      THEN("It should disassemble to 'BCC $8012'") { REQUIRE(disassembly == "BCC $8012"); }
     }
 
     WHEN("We disassemble a BCS instruction") {
       auto instruction = CPU::Branch<Conditional::CarrySet>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BCS $10'") { REQUIRE(disassembly == "BCS $10"); }
+      THEN("It should disassemble to 'BCS $8012'") { REQUIRE(disassembly == "BCS $8012"); }
     }
 
     WHEN("We disassemble a BMI instruction") {
       auto instruction = CPU::Branch<Conditional::Minus>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BMI $10'") { REQUIRE(disassembly == "BMI $10"); }
+      THEN("It should disassemble to 'BMI $8012'") { REQUIRE(disassembly == "BMI $8012"); }
     }
 
     WHEN("We disassemble a BPL instruction") {
       auto instruction = CPU::Branch<Conditional::Positive>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BPL $10'") { REQUIRE(disassembly == "BPL $10"); }
+      THEN("It should disassemble to 'BPL $8012'") { REQUIRE(disassembly == "BPL $8012"); }
     }
 
     WHEN("We disassemble a BVC instruction") {
       auto instruction = CPU::Branch<Conditional::OverflowClear>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BVC $10'") { REQUIRE(disassembly == "BVC $10"); }
+      THEN("It should disassemble to 'BVC $8012'") { REQUIRE(disassembly == "BVC $8012"); }
     }
 
     WHEN("We disassemble a BVS instruction") {
       auto instruction = CPU::Branch<Conditional::OverflowSet>{0x10};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to 'BVS $10'") { REQUIRE(disassembly == "BVS $10"); }
+      THEN("It should disassemble to 'BVS $8012'") { REQUIRE(disassembly == "BVS $8012"); }
     }
 
     WHEN("We disassemble a JMP absolute instruction") {

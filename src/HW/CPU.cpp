@@ -376,7 +376,8 @@ template <AddressingMode MODE> std::string FormatOperand(uint16_t value) {
 }
 } // namespace
 
-std::string CPU::DisassembleInstruction(const Instruction &instr) {
+std::string CPU::DisassembleInstruction(const Instruction &instr) const {
+  const uint16_t currentPC = m_program_counter; // Capture PC value for use in lambdas
   return std::visit(Utils::overloaded{
                         [](const Break &) -> std::string { return "BRK"; },
                         []<Register REG, AddressingMode MODE>(const LoadRegister<REG, MODE> _inst) {
@@ -447,24 +448,26 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                         []<AddressingMode MODE>(const BitwiseOR<MODE> _inst) {
                           return fmt::format("ORA {}", FormatOperand<MODE>(_inst.value));
                         },
-                        []<Conditional COND>(const Branch<COND> _inst) -> std::string {
+                        [currentPC]<Conditional COND>(const Branch<COND> _inst) -> std::string {
+                          // Calculate target address: PC + 2 (instruction size) + signed offset
+                          uint16_t target = currentPC + 2 + static_cast<int8_t>(_inst.offset);
                           switch (COND) {
                           case Conditional::Equal:
-                            return fmt::format("BEQ ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BEQ ${:04X}", target);
                           case Conditional::NotEqual:
-                            return fmt::format("BNE ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BNE ${:04X}", target);
                           case Conditional::CarrySet:
-                            return fmt::format("BCS ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BCS ${:04X}", target);
                           case Conditional::CarryClear:
-                            return fmt::format("BCC ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BCC ${:04X}", target);
                           case Conditional::Minus:
-                            return fmt::format("BMI ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BMI ${:04X}", target);
                           case Conditional::Positive:
-                            return fmt::format("BPL ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BPL ${:04X}", target);
                           case Conditional::OverflowSet:
-                            return fmt::format("BVS ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BVS ${:04X}", target);
                           case Conditional::OverflowClear:
-                            return fmt::format("BVC ${:02X}", uint8_t(_inst.offset));
+                            return fmt::format("BVC ${:04X}", target);
                           default:
                             return "BR?"; // Unknown condition
                           }
