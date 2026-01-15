@@ -45,7 +45,7 @@ public:
   void Init() {
     m_program_counter =
         ReadFromMemory(ProgramStartAddressPointer) | (ReadFromMemory(ProgramStartAddressPointer + 1) << 8);
-    spdlog::debug("Init PC: {}", m_program_counter);
+    spdlog::debug("Init PC: 0x{:04X}", m_program_counter);
   }
 
 private:
@@ -54,8 +54,8 @@ private:
   static constexpr Addr ProgramStartAddressPointer{0xFFFC};
 
   EnumArray<uint8_t, Register> m_registers{}; // Array to hold CPU registers A, X, and Y
-  std::bitset<8> m_status{0x00};              // Status register (flags)
-  uint8_t m_stack_pointer{0xFF};              // Stack pointer initialized to 0xFF
+  std::bitset<8> m_status{0x24};              // Status register (flags)
+  uint8_t m_stack_pointer{0xFD};              // Stack pointer initialized to 0xFF
   Addr m_program_counter{ProgramBaseAddress}; // Program counter
   non_owning_ptr<Bus *> m_bus;                // Memory bus
 
@@ -99,6 +99,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 
@@ -108,6 +109,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -117,6 +119,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 
@@ -126,6 +129,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 
@@ -135,6 +139,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 
@@ -144,6 +149,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -153,6 +159,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -162,6 +169,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -171,6 +179,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -185,6 +194,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -199,6 +209,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -208,6 +219,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 
@@ -258,6 +270,7 @@ public:
     explicit Jump(uint16_t addr);
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -285,6 +298,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t address{0};
   };
 
@@ -304,6 +318,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 
@@ -313,6 +328,7 @@ public:
 
     void Apply(CPU &cpu) const;
 
+    static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
   };
 

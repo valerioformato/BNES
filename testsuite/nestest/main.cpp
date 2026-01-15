@@ -5,9 +5,17 @@
 #include "HW/CPU.h"
 
 #include <algorithm>
+#include <concepts>
+#include <filesystem>
 #include <iostream>
 #include <numeric>
 #include <ranges>
+
+// Concept to check if a type has an AddrMode() method
+template <typename T>
+concept HasAddressingMode = requires {
+  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
+};
 
 class NESTestCPU : public BNES::HW::CPU {
 public:
@@ -19,6 +27,52 @@ public:
 
   NESTestCPU(BNES::HW::Bus &bus) : CPU(bus) {}
 
+  // Helper to get memory value suffix for non-immediate addressing modes
+  std::string GetMemoryValueSuffix(const Instruction &instr) const {
+    return std::visit(
+        [this](const auto &inst) -> std::string {
+          using InstrType = std::decay_t<decltype(inst)>;
+          
+          // Exclude control flow instructions (branches, jumps, returns)
+          if constexpr (std::is_same_v<InstrType, Branch<BNES::HW::Conditional::CarrySet>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::CarryClear>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::Equal>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::NotEqual>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::Minus>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::Positive>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::OverflowSet>> ||
+                        std::is_same_v<InstrType, Branch<BNES::HW::Conditional::OverflowClear>> ||
+                        std::is_same_v<InstrType, Jump<BNES::HW::AddressingMode::Absolute>> ||
+                        std::is_same_v<InstrType, Jump<BNES::HW::AddressingMode::Indirect>> ||
+                        std::is_same_v<InstrType, JumpToSubroutine> ||
+                        std::is_same_v<InstrType, ReturnFromSubroutine> ||
+                        std::is_same_v<InstrType, ReturnFromInterrupt>) {
+            return "";
+          }
+          
+          if constexpr (HasAddressingMode<InstrType>) {
+            // Only show memory value for non-immediate, non-accumulator modes
+            if constexpr (InstrType::AddrMode() != BNES::HW::AddressingMode::Immediate &&
+                          InstrType::AddrMode() != BNES::HW::AddressingMode::Accumulator) {
+              // Determine which member to use (value or address)
+              uint16_t addr;
+              if constexpr (requires { inst.address; }) {
+                addr = inst.address;
+              } else if constexpr (requires { inst.value; }) {
+                addr = inst.value;
+              } else {
+                return "";
+              }
+              
+              uint8_t mem_value = ReadFromMemory(addr);
+              return fmt::format(" = {:02X}", mem_value);
+            }
+          }
+          return "";
+        },
+        instr);
+  }
+
   void RunOneInstruction() {
     static constexpr auto cpu_freq = std::chrono::duration<double>(1.0f / 1790000.0f); // 1.79 MHz
 
@@ -29,14 +83,23 @@ public:
     auto instr = DecodeInstruction(bytes);
     auto instr_disass = DisassembleInstruction(instr);
     unsigned int instr_cycles = std::visit([](DecodedInstruction &arg) { return arg.cycles; }, instr);
+    unsigned int instr_size = std::visit([](DecodedInstruction &arg) { return arg.size; }, instr);
+    auto reg_values =
+        fmt::format("A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X}", Registers()[Register::A], Registers()[Register::X],
+                    Registers()[Register::Y], StatusFlags().to_ulong(), StackPointer());
 
     auto program_counter = ProgramCounter();
-    auto bytes_to_print = bytes | std::views::transform([](uint8_t byte) { return fmt::format("{:02X}", byte); });
+    auto bytes_to_print = bytes | std::views::take(instr_size) |
+                          std::views::transform([](uint8_t byte) { return fmt::format("{:02X}", byte); });
     std::string opcodes =
         std::reduce(begin(bytes_to_print), end(bytes_to_print), std::string{}, [](auto partial, auto current) {
           return fmt::format("{}{}{}", partial, partial.size() > 0 ? " " : "", current);
         });
-    last_log_line = fmt::format("{:4X}  {:<9} {}", program_counter, opcodes, instr_disass);
+    
+    auto mem_suffix = GetMemoryValueSuffix(instr);
+    last_log_line = fmt::format("{:4X}  {:<9} {}{}", program_counter, opcodes, instr_disass, mem_suffix);
+    auto tmp_width = last_log_line.size();
+    last_log_line += fmt::format("{:<{}}{}", "", 48 - tmp_width, reg_values);
 
     RunInstruction(std::move(instr));
   }
@@ -49,6 +112,22 @@ BNES::ErrorOr<int> nestest_main() {
   BNES::HW::Bus bus;
   TRY(bus.LoadRom("assets/roms/nestest.nes"));
 
+  // Let's open the reference nestest dump log and keep it in memory so we can test our own execution to the reference
+  // one
+  std::vector<std::string> nestest_log;
+  std::filesystem::path nestest_log_path("testsuite/nestest/nestest.log");
+  if (std::filesystem::exists(nestest_log_path)) {
+    std::ifstream log_file(nestest_log_path);
+    while (!log_file.eof()) {
+      std::string line;
+      std::getline(log_file, line);
+      nestest_log.push_back(line);
+    }
+    spdlog::info("Loaded reference nestest log with {} lines", nestest_log.size());
+  } else {
+    return BNES::make_error(std::errc::no_such_file_or_directory, "nestest.log not found");
+  }
+
   NESTestCPU cpu{bus};
   cpu.Init();
 
@@ -57,10 +136,19 @@ BNES::ErrorOr<int> nestest_main() {
   // in "batch" mode
   cpu.SetProgramStartAddress(0xC000);
 
+  auto nestest_log_it = nestest_log.begin();
+
   while (true) {
     try {
       cpu.RunOneInstruction();
-      fmt::println("{}", cpu.last_log_line);
+
+      if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
+        spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
+                      cpu.last_log_line, *nestest_log_it);
+        break;
+      }
+
+      ++nestest_log_it;
     } catch (const NESTestCPU::NonMaskableInterrupt &nmi) {
       break;
     }
