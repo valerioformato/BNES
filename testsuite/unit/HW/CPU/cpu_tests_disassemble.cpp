@@ -97,6 +97,27 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
       THEN("It should disassemble to 'PLP'") { REQUIRE(disassembly == "PLP"); }
     }
 
+    WHEN("We disassemble a CMP immediate instruction") {
+      auto instruction = CPU::CompareRegister<CPU::Register::A, AddressingMode::Immediate>{0x42};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'CMP #$42'") { REQUIRE(disassembly == "CMP #$42"); }
+    }
+
+    WHEN("We disassemble a CMP zero-page instruction") {
+      auto instruction = CPU::CompareRegister<CPU::Register::A, AddressingMode::ZeroPage>{0x42};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'CMP $42'") { REQUIRE(disassembly == "CMP $42"); }
+    }
+
+    WHEN("We disassemble a CMP absolute instruction") {
+      auto instruction = CPU::CompareRegister<CPU::Register::A, AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'CMP $1234'") { REQUIRE(disassembly == "CMP $1234"); }
+    }
+
     WHEN("We disassemble a CPX immediate instruction") {
       auto instruction = CPU::CompareRegister<CPU::Register::X, AddressingMode::Immediate>{0x42};
       auto disassembly = cpu.DisassembleInstruction(instruction);

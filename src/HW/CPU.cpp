@@ -508,7 +508,9 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                           }
                         },
                         []<Register REG, AddressingMode MODE>(const CompareRegister<REG, MODE> _inst) {
-                          return fmt::format("CP{} {}", magic_enum::enum_name(REG), FormatOperand<MODE>(_inst.value));
+                          // Special case: Accumulator comparison uses CMP, not CPA
+                          std::string mnemonic = (REG == Register::A) ? "CMP" : fmt::format("CP{}", magic_enum::enum_name(REG));
+                          return fmt::format("{} {}", mnemonic, FormatOperand<MODE>(_inst.value));
                         },
                         [](const NoOperation &) -> std::string { return "NOP"; },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
