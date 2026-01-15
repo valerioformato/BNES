@@ -400,6 +400,42 @@ SCENARIO("6502 instruction disassembly tests (math ops)", "[Disassemble][Math]")
       THEN("It should disassemble to 'LSR $1234,X'") { REQUIRE(disassembly == "LSR $1234,X"); }
     }
 
+    // ROR instructions
+    WHEN("We disassemble a ROR accumulator instruction") {
+      auto instruction = CPU::RotateRight<AddressingMode::Accumulator>{0};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'ROR A'") { REQUIRE(disassembly == "ROR A"); }
+    }
+
+    WHEN("We disassemble a ROR zero-page instruction") {
+      auto instruction = CPU::RotateRight<AddressingMode::ZeroPage>{0x42};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'ROR $42'") { REQUIRE(disassembly == "ROR $42"); }
+    }
+
+    WHEN("We disassemble a ROR zero-page,X instruction") {
+      auto instruction = CPU::RotateRight<AddressingMode::ZeroPageX>{0x42};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'ROR $42,X'") { REQUIRE(disassembly == "ROR $42,X"); }
+    }
+
+    WHEN("We disassemble a ROR absolute instruction") {
+      auto instruction = CPU::RotateRight<AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'ROR $1234'") { REQUIRE(disassembly == "ROR $1234"); }
+    }
+
+    WHEN("We disassemble a ROR absolute,X instruction") {
+      auto instruction = CPU::RotateRight<AddressingMode::AbsoluteX>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'ROR $1234,X'") { REQUIRE(disassembly == "ROR $1234,X"); }
+    }
+
     // INC instructions
     WHEN("We disassemble an INC zero-page instruction") {
       auto instruction = CPU::Increment<AddressingMode::ZeroPage>{0x42};

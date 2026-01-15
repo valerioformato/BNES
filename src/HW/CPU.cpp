@@ -165,6 +165,16 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return ShiftRight<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::LSR_AbsoluteX:
     return ShiftRight<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ROR_Accumulator:
+    return RotateRight<AddressingMode::Accumulator>{0};
+  case OpCode::ROR_ZeroPage:
+    return RotateRight<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::ROR_ZeroPageX:
+    return RotateRight<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::ROR_Absolute:
+    return RotateRight<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ROR_AbsoluteX:
+    return RotateRight<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::INC_ZeroPage:
     return Increment<AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::INC_ZeroPageX:
@@ -246,6 +256,8 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return JumpToSubroutine{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::RTS:
     return ReturnFromSubroutine{};
+  case OpCode::RTI:
+    return ReturnFromInterrupt{};
   // ...
   case OpCode::BIT_ZeroPage:
     return BitTest<AddressingMode::ZeroPage>{bytes[1]};
@@ -312,6 +324,7 @@ void CPU::RunInstruction(Instruction &&instr) {
 
         if constexpr (!(std::is_same_v<std::decay_t<decltype(instruction)>, JumpToSubroutine> ||
                         std::is_same_v<std::decay_t<decltype(instruction)>, ReturnFromSubroutine> ||
+                        std::is_same_v<std::decay_t<decltype(instruction)>, ReturnFromInterrupt> ||
                         std::is_same_v<std::decay_t<decltype(instruction)>, Jump<AddressingMode::Absolute>> ||
                         std::is_same_v<std::decay_t<decltype(instruction)>, Jump<AddressingMode::Indirect>>)) {
           // Advance the program counter by the size of the instruction
@@ -394,6 +407,13 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                             return fmt::format("LSR {}", FormatOperand<MODE>(_inst.address));
                           }
                         },
+                        []<AddressingMode MODE>(const RotateRight<MODE> _inst) {
+                          if constexpr (MODE == AddressingMode::Accumulator) {
+                            return std::string("ROR A");
+                          } else {
+                            return fmt::format("ROR {}", FormatOperand<MODE>(_inst.address));
+                          }
+                        },
                         []<AddressingMode MODE>(const Increment<MODE> _inst) {
                           return fmt::format("INC {}", FormatOperand<MODE>(_inst.address));
                         },
@@ -437,6 +457,7 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                         },
                         [](const JumpToSubroutine &inst) { return fmt::format("JSR ${:04X}", inst.address); },
                         [](const ReturnFromSubroutine &) -> std::string { return "RTS"; },
+                        [](const ReturnFromInterrupt &) -> std::string { return "RTI"; },
                         []<AddressingMode MODE>(const BitTest<MODE> _inst) {
                           return fmt::format("BIT {}", FormatOperand<MODE>(_inst.address));
                         },

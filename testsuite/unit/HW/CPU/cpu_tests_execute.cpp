@@ -1952,5 +1952,116 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
         REQUIRE(rts_instr.cycles == 6); // RTS takes 6 cycles
       }
     }
+
+    WHEN("We execute a RTI instruction") {
+      // RTI should restore both the program counter and status register from the stack
+      // Simulate an interrupt by manually setting up the stack as an interrupt would
+      auto initial_status = uint8_t(0x24); // Some test status value
+      auto return_address = uint16_t(0x1234);
+
+      // Set up the stack as if an interrupt occurred:
+      // We need to manually set the stack pointer using TXS instruction
+      // Set X register to initial stack pointer value minus 3 (for status, PC_low, PC_high)
+      auto target_sp = uint8_t(0xFC); // Start with SP at 0xFC
+      cpu.SetRegister(CPU::Register::X, target_sp);
+      auto txs_instr = CPU::TransferXToStackPointer{};
+      cpu.RunInstruction(txs_instr);
+
+      // Stack layout (from top to bottom): PC_high, PC_low, status
+      // Write to the stack positions where RTI will read them
+      cpu.WriteToMemory(0x0100 + target_sp + 1, initial_status);        // Status at SP+1
+      cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF); // Low byte at SP+2
+      cpu.WriteToMemory(0x0100 + target_sp + 3, (return_address >> 8) & 0xFF); // High byte at SP+3
+
+      auto stack_before_rti = cpu.StackPointer();
+
+      // Execute RTI
+      auto rti_instr = CPU::ReturnFromInterrupt{};
+      cpu.RunInstruction(rti_instr);
+
+      THEN("RTI should restore program counter and status register from stack") {
+        REQUIRE(cpu.ProgramCounter() == return_address);
+        REQUIRE((cpu.StatusFlags().to_ulong() & 0xCF) == (initial_status & 0xCF)); // Ignore bits 4-5 (Break and unused)
+        REQUIRE(cpu.StackPointer() == stack_before_rti + 3);                       // Stack pointer restored (3 bytes pulled)
+      }
+    }
+
+    WHEN("We execute RTI with different status flags") {
+      // Test RTI with various status register values
+      struct TestCase {
+        uint8_t status_value;
+        const char *description;
+      };
+      std::vector<TestCase> test_cases = {{0x00, "All flags clear"},
+                                           {0xFF, "All flags set"},
+                                           {0x24, "Default/typical value"},
+                                           {0x81, "Negative and Carry set"}};
+
+      for (const auto &test_case : test_cases) {
+        auto return_address = uint16_t(0x2000);
+
+        // Set up stack pointer using TXS
+        auto target_sp = uint8_t(0xFC);
+        cpu.SetRegister(CPU::Register::X, target_sp);
+        auto txs_instr = CPU::TransferXToStackPointer{};
+        cpu.RunInstruction(txs_instr);
+
+        // Set up stack for RTI
+        cpu.WriteToMemory(0x0100 + target_sp + 1, test_case.status_value);
+        cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF);
+        cpu.WriteToMemory(0x0100 + target_sp + 3, (return_address >> 8) & 0xFF);
+
+        // Execute RTI
+        auto rti_instr = CPU::ReturnFromInterrupt{};
+        cpu.RunInstruction(rti_instr);
+
+        THEN(std::string("RTI should restore status correctly with ") + test_case.description) {
+          REQUIRE((cpu.StatusFlags().to_ulong() & 0xCF) == (test_case.status_value & 0xCF)); // Check status (ignore bits 4-5)
+          REQUIRE(cpu.ProgramCounter() == return_address);
+        }
+      }
+    }
+
+    WHEN("We execute RTI with different return addresses") {
+      // Test RTI with various return address values
+      struct TestCase {
+        uint16_t return_addr;
+        const char *description;
+      };
+      std::vector<TestCase> test_cases = {
+          {0x8000, "Start of program ROM"}, {0xC000, "Mid program ROM"}, {0xFFFC, "Near interrupt vectors"}};
+
+      for (const auto &test_case : test_cases) {
+        auto status_value = uint8_t(0x24);
+
+        // Set up stack pointer using TXS
+        auto target_sp = uint8_t(0xFC);
+        cpu.SetRegister(CPU::Register::X, target_sp);
+        auto txs_instr = CPU::TransferXToStackPointer{};
+        cpu.RunInstruction(txs_instr);
+
+        // Set up stack for RTI
+        cpu.WriteToMemory(0x0100 + target_sp + 1, status_value);
+        cpu.WriteToMemory(0x0100 + target_sp + 2, test_case.return_addr & 0xFF);
+        cpu.WriteToMemory(0x0100 + target_sp + 3, (test_case.return_addr >> 8) & 0xFF);
+
+        // Execute RTI
+        auto rti_instr = CPU::ReturnFromInterrupt{};
+        cpu.RunInstruction(rti_instr);
+
+        THEN(std::string("RTI should work with ") + test_case.description) {
+          REQUIRE(cpu.ProgramCounter() == test_case.return_addr);
+        }
+      }
+    }
+
+    WHEN("We execute RTI and verify instruction properties") {
+      auto rti_instr = CPU::ReturnFromInterrupt{};
+
+      THEN("RTI instruction should have correct size and cycles") {
+        REQUIRE(rti_instr.size == 1);   // RTI is a 1-byte instruction
+        REQUIRE(rti_instr.cycles == 6); // RTI takes 6 cycles
+      }
+    }
   }
 }

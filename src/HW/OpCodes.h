@@ -87,6 +87,11 @@ enum class OpCode : uint8_t {
   LSR_ZeroPageX = 0x56,   // Logical Shift Right (LSR) Zero Page,X
   LSR_Absolute = 0x04E,   // Logical Shift Right (LSR) Absolute
   LSR_AbsoluteX = 0x5E,   // Logical Shift Right (LSR) Absolute,X
+  ROR_Accumulator = 0x6A, // Rotate Right (ROR) Accumulator
+  ROR_ZeroPage = 0x66,    // Rotate Right (ROR) Zero Page
+  ROR_ZeroPageX = 0x76,   // Rotate Right (ROR) Zero Page,X
+  ROR_Absolute = 0x6E,    // Rotate Right (ROR) Absolute
+  ROR_AbsoluteX = 0x7E,   // Rotate Right (ROR) Absolute,X
   INC_ZeroPage = 0xE6,    // Increment Memory (INC) Zero Page
   INC_ZeroPageX = 0xF6,   // Increment Memory (INC) Zero Page,X
   INC_Absolute = 0xEE,    // Increment Memory (INC) Absolute
@@ -137,6 +142,7 @@ enum class OpCode : uint8_t {
   JMP_Indirect = 0x6C, // Jump Indirect (JMP)
   JSR = 0x20,          // Jump to Subroutine (JSR)
   RTS = 0x60,          // Return from Subroutine (RTS)
+  RTI = 0x40,          // Return from Interrupt (RTI)
 
   // Other Instructions
   BIT_ZeroPage = 0x24,  // Bit Test Zero Page

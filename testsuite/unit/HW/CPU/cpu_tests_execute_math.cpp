@@ -1167,6 +1167,114 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
       }
     }
 
+    WHEN("We execute a ROR accumulator instruction") {
+      // Test 1: ROR with carry clear, even value
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0x40);
+
+      auto instr = CPU::RotateRight<AddressingMode::Accumulator>{0x00};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x20 (carry was 0, bit 0 becomes carry)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x20);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      // Test 2: ROR with carry clear, odd value (bit 0 set)
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0x41);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x20 with carry set (old bit 0)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x20);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      // Test 3: ROR with carry set
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetRegister(CPU::Register::A, 0x02);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x81 (carry 1 goes to bit 7, bit 0 clear becomes new carry)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x81);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // Bit 7 is set
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      // Test 4: ROR resulting in zero
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0x01);
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00 with zero and carry flags set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+      }
+    }
+
+    WHEN("We execute a ROR zero-page instruction") {
+      // Test with carry clear
+      cpu.WriteToMemory(0x42, 0x80);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+
+      auto instr = CPU::RotateRight<AddressingMode::ZeroPage>{0x42};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain 0x40 with carry clear") {
+        REQUIRE(cpu.ReadFromMemory(0x42) == 0x40);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+      original_program_counter = cpu.ProgramCounter();
+
+      // Test with carry set
+      cpu.WriteToMemory(0x43, 0x00);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      instr.address = 0x43;
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain 0x80 (carry goes to bit 7) with negative flag set") {
+        REQUIRE(cpu.ReadFromMemory(0x43) == 0x80);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+      }
+    }
+
+    WHEN("We execute a ROR absolute instruction") {
+      // Test rotation with both carry and bit 0 set
+      cpu.WriteToMemory(0x0300, 0xFF);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+
+      auto instr = CPU::RotateRight<AddressingMode::Absolute>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The memory should contain 0xFF (all bits set, rotates into itself) with carry set") {
+        REQUIRE(cpu.ReadFromMemory(0x0300) == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+      }
+    }
+
     WHEN("We execute a EOR immediate instruction") {
       cpu.SetRegister(CPU::Register::A, 0xFF);
 

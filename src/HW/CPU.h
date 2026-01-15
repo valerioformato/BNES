@@ -156,6 +156,15 @@ public:
     uint16_t address{0};
   };
 
+  template <AddressingMode MODE> struct RotateRight : DecodedInstruction {
+    RotateRight() = delete;
+    explicit RotateRight(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   template <Register REG> struct IncrementRegister : DecodedInstruction {
     IncrementRegister() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
@@ -253,6 +262,11 @@ public:
 
   struct ReturnFromSubroutine : DecodedInstruction {
     ReturnFromSubroutine() : DecodedInstruction{.size = 1, .cycles = 6} {}
+    inline void Apply(CPU &cpu) const;
+  };
+
+  struct ReturnFromInterrupt : DecodedInstruction {
+    ReturnFromInterrupt() : DecodedInstruction{.size = 1, .cycles = 6} {}
     inline void Apply(CPU &cpu) const;
   };
 
@@ -364,6 +378,11 @@ public:
       ShiftRight<AddressingMode::ZeroPageX>,
       ShiftRight<AddressingMode::Absolute>,
       ShiftRight<AddressingMode::AbsoluteX>,
+      RotateRight<AddressingMode::Accumulator>,
+      RotateRight<AddressingMode::ZeroPage>,
+      RotateRight<AddressingMode::ZeroPageX>,
+      RotateRight<AddressingMode::Absolute>,
+      RotateRight<AddressingMode::AbsoluteX>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       Increment<AddressingMode::ZeroPage>,
@@ -405,6 +424,7 @@ public:
       Jump<AddressingMode::Indirect>,
       JumpToSubroutine,
       ReturnFromSubroutine,
+      ReturnFromInterrupt,
       // ...
       BitTest<AddressingMode::ZeroPage>,
       BitTest<AddressingMode::Absolute>,
@@ -578,6 +598,24 @@ inline void CPU::ReturnFromSubroutine::Apply(CPU &cpu) const {
 
   // Set the program counter to the return address + 1
   cpu.m_program_counter = return_address + 1;
+}
+
+inline void CPU::ReturnFromInterrupt::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#RTI
+
+  // Pull the status word from the stack
+  cpu.m_stack_pointer++;
+  cpu.m_status = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer) & 0xCF;
+  // Pull the program counter from the stack
+  cpu.m_stack_pointer++;
+  uint8_t low_byte = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
+  cpu.m_stack_pointer++;
+  uint8_t high_byte = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
+
+  uint16_t return_address = (high_byte << 8) | low_byte;
+
+  // Set the program counter to the return address
+  cpu.m_program_counter = return_address;
 }
 
 template <AddressingMode MODE> void CPU::BitTest<MODE>::Apply(CPU &cpu) const {
@@ -906,6 +944,47 @@ template <AddressingMode MODE> void CPU::ShiftRight<MODE>::Apply(CPU &cpu) const
   cpu.SetStatusFlagValue(StatusFlag::Carry, value_to_shift & 0x1);
 }
 
+template <AddressingMode MODE> void CPU::RotateRight<MODE>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#ROR
+
+  uint8_t value_to_rotate = 0;
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    value_to_rotate = cpu.m_registers[Register::A];
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_rotate = cpu.ReadFromMemory(address & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_rotate = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_rotate = cpu.ReadFromMemory(address);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_rotate = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]);
+  } else {
+    TODO(fmt::format("RotateRight<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  bool old_carry = cpu.TestStatusFlag(StatusFlag::Carry);
+  bool new_carry = value_to_rotate & 0x1;
+  uint8_t value_to_store = (value_to_rotate >> 1) | (old_carry ? 0x80 : 0x00);
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    cpu.m_registers[Register::A] = value_to_store;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    cpu.WriteToMemory(address & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    cpu.WriteToMemory(address, value_to_store);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_store);
+  } else {
+    TODO(fmt::format("RotateRight<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_store & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, value_to_store == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, new_carry);
+}
+
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
@@ -1203,6 +1282,29 @@ template <AddressingMode MODE> CPU::ShiftLeft<MODE>::ShiftLeft(uint16_t _value) 
 }
 
 template <AddressingMode MODE> CPU::ShiftRight<MODE>::ShiftRight(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    this->size = 1;
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    this->size = 3;
+    this->cycles = 7;
+  } else {
+    std::unreachable();
+  }
+
+  address = _value;
+}
+
+template <AddressingMode MODE> CPU::RotateRight<MODE>::RotateRight(uint16_t _value) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Accumulator) {
