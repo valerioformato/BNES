@@ -567,6 +567,85 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
       }
     }
 
+    WHEN("We try to decode a ROL accumulator instruction") {
+      std::vector<uint8_t> bytes = {0x2A}; // ROL A
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeft<AddressingMode::Accumulator>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode a ROL zero-page instruction") {
+      std::vector<uint8_t> bytes = {0x26, 0x42}; // ROL $42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeft<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a ROL zero-page,X instruction") {
+      std::vector<uint8_t> bytes = {0x36, 0x42}; // ROL $42,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeft<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a ROL absolute instruction") {
+      std::vector<uint8_t> bytes = {0x2E, 0x00, 0x03}; // ROL $0300
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeft<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
+
+    WHEN("We try to decode a ROL absolute,X instruction") {
+      std::vector<uint8_t> bytes = {0x3E, 0x00, 0x03}; // ROL $0300,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeft<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0300);
+      }
+    }
+
     WHEN("We try to decode a DEC zero-page instruction") {
       std::vector<uint8_t> bytes = {0xC6, 0x42}; // DEC $42
       auto instruction = cpu.DecodeInstruction(bytes);

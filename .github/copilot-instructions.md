@@ -1,5 +1,15 @@
 # GitHub Copilot Instructions for NES Emulator Project
 
+## Git Workflow
+
+### Committing Changes
+- **NEVER add all untracked files to a commit using `git add .` or `git add -A`**
+- Only commit files that you have explicitly modified or created for the current task
+- Always review the list of files before committing using `git status`
+- Use `git add <specific-file>` for each file you want to commit
+- Exclude build artifacts, IDE files, and other untracked files not relevant to the change
+- Common files to exclude: `.idea/`, `.vs/`, build directories, cache files, temporary files
+
 ## Building and Testing
 
 ### Build Configuration

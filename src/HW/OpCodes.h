@@ -92,6 +92,11 @@ enum class OpCode : uint8_t {
   ROR_ZeroPageX = 0x76,   // Rotate Right (ROR) Zero Page,X
   ROR_Absolute = 0x6E,    // Rotate Right (ROR) Absolute
   ROR_AbsoluteX = 0x7E,   // Rotate Right (ROR) Absolute,X
+  ROL_Accumulator = 0x2A, // Rotate Left (ROL) Accumulator
+  ROL_ZeroPage = 0x26,    // Rotate Left (ROL) Zero Page
+  ROL_ZeroPageX = 0x36,   // Rotate Left (ROL) Zero Page,X
+  ROL_Absolute = 0x2E,    // Rotate Left (ROL) Absolute
+  ROL_AbsoluteX = 0x3E,   // Rotate Left (ROL) Absolute,X
   INC_ZeroPage = 0xE6,    // Increment Memory (INC) Zero Page
   INC_ZeroPageX = 0xF6,   // Increment Memory (INC) Zero Page,X
   INC_Absolute = 0xEE,    // Increment Memory (INC) Absolute

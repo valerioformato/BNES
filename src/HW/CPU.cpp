@@ -175,6 +175,16 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return RotateRight<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::ROR_AbsoluteX:
     return RotateRight<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ROL_Accumulator:
+    return RotateLeft<AddressingMode::Accumulator>{0};
+  case OpCode::ROL_ZeroPage:
+    return RotateLeft<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::ROL_ZeroPageX:
+    return RotateLeft<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::ROL_Absolute:
+    return RotateLeft<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::ROL_AbsoluteX:
+    return RotateLeft<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   case OpCode::INC_ZeroPage:
     return Increment<AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::INC_ZeroPageX:
@@ -412,6 +422,13 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) {
                             return std::string("ROR A");
                           } else {
                             return fmt::format("ROR {}", FormatOperand<MODE>(_inst.address));
+                          }
+                        },
+                        []<AddressingMode MODE>(const RotateLeft<MODE> _inst) {
+                          if constexpr (MODE == AddressingMode::Accumulator) {
+                            return std::string("ROL A");
+                          } else {
+                            return fmt::format("ROL {}", FormatOperand<MODE>(_inst.address));
                           }
                         },
                         []<AddressingMode MODE>(const Increment<MODE> _inst) {

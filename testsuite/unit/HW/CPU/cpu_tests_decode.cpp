@@ -601,6 +601,21 @@ SCENARIO("6502 instruction decoding tests (all the rest)", "[Decode]") {
       }
     }
 
+    WHEN("We try to decode a RTI instruction") {
+      std::vector<uint8_t> bytes = {0x40}; // RTI
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ReturnFromInterrupt;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
     WHEN("We try to decode a CLC instruction") {
       std::vector<uint8_t> bytes = {0x18}; // CLC
       auto instruction = cpu.DecodeInstruction(bytes);

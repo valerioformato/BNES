@@ -165,6 +165,15 @@ public:
     uint16_t address{0};
   };
 
+  template <AddressingMode MODE> struct RotateLeft : DecodedInstruction {
+    RotateLeft() = delete;
+    explicit RotateLeft(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    uint16_t address{0};
+  };
+
   template <Register REG> struct IncrementRegister : DecodedInstruction {
     IncrementRegister() : DecodedInstruction{.size = 1, .cycles = 2} {}
     void Apply(CPU &cpu) const;
@@ -383,6 +392,11 @@ public:
       RotateRight<AddressingMode::ZeroPageX>,
       RotateRight<AddressingMode::Absolute>,
       RotateRight<AddressingMode::AbsoluteX>,
+      RotateLeft<AddressingMode::Accumulator>,
+      RotateLeft<AddressingMode::ZeroPage>,
+      RotateLeft<AddressingMode::ZeroPageX>,
+      RotateLeft<AddressingMode::Absolute>,
+      RotateLeft<AddressingMode::AbsoluteX>,
       IncrementRegister<Register::X>,
       IncrementRegister<Register::Y>,
       Increment<AddressingMode::ZeroPage>,
@@ -985,6 +999,47 @@ template <AddressingMode MODE> void CPU::RotateRight<MODE>::Apply(CPU &cpu) cons
   cpu.SetStatusFlagValue(StatusFlag::Carry, new_carry);
 }
 
+template <AddressingMode MODE> void CPU::RotateLeft<MODE>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#ROL
+
+  uint8_t value_to_rotate = 0;
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    value_to_rotate = cpu.m_registers[Register::A];
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_rotate = cpu.ReadFromMemory(address & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_rotate = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_rotate = cpu.ReadFromMemory(address);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_rotate = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]);
+  } else {
+    TODO(fmt::format("RotateLeft<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  bool old_carry = cpu.TestStatusFlag(StatusFlag::Carry);
+  bool new_carry = value_to_rotate & 0x80;
+  uint8_t value_to_store = (value_to_rotate << 1) | (old_carry ? 0x01 : 0x00);
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    cpu.m_registers[Register::A] = value_to_store;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    cpu.WriteToMemory(address & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    cpu.WriteToMemory(address, value_to_store);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_store);
+  } else {
+    TODO(fmt::format("RotateLeft<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_store & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, value_to_store == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, new_carry);
+}
+
 template <CPU::Register REG> void CPU::IncrementRegister<REG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#INX (or #INY)
 
@@ -1305,6 +1360,29 @@ template <AddressingMode MODE> CPU::ShiftRight<MODE>::ShiftRight(uint16_t _value
 }
 
 template <AddressingMode MODE> CPU::RotateRight<MODE>::RotateRight(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Accumulator) {
+    this->size = 1;
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    this->size = 3;
+    this->cycles = 7;
+  } else {
+    std::unreachable();
+  }
+
+  address = _value;
+}
+
+template <AddressingMode MODE> CPU::RotateLeft<MODE>::RotateLeft(uint16_t _value) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Accumulator) {

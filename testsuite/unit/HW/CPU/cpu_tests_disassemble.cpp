@@ -237,6 +237,13 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
       THEN("It should disassemble to 'RTS'") { REQUIRE(disassembly == "RTS"); }
     }
 
+    WHEN("We disassemble a RTI instruction") {
+      auto instruction = CPU::ReturnFromInterrupt{};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'RTI'") { REQUIRE(disassembly == "RTI"); }
+    }
+
     WHEN("We disassemble a CLC instruction") {
       auto instruction = CPU::ClearStatusFlag<CPU::StatusFlag::Carry>{};
       auto disassembly = cpu.DisassembleInstruction(instruction);
