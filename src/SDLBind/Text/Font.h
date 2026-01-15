@@ -41,7 +41,7 @@ private:
   };
   static ErrorOr<Font> FromFile(std::string_view name, FontVariant variant);
 
-  friend class std::hash<Font>;
+  friend struct std::hash<Font>;
 };
 
 } // namespace BNES::SDL

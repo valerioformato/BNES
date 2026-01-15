@@ -107,11 +107,11 @@ tramp
 ###### Eclipse ##########
 .cproject
 .project
-.settings/
+.settings
 
 ##### VSCode ########
-.vscode/
+.vscode
 
 ##### JetBrains ########
-.idea/
+.idea
 cmake-build*

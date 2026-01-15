@@ -2,8 +2,8 @@
 // Created by vformato on 12/23/25.
 //
 
-#ifndef BUS_H
-#define BUS_H
+#ifndef BNES_BUS_H
+#define BNES_BUS_H
 
 #include "HW/Rom.h"
 #include "common/Types/non_owning_ptr.h"
@@ -26,7 +26,7 @@ public:
   static constexpr size_t MAX_ADDRESSABLE_ROM_ADDRESS = 0xFFFF;
 
   [[nodiscard]] ErrorOr<void> LoadRom(std::string_view rom_file) {
-    m_rom = TRY(Rom::FromFile(rom_file));
+    m_rom = TRY(::BNES::HW::Rom::FromFile(rom_file));
     return {};
   }
 

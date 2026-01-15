@@ -32,7 +32,7 @@ public:
     return std::visit(
         [this](const auto &inst) -> std::string {
           using InstrType = std::decay_t<decltype(inst)>;
-          
+
           // Exclude control flow instructions (branches, jumps, returns)
           if constexpr (std::is_same_v<InstrType, Branch<BNES::HW::Conditional::CarrySet>> ||
                         std::is_same_v<InstrType, Branch<BNES::HW::Conditional::CarryClear>> ||
@@ -49,7 +49,7 @@ public:
                         std::is_same_v<InstrType, ReturnFromInterrupt>) {
             return "";
           }
-          
+
           if constexpr (HasAddressingMode<InstrType>) {
             // Only show memory value for non-immediate, non-accumulator modes
             if constexpr (InstrType::AddrMode() != BNES::HW::AddressingMode::Immediate &&
@@ -63,7 +63,7 @@ public:
               } else {
                 return "";
               }
-              
+
               uint8_t mem_value = ReadFromMemory(addr);
               return fmt::format(" = {:02X}", mem_value);
             }
@@ -95,7 +95,7 @@ public:
         std::reduce(begin(bytes_to_print), end(bytes_to_print), std::string{}, [](auto partial, auto current) {
           return fmt::format("{}{}{}", partial, partial.size() > 0 ? " " : "", current);
         });
-    
+
     auto mem_suffix = GetMemoryValueSuffix(instr);
     last_log_line = fmt::format("{:4X}  {:<9} {}{}", program_counter, opcodes, instr_disass, mem_suffix);
     auto tmp_width = last_log_line.size();
@@ -145,6 +145,7 @@ BNES::ErrorOr<int> nestest_main() {
       if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
         spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
                       cpu.last_log_line, *nestest_log_it);
+
         break;
       }
 

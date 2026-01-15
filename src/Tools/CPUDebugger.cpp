@@ -38,9 +38,9 @@ void CPUDebugger::Update() {
   std::vector<std::string> lines;
   lines.push_back(fmt::format("A: {} X: {} Y: {}", m_cpu->Registers()[CPU::Register::A],
                               m_cpu->Registers()[CPU::Register::X], m_cpu->Registers()[CPU::Register::Y],
-                              CPU::DisassembleInstruction(m_cpu->CurrentInstruction())));
+                              m_cpu->DisassembleInstruction(m_cpu->CurrentInstruction())));
   lines.push_back(
-      fmt::format("PC: {:4X} {}", m_cpu->ProgramCounter(), CPU::DisassembleInstruction(m_cpu->CurrentInstruction())));
+      fmt::format("PC: {:4X} {}", m_cpu->ProgramCounter(), m_cpu->DisassembleInstruction(m_cpu->CurrentInstruction())));
 
   std::string content = std::reduce(begin(lines), end(lines), std::string{},
                                     [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });
