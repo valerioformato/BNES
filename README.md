@@ -16,12 +16,12 @@ This project is in active development. Currently implemented:
 
 - Written in C++23 with modern practices
 - Modular architecture (CPU, Bus, ROM loader, debugging tools)
-- Cross-platform support (Linux, macOS, Windows)
+- Cross-platform support (Linux, macOS, Windows with Clang)
 - Uses [SDL3](https://www.libsdl.org/) for graphics and text rendering
 - Uses [magic_enum](https://github.com/Neargye/magic_enum) for type-safe enum utilities
 - Uses [spdlog](https://github.com/gabime/spdlog) for logging
 - Comprehensive unit testing with [Catch2](https://github.com/catchorg/Catch2)
-- CI/CD with GitHub Actions testing on GCC, Clang, and MSVC
+- CI/CD with GitHub Actions testing on GCC, Clang (Linux/macOS/Windows)
 - AddressSanitizer and ThreadSanitizer support
 
 ## Building
@@ -31,8 +31,8 @@ This project is in active development. Currently implemented:
 - CMake >= 3.16
 - A C++23 compatible compiler:
   - GCC 13+ (Linux)
-  - Clang 16+ (Linux/macOS)
-  - MSVC 2022+ or Clang 16+ (Windows)
+  - Clang 16+ (Linux/macOS/Windows)
+  - **Note**: MSVC is not supported due to use of GNU statement expressions
 - Git (for cloning with submodules)
 
 ### Build Instructions
