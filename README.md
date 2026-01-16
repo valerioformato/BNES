@@ -4,69 +4,93 @@
 BNES is a work-in-progress NES emulator written in modern C++23. It aims to provide a clean, modular, and testable
 codebase for learning and experimenting with NES emulation.
 
+## Current Status
+
+This project is in active development. Currently implemented:
+- **6502 CPU**: Complete instruction set implementation with decode, execute, and disassembly support
+- **Memory System**: Bus architecture with ROM loading capabilities
+- **Debugging Tools**: CPU debugger with instruction visualization
+- **Test Suite**: Comprehensive unit tests and validation with nestest ROM
+
 ## Features
 
-- Written in C++23
-- Modular structure (CPU, hardware, SDL-based rendering)
-- Uses [SDL](https://www.libsdl.org/) for graphics and input
-- Uses [magic_enum](https://github.com/Neargye/magic_enum) for modern enum utilities
-- Optional unit tests with [Catch2](https://github.com/catchorg/Catch2)
-- AddressSanitizer and ThreadSanitizer support for debugging
+- Written in C++23 with modern practices
+- Modular architecture (CPU, Bus, ROM loader, debugging tools)
+- Cross-platform support (Linux, macOS, Windows)
+- Uses [SDL3](https://www.libsdl.org/) for graphics and text rendering
+- Uses [magic_enum](https://github.com/Neargye/magic_enum) for type-safe enum utilities
+- Uses [spdlog](https://github.com/gabime/spdlog) for logging
+- Comprehensive unit testing with [Catch2](https://github.com/catchorg/Catch2)
+- CI/CD with GitHub Actions testing on GCC, Clang, and MSVC
+- AddressSanitizer and ThreadSanitizer support
 
 ## Building
 
 ### Prerequisites
 
 - CMake >= 3.16
-- A C++23 compatible compiler (e.g., GCC 13+, Clang 16+, MSVC 2022+)
-- SDL3 development libraries
+- A C++23 compatible compiler:
+  - GCC 13+ (Linux)
+  - Clang 16+ (Linux/macOS)
+  - MSVC 2022+ or Clang 16+ (Windows)
+- Git (for cloning with submodules)
 
 ### Build Instructions
 
 ```sh
-git clone --recursive <this-repo-url>
-cd NES
-mkdir build && cd build
-cmake ..
-make
+git clone --recursive https://github.com/valerioformato/BNES.git
+cmake -S BNES -B BNES/build
+cmake --build BNES/build
 ```
 
 #### Optional Build Flags
 
 - `-DASAN=ON` — Enable AddressSanitizer
 - `-DTSAN=ON` — Enable ThreadSanitizer
-- `-DENABLE_BNES_TESTS=ON` — Build unit tests
+- `-DENABLE_BNES_TESTS=ON` — Build unit tests (enabled by default)
 
 Example:
 
 ```sh
-cmake -DASAN=ON -DENABLE_BNES_TESTS=ON ..
-make
+cmake -S BNES -B BNES/build -DASAN=ON
+cmake --build BNES/build
 ```
 
 ## Project Structure
 
 - `src/` — Main emulator source code
-    - `HW/` — NES hardware emulation (CPU, etc.)
-    - `SDL/` — SDL-based rendering and window management
-    - `common/` — Shared utilities and helpers
-- `testsuite/` — Unit tests (requires Catch2)
-- `vendor/` — Third-party dependencies (SDL, magic_enum, Catch2)
+    - `HW/` — NES hardware emulation (CPU, Bus, ROM loader)
+    - `SDLBind/` — SDL3-based rendering, text, and window management
+    - `Tools/` — Development tools (CPU debugger)
+    - `common/` — Shared utilities and type helpers
+- `testsuite/` — Test suites and validation
+    - `unit/` — Unit tests with Catch2
+    - `nestest/` — nestest ROM validation
+    - `snake/` — Snake game test ROM
+    - `text-rendering/` — SDL text rendering tests
+- `vendor/` — Third-party dependencies (SDL3, SDL_ttf, magic_enum, Catch2, spdlog)
 
 ## Running
 
-After building, the main emulator binary will be in `build/src/BNES`. Run it from the build directory:
+After building, executables will be in the build directory:
 
 ```sh
-./src/BNES
+# Main emulator (work in progress)
+./BNES/build/src/BNES
+
+# CPU debugger with snake ROM
+./BNES/build/testsuite/snake/snake_rom
+
+# nestest ROM validation
+./BNES/build/testsuite/nestest/nestest
 ```
 
 ## Testing
 
-If built with `-DENABLE_BNES_TESTS=ON`, run the tests:
+Unit tests are built by default. To run them:
 
 ```sh
-./testsuite/run_tests
+./BNES/build/testsuite/unit/run_unit_tests
 ```
 
 ## License
