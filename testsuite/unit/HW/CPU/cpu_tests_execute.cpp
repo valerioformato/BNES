@@ -936,7 +936,7 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
     WHEN("We execute a TSX instruction") {
       auto tsx_instr = CPU::TransferStackPointerToX{};
 
-      // Stack pointer should be at 0xFF initially
+      // Stack pointer should be at 0xFD initially
       auto initial_sp = cpu.StackPointer();
 
       // Execute TSX
@@ -946,7 +946,7 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
         REQUIRE(cpu.Registers()[CPU::Register::X] == initial_sp);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFF has bit 7 set
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFD has bit 7 set
       }
 
       original_program_counter = cpu.ProgramCounter();
@@ -955,9 +955,9 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       auto pha_instr = CPU::PushAccumulator{};
       auto load_a = CPU::LoadRegister<CPU::Register::A, AddressingMode::Immediate>{0x42};
       cpu.RunInstruction(load_a);
-      cpu.RunInstruction(pha_instr); // SP now 0xFE
-      cpu.RunInstruction(pha_instr); // SP now 0xFD
-      cpu.RunInstruction(pha_instr); // SP now 0xFC
+      cpu.RunInstruction(pha_instr); // SP now 0xFC (pushed from 0xFD)
+      cpu.RunInstruction(pha_instr); // SP now 0xFB (pushed from 0xFC)
+      cpu.RunInstruction(pha_instr); // SP now 0xFA (pushed from 0xFB)
 
       original_program_counter = cpu.ProgramCounter();
 
@@ -965,10 +965,10 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       cpu.RunInstruction(tsx_instr);
 
       THEN("X register should contain the updated stack pointer") {
-        REQUIRE(cpu.Registers()[CPU::Register::X] == 0xFC);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0xFA);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFC has bit 7 set
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFA has bit 7 set
       }
     }
 

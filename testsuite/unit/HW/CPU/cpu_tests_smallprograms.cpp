@@ -68,7 +68,7 @@ struct MemorySlice {
 
 struct Program {
   BNES::EnumArray<uint8_t, CPU::Register> expected_register_values{};
-  std::bitset<8> expected_status{0x00}; // Status register (flags)
+  std::bitset<8> expected_status{0x24}; // Status register (flags) - bits 5 (unused) and 2 (interrupt disable) set
   CPU::Addr expected_program_counter{0x8000};
   std::vector<MemorySlice> expected_memory_slices{};
   std::vector<uint8_t> code{};
@@ -78,7 +78,7 @@ std::array programs = {
     // Example 01 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x08, 0x00, 0x00}},
-        .expected_status = {0b00000000},
+        .expected_status = {0b00100100},
         .expected_program_counter = 0x8010,
         .expected_memory_slices = {MemorySlice{
             .start_address = 0x200,
@@ -89,7 +89,7 @@ std::array programs = {
     // Example 02 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x84, 0xc1, 0x00}},
-        .expected_status = {0b10000001},
+        .expected_status = {0b10100101},
         .expected_program_counter = 0x8007,
         .expected_memory_slices = {},
         .code = {0xa9, 0xc0, 0xaa, 0xe8, 0x69, 0xc4, 0x00},
@@ -97,7 +97,7 @@ std::array programs = {
     // Example 03 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x00, 0x00, 0x00}},
-        .expected_status = {0b01000011},
+        .expected_status = {0b01100111},
         .expected_program_counter = 0x8007,
         .expected_memory_slices = {},
         .code = {0xa9, 0x80, 0x85, 0x01, 0x65, 0x01},
@@ -105,7 +105,7 @@ std::array programs = {
     // Example 04 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x00, 0x03, 0x00}},
-        .expected_status = {0b00000011},
+        .expected_status = {0b00100111},
         .expected_program_counter = 0x800e,
         .expected_memory_slices = {},
         .code = {0xa2, 0x08, 0xca, 0x8e, 0x00, 0x02, 0xe0, 0x03, 0xd0, 0xf8, 0x8e, 0x01, 0x02, 0x00},
@@ -113,7 +113,7 @@ std::array programs = {
     // Example 06 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0xcc, 0x00, 0x00}},
-        .expected_status = {0b10000000},
+        .expected_status = {0b10100100},
         .expected_program_counter = 0xcc02,
         .expected_memory_slices = {},
         .code = {0xa9, 0x01, 0x85, 0xf0, 0xa9, 0xcc, 0x85, 0xf1, 0x6c, 0xf0, 0x00},
@@ -121,7 +121,7 @@ std::array programs = {
     // Example 07 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x0a, 0x01, 0x0a}},
-        .expected_status = {0b00000000},
+        .expected_status = {0b00100100},
         .expected_program_counter = 0x8012,
         .expected_memory_slices = {},
         .code = {0xa2, 0x01, 0xa9, 0x05, 0x85, 0x01, 0xa9, 0x07, 0x85, 0x02, 0xa0, 0x0a, 0x8c, 0x05, 0x07, 0xa1, 0x00},
@@ -129,7 +129,7 @@ std::array programs = {
     // Example 08 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x0a, 0x0a, 0x01}},
-        .expected_status = {0b00000000},
+        .expected_status = {0b00100100},
         .expected_program_counter = 0x8012,
         .expected_memory_slices = {},
         .code = {0xa0, 0x01, 0xa9, 0x03, 0x85, 0x01, 0xa9, 0x07, 0x85, 0x02, 0xa2, 0x0a, 0x8e, 0x04, 0x07, 0xb1, 0x01},
@@ -137,7 +137,7 @@ std::array programs = {
     // Example 09 at https://skilldrick.github.io/easy6502
     Program{
         .expected_register_values = {{0x00, 0x10, 0x20}},
-        .expected_status = {0b00000011},
+        .expected_status = {0b00100111},
         .expected_program_counter = 0x8019,
         .expected_memory_slices =
             {
