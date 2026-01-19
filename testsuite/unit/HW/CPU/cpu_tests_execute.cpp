@@ -2110,5 +2110,57 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
         REQUIRE(rti_instr.cycles == 6); // RTI takes 6 cycles
       }
     }
+
+    WHEN("We execute RTI - bits 4 and 5 behavior") {
+      // Test RTI with bits 4 and 5 cleared in stack value
+      // According to 6502 spec (same as PLP):
+      // - Bit 4 (Break flag, 0x10) is ignored on RTI
+      // - Bit 5 (unused, 0x20) should always be 1 after RTI
+      
+      auto rti_instr = CPU::ReturnFromInterrupt{};
+      uint8_t target_sp = uint8_t(0xFC);
+      
+      // Set up stack pointer using TXS
+      cpu.SetRegister(CPU::Register::X, target_sp);
+      auto txs_instr = CPU::TransferXToStackPointer{};
+      cpu.RunInstruction(txs_instr);
+
+      // Manually set up the stack as if an interrupt occurred
+      // Stack layout (bottom to top): status, PC low, PC high
+      uint16_t return_address = 0xCECE;
+      uint8_t status_value = 0x87; // Status with bit 5 cleared (10000111)
+      
+      cpu.WriteToMemory(0x0100 + target_sp + 1, status_value);                // Status
+      cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF);      // PC low byte
+      cpu.WriteToMemory(0x0100 + target_sp + 3, (return_address >> 8) & 0xFF); // PC high byte
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Execute RTI
+      cpu.RunInstruction(rti_instr);
+
+      THEN("Bit 5 should be set and other flags correct") {
+        REQUIRE(cpu.ProgramCounter() == return_address);
+        REQUIRE(cpu.StackPointer() == target_sp + 3); // Stack pointer restored (3 bytes pulled)
+
+        // Get the actual status register value
+        auto status = cpu.StatusFlags();
+        uint8_t status_byte = static_cast<uint8_t>(status.to_ulong());
+
+        // Bit 5 should always be 1 after RTI (even though it was 0 in stack)
+        REQUIRE((status_byte & 0x20) == 0x20);
+
+        // Expected status: 0x87 with bit 5 set = 0xA7
+        REQUIRE(status_byte == 0xA7);
+        
+        // Verify individual flags match the stack value (with bit 5 forced to 1)
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);        // bit 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);         // bit 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true); // bit 2
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == false); // bit 3
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);    // bit 6
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);     // bit 7
+      }
+    }
   }
 }

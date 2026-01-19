@@ -635,7 +635,7 @@ inline void CPU::ReturnFromInterrupt::Apply(CPU &cpu) const {
 
   // Pull the status word from the stack
   cpu.m_stack_pointer++;
-  cpu.m_status = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
+  cpu.m_status = (cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer) & 0xEF) | 0x20;
   // Pull the program counter from the stack
   cpu.m_stack_pointer++;
   uint8_t low_byte = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
