@@ -91,7 +91,7 @@ public:
               uint8_t mem_value = ReadFromMemory(target_addr);
               return fmt::format(" @ {:02X} = {:04X} = {:02X}", zp_addr, target_addr, mem_value);
             }
-            
+
             // Special handling for IndirectY (Indirect Indexed)
             if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::IndirectY) {
               // Format: = BASE @ TARGET = VALUE
@@ -103,6 +103,42 @@ public:
               uint16_t target_addr = base_addr + Registers()[Register::Y];
               uint8_t mem_value = ReadFromMemory(target_addr);
               return fmt::format(" = {:04X} @ {:04X} = {:02X}", base_addr, target_addr, mem_value);
+            }
+
+            // Special handling for AbsoluteX (Absolute Indexed with X)
+            if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::AbsoluteX) {
+              // Format: @ TARGET = VALUE
+              // Example: LDA $0300,X @ 0365 = 89
+              uint16_t target_addr = base_value + Registers()[Register::X];
+              uint8_t mem_value = ReadFromMemory(target_addr);
+              return fmt::format(" @ {:04X} = {:02X}", target_addr, mem_value);
+            }
+
+            // Special handling for AbsoluteY (Absolute Indexed with Y)
+            if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::AbsoluteY) {
+              // Format: @ TARGET = VALUE
+              // Example: LDA $0300,Y @ 0365 = 89
+              uint16_t target_addr = base_value + Registers()[Register::Y];
+              uint8_t mem_value = ReadFromMemory(target_addr);
+              return fmt::format(" @ {:04X} = {:02X}", target_addr, mem_value);
+            }
+
+            // Special handling for ZeroPageX (Zero Page Indexed with X)
+            if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::ZeroPageX) {
+              // Format: @ ZP = VALUE
+              // Example: LDA $80,X @ 85 = AA
+              uint8_t target_addr = (base_value + Registers()[Register::X]) & 0xFF;
+              uint8_t mem_value = ReadFromMemory(target_addr);
+              return fmt::format(" @ {:02X} = {:02X}", target_addr, mem_value);
+            }
+
+            // Special handling for ZeroPageY (Zero Page Indexed with Y)
+            if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::ZeroPageY) {
+              // Format: @ ZP = VALUE
+              // Example: LDX $80,Y @ 85 = AA
+              uint8_t target_addr = (base_value + Registers()[Register::Y]) & 0xFF;
+              uint8_t mem_value = ReadFromMemory(target_addr);
+              return fmt::format(" @ {:02X} = {:02X}", target_addr, mem_value);
             }
 
             // Only show memory value for non-immediate, non-accumulator modes
@@ -141,7 +177,7 @@ public:
         });
 
     auto mem_suffix = GetMemoryValueSuffix(instr);
-    last_log_line = fmt::format("{:4X}  {:<9} {}{}", program_counter, opcodes, instr_disass, mem_suffix);
+    last_log_line = fmt::format("{:04X}  {:<9} {}{}", program_counter, opcodes, instr_disass, mem_suffix);
     auto tmp_width = last_log_line.size();
     last_log_line += fmt::format("{:<{}}{}", "", 48 - tmp_width, reg_values);
 
@@ -182,6 +218,7 @@ BNES::ErrorOr<int> nestest_main() {
 
   auto nestest_log_it = nestest_log.begin();
 
+  unsigned int i_line = 0;
   while (true) {
     try {
       cpu.RunOneInstruction();
@@ -193,7 +230,7 @@ BNES::ErrorOr<int> nestest_main() {
         break;
       }
 
-      spdlog::debug("{}", cpu.last_log_line);
+      spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
 
       ++nestest_log_it;
     } catch (const NESTestCPU::NonMaskableInterrupt &nmi) {

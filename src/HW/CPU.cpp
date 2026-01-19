@@ -318,6 +318,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::NOP:
     return NoOperation{};
   default:
+    spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }
 
@@ -509,7 +510,8 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                         },
                         []<Register REG, AddressingMode MODE>(const CompareRegister<REG, MODE> _inst) {
                           // Special case: Accumulator comparison uses CMP, not CPA
-                          std::string mnemonic = (REG == Register::A) ? "CMP" : fmt::format("CP{}", magic_enum::enum_name(REG));
+                          std::string mnemonic =
+                              (REG == Register::A) ? "CMP" : fmt::format("CP{}", magic_enum::enum_name(REG));
                           return fmt::format("{} {}", mnemonic, FormatOperand<MODE>(_inst.value));
                         },
                         [](const NoOperation &) -> std::string { return "NOP"; },

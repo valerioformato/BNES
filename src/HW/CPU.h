@@ -1159,14 +1159,26 @@ inline void CPU::TransferStackPointerToX::Apply(CPU &cpu) const {
 inline void CPU::TransferXToStackPointer::Apply(CPU &cpu) const { cpu.m_stack_pointer = cpu.m_registers[Register::X]; }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG, MODE>::Apply(CPU &cpu) const {
-  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#CPX (or #CPY)
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#CMP (or #CPX or #CPY)
   uint8_t value_to_compare{0};
   if constexpr (MODE == AddressingMode::Immediate) {
     value_to_compare = value & 0xFF; // Immediate value is already in the instruction
   } else if constexpr (MODE == AddressingMode::ZeroPage) {
     value_to_compare = cpu.ReadFromMemory(value & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    // Zero Page,X addressing adds the X register to the zero page address with wraparound
+    Addr effective_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
+    value_to_compare = cpu.ReadFromMemory(effective_addr);
   } else if constexpr (MODE == AddressingMode::Absolute) {
     value_to_compare = cpu.ReadFromMemory(value);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    // Absolute,X addressing adds the X register to the absolute address
+    Addr effective_addr = value + cpu.m_registers[Register::X];
+    value_to_compare = cpu.ReadFromMemory(effective_addr);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    // Absolute,Y addressing adds the Y register to the absolute address
+    Addr effective_addr = value + cpu.m_registers[Register::Y];
+    value_to_compare = cpu.ReadFromMemory(effective_addr);
   } else if constexpr (MODE == AddressingMode::IndirectX) {
     // Indexed indirect addressing is normally used in conjunction with a table of address held on zero page. The
     // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
@@ -1524,9 +1536,17 @@ template <CPU::Register REG, AddressingMode MODE> CPU::CompareRegister<REG, MODE
     this->cycles = 2;
   } else if constexpr (MODE == AddressingMode::ZeroPage) {
     this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 4;
   } else if constexpr (MODE == AddressingMode::Absolute) {
     this->size = 3;
     this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    this->size = 3;
+    this->cycles = 4; // +1 if page crossed
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 4; // +1 if page crossed
   } else if constexpr (MODE == AddressingMode::IndirectX) {
     this->cycles = 6;
   } else if constexpr (MODE == AddressingMode::IndirectY) {

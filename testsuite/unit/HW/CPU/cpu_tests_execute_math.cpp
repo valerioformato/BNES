@@ -1971,5 +1971,56 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is positive
       }
     }
+
+    WHEN("We execute CMP zero-page,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.WriteToMemory(0x30, 0x40); // Value at $20 + X ($10) = $30
+
+      auto instr = CPU::CompareRegister<CPU::Register::A, AddressingMode::ZeroPageX>{0x20};
+      cpu.RunInstruction(instr);
+
+      THEN("The flags should indicate A > M (0x50 > 0x40)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x50); // Accumulator unchanged
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);     // Not equal
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);     // A >= M
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is positive
+      }
+    }
+
+    WHEN("We execute CMP absolute,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x80);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x0305, 0x80); // Value at $0300 + X ($05) = $0305
+
+      auto instr = CPU::CompareRegister<CPU::Register::A, AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(instr);
+
+      THEN("The flags should indicate equality (0x80 == 0x80)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x80); // Accumulator unchanged
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);      // Equal
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);     // A >= M
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is 0
+      }
+    }
+
+    WHEN("We execute CMP absolute,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x40);
+      cpu.SetRegister(CPU::Register::Y, 0x00);
+      cpu.WriteToMemory(0x0400, 0x40); // Value at $0400 + Y ($00) = $0400
+
+      auto instr = CPU::CompareRegister<CPU::Register::A, AddressingMode::AbsoluteY>{0x0400};
+      cpu.RunInstruction(instr);
+
+      THEN("The flags should indicate equality (0x40 == 0x40)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x40); // Accumulator unchanged
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);      // Equal
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);     // A >= M
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is 0
+      }
+    }
   }
 }
