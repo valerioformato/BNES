@@ -51,20 +51,46 @@ public:
           }
 
           if constexpr (HasAddressingMode<InstrType>) {
+            // Get the base address/value from the instruction
+            uint16_t base_value;
+            if constexpr (requires { inst.address; }) {
+              base_value = inst.address;
+            } else if constexpr (requires { inst.value; }) {
+              base_value = inst.value;
+            } else {
+              return "";
+            }
+
+            // Special handling for IndirectX (Indexed Indirect)
+            if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::IndirectX) {
+              // Format: @ ZP = TARGET = VALUE
+              // Example: @ 80 = 0200 = 5A
+              uint8_t zp_base = base_value;
+              uint8_t zp_addr = (zp_base + Registers()[Register::X]) & 0xFF;
+              uint8_t low_byte = ReadFromMemory(zp_addr);
+              uint8_t high_byte = ReadFromMemory((zp_addr + 1) & 0xFF);
+              uint16_t target_addr = (high_byte << 8) | low_byte;
+              uint8_t mem_value = ReadFromMemory(target_addr);
+              return fmt::format(" @ {:02X} = {:04X} = {:02X}", zp_addr, target_addr, mem_value);
+            }
+            
+            // Special handling for IndirectY (Indirect Indexed)
+            if constexpr (InstrType::AddrMode() == BNES::HW::AddressingMode::IndirectY) {
+              // Format: = BASE @ TARGET = VALUE
+              // Example: = 0200 @ 0205 = 5A
+              uint8_t zp_addr = base_value;
+              uint8_t low_byte = ReadFromMemory(zp_addr);
+              uint8_t high_byte = ReadFromMemory((zp_addr + 1) & 0xFF);
+              uint16_t base_addr = (high_byte << 8) | low_byte;
+              uint16_t target_addr = base_addr + Registers()[Register::Y];
+              uint8_t mem_value = ReadFromMemory(target_addr);
+              return fmt::format(" = {:04X} @ {:04X} = {:02X}", base_addr, target_addr, mem_value);
+            }
+
             // Only show memory value for non-immediate, non-accumulator modes
             if constexpr (InstrType::AddrMode() != BNES::HW::AddressingMode::Immediate &&
                           InstrType::AddrMode() != BNES::HW::AddressingMode::Accumulator) {
-              // Determine which member to use (value or address)
-              uint16_t addr;
-              if constexpr (requires { inst.address; }) {
-                addr = inst.address;
-              } else if constexpr (requires { inst.value; }) {
-                addr = inst.value;
-              } else {
-                return "";
-              }
-
-              uint8_t mem_value = ReadFromMemory(addr);
+              uint8_t mem_value = ReadFromMemory(base_value);
               return fmt::format(" = {:02X}", mem_value);
             }
           }
@@ -148,6 +174,8 @@ BNES::ErrorOr<int> nestest_main() {
 
         break;
       }
+
+      spdlog::debug("{}", cpu.last_log_line);
 
       ++nestest_log_it;
     } catch (const NESTestCPU::NonMaskableInterrupt &nmi) {
