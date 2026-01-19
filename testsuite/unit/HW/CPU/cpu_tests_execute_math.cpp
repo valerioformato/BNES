@@ -648,6 +648,25 @@ SCENARIO("6502 instruction execution tests (math ops)") {
       }
     }
 
+    WHEN("We execute ADC indirect indexed with zero-page wrapping at $FF") {
+      cpu.SetRegister(CPU::Register::A, 0x15);
+      cpu.SetRegister(CPU::Register::Y, 0x03);
+
+      // Set up zero page wrapping: $FF/$00 -> base $0400, then add Y
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code fails
+      cpu.WriteToMemory(0x0403, 0x2A); // Value at $0400 + Y ($03)
+
+      auto instr = CPU::AddWithCarry<AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x3F (0x15 + 0x2A)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x3F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
     WHEN("We execute a SBC immediate instruction") {
       cpu.SetRegister(CPU::Register::A, 0x50);
       cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true); // Carry flag must be set for no borrow
@@ -915,6 +934,26 @@ SCENARIO("6502 instruction execution tests (math ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
       }
     }
+
+    WHEN("We execute SBC indirect indexed with zero-page wrapping at $FF") {
+      cpu.SetRegister(CPU::Register::A, 0x60);
+      cpu.SetRegister(CPU::Register::Y, 0x04);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+
+      // Set up zero page wrapping: $FF/$00 -> base $0400, then add Y
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code fails
+      cpu.WriteToMemory(0x0404, 0x25); // Value at $0400 + Y ($04)
+
+      auto instr = CPU::SubtractWithCarry<AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x3B (0x60 - 0x25)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x3B);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
   }
 }
 
@@ -1023,6 +1062,25 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
 
       THEN("The accumulator should contain 0x0F (0xFF AND 0x0F)") {
         REQUIRE(cpu.Registers()[CPU::Register::A] == 0x0F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute AND indirect indexed with zero-page wrapping at $FF") {
+      cpu.SetRegister(CPU::Register::A, 0xAA);
+      cpu.SetRegister(CPU::Register::Y, 0x02);
+
+      // Set up zero page wrapping: $FF/$00 -> base $0400, then add Y
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code fails
+      cpu.WriteToMemory(0x0402, 0x55); // Value at $0400 + Y ($02)
+
+      auto instr = CPU::LogicalAND<AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0x00 (0xAA AND 0x55)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
@@ -1649,6 +1707,25 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
       }
     }
 
+    WHEN("We execute EOR indirect indexed with zero-page wrapping at $FF") {
+      cpu.SetRegister(CPU::Register::A, 0xA5);
+      cpu.SetRegister(CPU::Register::Y, 0x06);
+
+      // Set up zero page wrapping: $FF/$00 -> base $0400, then add Y
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code fails
+      cpu.WriteToMemory(0x0406, 0x5A); // Value at $0400 + Y ($06)
+
+      auto instr = CPU::ExclusiveOR<AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0xFF (0xA5 XOR 0x5A)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
     WHEN("We execute an ORA immediate instruction") {
       cpu.SetRegister(CPU::Register::A, 0x0F);
 
@@ -1832,6 +1909,25 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
       }
     }
 
+    WHEN("We execute ORA indirect indexed with zero-page wrapping at $FF") {
+      cpu.SetRegister(CPU::Register::A, 0x3C);
+      cpu.SetRegister(CPU::Register::Y, 0x07);
+
+      // Set up zero page wrapping: $FF/$00 -> base $0400, then add Y
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code fails
+      cpu.WriteToMemory(0x0407, 0xC3); // Value at $0400 + Y ($07)
+
+      auto instr = CPU::BitwiseOR<AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(instr);
+
+      THEN("The accumulator should contain 0xFF (0x3C OR 0xC3)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
     WHEN("We execute CMP indexed indirect with zero-page wrapping at $FF") {
       cpu.SetRegister(CPU::Register::A, 0x5D);
       cpu.SetRegister(CPU::Register::X, 0x00);
@@ -1851,6 +1947,28 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);      // Equal
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);     // A >= M
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is 0
+      }
+    }
+
+    WHEN("We execute CMP indirect indexed with zero-page wrapping at $FF") {
+      cpu.SetRegister(CPU::Register::A, 0x42);
+      cpu.SetRegister(CPU::Register::Y, 0x01);
+
+      // Set up zero page wrapping: $FF/$00 -> base $0400, then add Y
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code fails
+      cpu.WriteToMemory(0x0401, 0x30); // Value at $0400 + Y ($01)
+
+      auto instr = CPU::CompareRegister<CPU::Register::A, AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(instr);
+
+      THEN("The flags should indicate A > M (0x42 > 0x30)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x42); // Accumulator unchanged
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);     // Not equal
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);     // A >= M
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is positive
       }
     }
   }

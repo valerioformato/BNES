@@ -782,6 +782,32 @@ SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
       }
     }
+
+    WHEN("We execute LDA indirect indexed with zero-page wrapping at $FF") {
+      // Tests zero-page wrapping when reading the base address pointer
+      // LDA ($FF),Y should read low byte from $FF, high byte from $00 (wrapping)
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+
+      // Set up zero page: $FF contains low byte, $00 (wrapping) contains high byte
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte of base address (wraps to $00)
+      
+      // Explicitly clear $100 to ensure the buggy code fails
+      cpu.WriteToMemory(0x0100, 0x00);
+      
+      // Base address is $0400, add Y to get $0405, write the value there
+      cpu.WriteToMemory(0x0405, 0x7A);
+
+      auto lda_instr = CPU::LoadRegister<CPU::Register::A, AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should contain 0x7A from address 0x0405 (base $0400 + Y $05)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x7A);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
   }
 }
 
@@ -994,6 +1020,26 @@ SCENARIO("6502 instruction execution tests (stores)", "[CPU][Stores]") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
       original_program_counter = cpu.ProgramCounter();
+    }
+
+    WHEN("We execute STA indirect indexed with zero-page wrapping at $FF") {
+      // Test zero-page wrapping when reading the base address pointer
+      // STA ($FF),Y should read low byte from $FF, high byte from $00 (wrapping)
+      cpu.SetRegister(CPU::Register::A, 0xCD); // Value to store
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+
+      // Set up zero page: $FF contains low byte, $00 (wrapping) contains high byte
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
+      cpu.WriteToMemory(0x0000, 0x06); // High byte of base address (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code would fail
+
+      auto sta_instr = CPU::StoreRegister<CPU::Register::A, AddressingMode::IndirectY>{0xFF};
+      cpu.RunInstruction(sta_instr);
+
+      THEN("The value should be stored at address 0x0608 (base $0600 + Y $08)") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0xCD);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
     }
   }
 }
