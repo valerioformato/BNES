@@ -704,8 +704,9 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
     // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
     // give the location of the least significant byte of the target address.
 
-    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     cpu.m_registers[REG] = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     // Indirect indexed addressing is the most common indirection mode used on the 6502. In instruction contains the

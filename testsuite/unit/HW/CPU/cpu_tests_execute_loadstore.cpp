@@ -756,6 +756,32 @@ SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
       }
     }
+
+    WHEN("We execute LDA indexed indirect with zero-page wrapping at $FF") {
+      // This tests the specific bug found in nestest at line 1100
+      // LDA ($FF,X) with X=0 should wrap the high byte read to $00
+      cpu.SetRegister(CPU::Register::X, 0x00);
+
+      // Set up zero page: $FF contains low byte, $00 (wrapping) contains high byte
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of target address
+      cpu.WriteToMemory(0x0000, 0x04); // High byte of target address (wraps to $00)
+      
+      // Explicitly clear $100 to ensure the buggy code fails
+      cpu.WriteToMemory(0x0100, 0x00);
+      
+      // Target address is $0400, write the value there
+      cpu.WriteToMemory(0x0400, 0x5D);
+
+      auto lda_instr = CPU::LoadRegister<CPU::Register::A, AddressingMode::IndirectX>{0xFF};
+      cpu.RunInstruction(lda_instr);
+
+      THEN("The accumulator should contain 0x5D from address 0x0400 (via wrapped zero-page pointer at $FF/$00)") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x5D);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+      }
+    }
   }
 }
 
