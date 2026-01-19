@@ -177,7 +177,9 @@ public:
         });
 
     auto mem_suffix = GetMemoryValueSuffix(instr);
-    last_log_line = fmt::format("{:04X}  {:<9} {}{}", program_counter, opcodes, instr_disass, mem_suffix);
+    // Undocumented opcodes (starting with *) need one less space for alignment
+    int opcode_width = instr_disass[0] == '*' ? 8 : 9;
+    last_log_line = fmt::format("{:04X}  {:<{}} {}{}", program_counter, opcodes, opcode_width, instr_disass, mem_suffix);
     auto tmp_width = last_log_line.size();
     last_log_line += fmt::format("{:<{}}{}", "", 48 - tmp_width, reg_values);
 

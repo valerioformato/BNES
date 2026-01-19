@@ -93,6 +93,16 @@ public:
     void Apply([[maybe_unused]] CPU &cpu) const {};
   };
 
+  template <AddressingMode MODE> struct DoubleNoOperation : DecodedInstruction {
+    DoubleNoOperation() = delete;
+    explicit DoubleNoOperation(uint16_t);
+
+    void Apply([[maybe_unused]] CPU &cpu) const {};
+
+    static constexpr AddressingMode AddrMode() { return MODE; }
+    uint16_t value{0};
+  };
+
   template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction {
     LoadRegister() = delete;
     explicit LoadRegister(uint16_t);
@@ -491,7 +501,10 @@ public:
       PushStatusRegister,
       PullStatusRegister,
       //
-      NoOperation
+      NoOperation,
+      DoubleNoOperation<AddressingMode::Immediate>,
+      DoubleNoOperation<AddressingMode::ZeroPage>,
+      DoubleNoOperation<AddressingMode::ZeroPageX>
       >;
   // clang-format on
 
@@ -1633,6 +1646,22 @@ template <AddressingMode MODE> CPU::BitwiseOR<MODE>::BitwiseOR(uint16_t addr) {
   }
 
   value = addr;
+}
+
+template <AddressingMode MODE> CPU::DoubleNoOperation<MODE>::DoubleNoOperation(uint16_t _value) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::Immediate) {
+    this->cycles = 2;
+  } else if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 4;
+  } else {
+    std::unreachable();
+  }
+
+  value = _value;
 }
 
 } // namespace BNES::HW

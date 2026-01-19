@@ -1205,5 +1205,101 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.value == 0x0300);
       }
     }
+
+    WHEN("We try to decode a DOP immediate instruction (0x80)") {
+      std::vector<uint8_t> bytes = {0x80, 0x42}; // DOP #$42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DoubleNoOperation<AddressingMode::Immediate>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
+    WHEN("We try to decode a DOP immediate instruction (0x82)") {
+      std::vector<uint8_t> bytes = {0x82, 0x55}; // DOP #$55
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DoubleNoOperation<AddressingMode::Immediate>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x55);
+      }
+    }
+
+    WHEN("We try to decode a DOP zero-page instruction (0x04)") {
+      std::vector<uint8_t> bytes = {0x04, 0x50}; // DOP $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DoubleNoOperation<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x50);
+      }
+    }
+
+    WHEN("We try to decode a DOP zero-page instruction (0x44)") {
+      std::vector<uint8_t> bytes = {0x44, 0x60}; // DOP $60
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DoubleNoOperation<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x60);
+      }
+    }
+
+    WHEN("We try to decode a DOP zero-page,X instruction (0x14)") {
+      std::vector<uint8_t> bytes = {0x14, 0x70}; // DOP $70,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DoubleNoOperation<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x70);
+      }
+    }
+
+    WHEN("We try to decode a DOP zero-page,X instruction (0xD4)") {
+      std::vector<uint8_t> bytes = {0xD4, 0x80}; // DOP $80,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DoubleNoOperation<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x80);
+      }
+    }
   }
 }

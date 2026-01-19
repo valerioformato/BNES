@@ -317,6 +317,23 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return SetStatusFlag<StatusFlag::InterruptDisable>{};
   case OpCode::NOP:
     return NoOperation{};
+  case OpCode::DOP_Immediate_80:
+  case OpCode::DOP_Immediate_82:
+  case OpCode::DOP_Immediate_89:
+  case OpCode::DOP_Immediate_C2:
+  case OpCode::DOP_Immediate_E2:
+    return DoubleNoOperation<AddressingMode::Immediate>{bytes[1]};
+  case OpCode::DOP_ZeroPage_04:
+  case OpCode::DOP_ZeroPage_44:
+  case OpCode::DOP_ZeroPage_64:
+    return DoubleNoOperation<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::DOP_ZeroPageX_14:
+  case OpCode::DOP_ZeroPageX_34:
+  case OpCode::DOP_ZeroPageX_54:
+  case OpCode::DOP_ZeroPageX_74:
+  case OpCode::DOP_ZeroPageX_D4:
+  case OpCode::DOP_ZeroPageX_F4:
+    return DoubleNoOperation<AddressingMode::ZeroPageX>{bytes[1]};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
@@ -515,6 +532,9 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                           return fmt::format("{} {}", mnemonic, FormatOperand<MODE>(_inst.value));
                         },
                         [](const NoOperation &) -> std::string { return "NOP"; },
+                        []<AddressingMode MODE>(const DoubleNoOperation<MODE> _inst) -> std::string {
+                          return fmt::format("*NOP {}", FormatOperand<MODE>(_inst.value));
+                        },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
                     },
                     instr);

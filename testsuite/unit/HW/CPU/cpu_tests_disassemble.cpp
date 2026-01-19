@@ -334,5 +334,26 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
 
       THEN("It should disassemble to 'SEI'") { REQUIRE(disassembly == "SEI"); }
     }
+
+    WHEN("We disassemble a DOP immediate instruction") {
+      auto instruction = CPU::DoubleNoOperation<AddressingMode::Immediate>{0x42};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*NOP #$42'") { REQUIRE(disassembly == "*NOP #$42"); }
+    }
+
+    WHEN("We disassemble a DOP zero-page instruction") {
+      auto instruction = CPU::DoubleNoOperation<AddressingMode::ZeroPage>{0x50};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*NOP $50'") { REQUIRE(disassembly == "*NOP $50"); }
+    }
+
+    WHEN("We disassemble a DOP zero-page,X instruction") {
+      auto instruction = CPU::DoubleNoOperation<AddressingMode::ZeroPageX>{0x70};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*NOP $70,X'") { REQUIRE(disassembly == "*NOP $70,X"); }
+    }
   }
 }

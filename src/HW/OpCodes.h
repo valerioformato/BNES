@@ -173,7 +173,24 @@ enum class OpCode : uint8_t {
   SEC = 0x38,           // Set Carry Flag
   SED = 0xF8,           // Set Decimal Flag
   SEI = 0x78,           // Set Interrupt Disable
-  NOP = 0xEA            // No Operation
+  NOP = 0xEA,           // No Operation
+
+  // Undocumented opcodes
+  // DOP (Double NOP) - No operation, reads argument but ignores it
+  DOP_Immediate_80 = 0x80,  // DOP #arg (Immediate)
+  DOP_Immediate_82 = 0x82,  // DOP #arg (Immediate)
+  DOP_Immediate_89 = 0x89,  // DOP #arg (Immediate)
+  DOP_Immediate_C2 = 0xC2,  // DOP #arg (Immediate)
+  DOP_Immediate_E2 = 0xE2,  // DOP #arg (Immediate)
+  DOP_ZeroPage_04 = 0x04,   // DOP arg (Zero Page)
+  DOP_ZeroPage_44 = 0x44,   // DOP arg (Zero Page)
+  DOP_ZeroPage_64 = 0x64,   // DOP arg (Zero Page)
+  DOP_ZeroPageX_14 = 0x14,  // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_34 = 0x34,  // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_54 = 0x54,  // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_74 = 0x74,  // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_D4 = 0xD4,  // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_F4 = 0xF4,  // DOP arg,X (Zero Page,X)
 };
 
 enum class AddressingMode : uint8_t {
