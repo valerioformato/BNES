@@ -43,11 +43,29 @@ public:
                         std::is_same_v<InstrType, Branch<BNES::HW::Conditional::OverflowSet>> ||
                         std::is_same_v<InstrType, Branch<BNES::HW::Conditional::OverflowClear>> ||
                         std::is_same_v<InstrType, Jump<BNES::HW::AddressingMode::Absolute>> ||
-                        std::is_same_v<InstrType, Jump<BNES::HW::AddressingMode::Indirect>> ||
                         std::is_same_v<InstrType, JumpToSubroutine> ||
                         std::is_same_v<InstrType, ReturnFromSubroutine> ||
                         std::is_same_v<InstrType, ReturnFromInterrupt>) {
             return "";
+          }
+
+          // Special handling for JMP Indirect to show target address
+          if constexpr (std::is_same_v<InstrType, Jump<BNES::HW::AddressingMode::Indirect>>) {
+            // Format: = TARGET
+            // Example: JMP ($0200) = DB7E
+            // Note: 6502 bug - if pointer is at page boundary (e.g. $02FF),
+            // reads LSB from $02FF but MSB from $0200 (not $0300)
+            uint16_t ptr_addr = inst.address;
+            uint8_t low_byte = ReadFromMemory(ptr_addr);
+            uint8_t high_byte;
+            if ((ptr_addr & 0xFF) == 0xFF) {
+              // Page boundary bug: MSB wraps within the same page
+              high_byte = ReadFromMemory(ptr_addr & 0xFF00);
+            } else {
+              high_byte = ReadFromMemory(ptr_addr + 1);
+            }
+            uint16_t target_addr = (high_byte << 8) | low_byte;
+            return fmt::format(" = {:04X}", target_addr);
           }
 
           if constexpr (HasAddressingMode<InstrType>) {

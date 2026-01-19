@@ -588,8 +588,17 @@ template <AddressingMode MODE> void CPU::Jump<MODE>::Apply(CPU &cpu) const {
     target_address = address;
   } else if constexpr (MODE == AddressingMode::Indirect) {
     // Indirect jump is used to jump to a subroutine or a specific address.
+    // NOTE: 6502 bug - if the indirect vector falls on a page boundary (e.g. $xxFF),
+    // it fetches LSB from $xxFF as expected but MSB from $xx00 (not $xx00+$0100).
+    // This is a well-known hardware bug in the original 6502.
     Addr low_byte = cpu.ReadFromMemory(address);
-    Addr high_byte = cpu.ReadFromMemory(address + 1);
+    Addr high_byte;
+    if ((address & 0xFF) == 0xFF) {
+      // Page boundary: wrap high byte read to start of same page
+      high_byte = cpu.ReadFromMemory(address & 0xFF00);
+    } else {
+      high_byte = cpu.ReadFromMemory(address + 1);
+    }
     target_address = (high_byte << 8) | low_byte;
   } else {
     TODO(fmt::format("Jump<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
@@ -713,7 +722,9 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
     // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
     // value to generated the actual target address for operation.
 
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     cpu.m_registers[REG] = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("LoadRegister<{},{}>::Apply not implemented", magic_enum::enum_name(REG),
@@ -770,7 +781,9 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, M
     // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
     // value to generated the actual target address for operation.
 
-    Addr real_addr = cpu.ReadFromMemory(address + 1) << 8 | cpu.ReadFromMemory(address);
+    Addr target_addr_low = address & 0xFF;
+    Addr target_addr_high = (address + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     cpu.WriteToMemory(real_addr + cpu.m_registers[Register::Y], cpu.m_registers[REG]);
   } else {
     TODO(fmt::format("StoreRegister<{},{}>::Apply not implemented", magic_enum::enum_name(REG),
@@ -800,7 +813,9 @@ template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) con
     Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_add = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_add = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("AddWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
@@ -845,7 +860,9 @@ template <AddressingMode MODE> void CPU::SubtractWithCarry<MODE>::Apply(CPU &cpu
     Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_add = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_add = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("SubtractWithCarry<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
@@ -891,7 +908,9 @@ template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const
     Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_and = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_and = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("LogicalAND<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
@@ -1162,7 +1181,9 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG,
     // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
     // value to generated the actual target address for operation.
 
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_compare = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   }
 
@@ -1200,7 +1221,9 @@ template <AddressingMode MODE> void CPU::ExclusiveOR<MODE>::Apply(CPU &cpu) cons
     Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_or = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_or = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("ExclusiveOR<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
@@ -1233,7 +1256,9 @@ template <AddressingMode MODE> void CPU::BitwiseOR<MODE>::Apply(CPU &cpu) const 
     Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_or = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
-    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_or = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   } else {
     TODO(fmt::format("ExclusiveOR<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
