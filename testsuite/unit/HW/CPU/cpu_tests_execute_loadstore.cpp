@@ -957,6 +957,25 @@ SCENARIO("6502 instruction execution tests (stores)", "[CPU][Stores]") {
       original_program_counter = cpu.ProgramCounter();
     }
 
+    WHEN("We execute STA indexed indirect with zero-page wrapping at $FF") {
+      // Test zero-page wrapping for STA (Indirect,X)
+      cpu.SetRegister(CPU::Register::A, 0xAB); // Value to store
+      cpu.SetRegister(CPU::Register::X, 0x00);
+
+      // Set up zero page: $FF contains low byte, $00 (wrapping) contains high byte
+      cpu.WriteToMemory(0x00FF, 0x00); // Low byte of target address
+      cpu.WriteToMemory(0x0000, 0x05); // High byte of target address (wraps to $00)
+      cpu.WriteToMemory(0x0100, 0x00); // Ensure buggy code would fail
+
+      auto sta_instr = CPU::StoreRegister<CPU::Register::A, AddressingMode::IndirectX>{0xFF};
+      cpu.RunInstruction(sta_instr);
+
+      THEN("The value should be stored at address 0x0500 (via wrapped zero-page pointer at $FF/$00)") {
+        REQUIRE(cpu.ReadFromMemory(0x0500) == 0xAB);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
     WHEN("We execute a STA indirect Y instruction") {
       cpu.SetRegister(CPU::Register::A, 0x22); // Set the accumulator to 0x22
       cpu.SetRegister(CPU::Register::Y, 0x10); // Set Y register to 0x10

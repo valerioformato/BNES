@@ -761,8 +761,9 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, M
     // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
     // give the location of the least significant byte of the target address.
 
-    Addr target_addr = (address + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (address + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (address + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     cpu.WriteToMemory(real_addr, cpu.m_registers[REG]);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     // Indirect indexed addressing is the most common indirection mode used on the 6502. In instruction contains the
@@ -794,8 +795,9 @@ template <AddressingMode MODE> void CPU::AddWithCarry<MODE>::Apply(CPU &cpu) con
   } else if constexpr (MODE == AddressingMode::AbsoluteY) {
     value_to_add = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
   } else if constexpr (MODE == AddressingMode::IndirectX) {
-    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_add = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
@@ -838,8 +840,9 @@ template <AddressingMode MODE> void CPU::SubtractWithCarry<MODE>::Apply(CPU &cpu
   } else if constexpr (MODE == AddressingMode::AbsoluteY) {
     value_to_add = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
   } else if constexpr (MODE == AddressingMode::IndirectX) {
-    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_add = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
@@ -883,8 +886,9 @@ template <AddressingMode MODE> void CPU::LogicalAND<MODE>::Apply(CPU &cpu) const
   } else if constexpr (MODE == AddressingMode::AbsoluteY) {
     value_to_and = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
   } else if constexpr (MODE == AddressingMode::IndirectX) {
-    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_and = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
@@ -1144,6 +1148,22 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::CompareRegister<REG,
     value_to_compare = cpu.ReadFromMemory(value & 0xFF);
   } else if constexpr (MODE == AddressingMode::Absolute) {
     value_to_compare = cpu.ReadFromMemory(value);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    // Indexed indirect addressing is normally used in conjunction with a table of address held on zero page. The
+    // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
+    // give the location of the least significant byte of the target address.
+
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    value_to_compare = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    // Indirect indexed addressing is the most common indirection mode used on the 6502. In instruction contains the
+    // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
+    // value to generated the actual target address for operation.
+
+    Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
+    value_to_compare = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
   }
 
   cpu.SetStatusFlagValue(StatusFlag::Carry, cpu.m_registers[REG] >= value_to_compare);
@@ -1175,8 +1195,9 @@ template <AddressingMode MODE> void CPU::ExclusiveOR<MODE>::Apply(CPU &cpu) cons
   } else if constexpr (MODE == AddressingMode::AbsoluteY) {
     value_to_or = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
   } else if constexpr (MODE == AddressingMode::IndirectX) {
-    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_or = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
@@ -1207,8 +1228,9 @@ template <AddressingMode MODE> void CPU::BitwiseOR<MODE>::Apply(CPU &cpu) const 
   } else if constexpr (MODE == AddressingMode::AbsoluteY) {
     value_to_or = cpu.ReadFromMemory(value + cpu.m_registers[Register::Y]);
   } else if constexpr (MODE == AddressingMode::IndirectX) {
-    Addr target_addr = (value + cpu.m_registers[Register::X]) & 0xFF;
-    Addr real_addr = cpu.ReadFromMemory(target_addr + 1) << 8 | cpu.ReadFromMemory(target_addr);
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
     value_to_or = cpu.ReadFromMemory(real_addr);
   } else if constexpr (MODE == AddressingMode::IndirectY) {
     Addr real_addr = cpu.ReadFromMemory(value + 1) << 8 | cpu.ReadFromMemory(value);
@@ -1480,6 +1502,10 @@ template <CPU::Register REG, AddressingMode MODE> CPU::CompareRegister<REG, MODE
   } else if constexpr (MODE == AddressingMode::Absolute) {
     this->size = 3;
     this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    this->cycles = 5; // +1 if page crossed
   } else {
     std::unreachable();
   }
