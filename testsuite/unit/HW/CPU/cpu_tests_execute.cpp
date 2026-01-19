@@ -933,6 +933,52 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       }
     }
 
+    WHEN("We execute PLP - bits 4 and 5 behavior") {
+      auto plp_instr = CPU::PullStatusRegister{};
+
+      // Test PLP with bits 4 and 5 cleared in stack value
+      // According to 6502 spec:
+      // - Bit 4 (Break flag, 0x10) is ignored on PLP (not part of status register)
+      // - Bit 5 (unused, 0x20) should always be 1 after PLP
+      uint8_t stack_value = 0xCF; // All bits set EXCEPT bits 4 and 5 (11001111)
+      uint8_t initial_sp = cpu.StackPointer();
+
+      // Write the value to the next stack position
+      cpu.WriteToMemory(0x0100 + initial_sp, stack_value);
+
+      // Use TXS to manually set stack pointer to simulate a value on the stack
+      cpu.SetRegister(CPU::Register::X, initial_sp - 1);
+      auto txs_instr = CPU::TransferXToStackPointer{};
+      cpu.RunInstruction(txs_instr);
+
+      original_program_counter = cpu.ProgramCounter();
+
+      // Execute PLP to pull the value from stack
+      cpu.RunInstruction(plp_instr);
+
+      THEN("Bit 5 should be set and other flags correct") {
+        REQUIRE(cpu.StackPointer() == initial_sp); // Stack pointer should be incremented
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+
+        // Get the actual status register value
+        auto status = cpu.StatusFlags();
+        uint8_t status_byte = static_cast<uint8_t>(status.to_ulong());
+
+        // Bit 5 should always be 1 after PLP (even though it was 0 in stack)
+        REQUIRE((status_byte & 0x20) == 0x20);
+        REQUIRE((status_byte & 0x10) == 0);
+
+        // Bit 4 is not part of the status register, so we can't directly test it
+        // but the other flags should match the stack value
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);            // bit 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);             // bit 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true); // bit 2
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == true);      // bit 3
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == true);         // bit 6
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);         // bit 7
+      }
+    }
+
     WHEN("We execute a TSX instruction") {
       auto tsx_instr = CPU::TransferStackPointerToX{};
 
@@ -1969,8 +2015,8 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
 
       // Stack layout (from top to bottom): PC_high, PC_low, status
       // Write to the stack positions where RTI will read them
-      cpu.WriteToMemory(0x0100 + target_sp + 1, initial_status);        // Status at SP+1
-      cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF); // Low byte at SP+2
+      cpu.WriteToMemory(0x0100 + target_sp + 1, initial_status);               // Status at SP+1
+      cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF);        // Low byte at SP+2
       cpu.WriteToMemory(0x0100 + target_sp + 3, (return_address >> 8) & 0xFF); // High byte at SP+3
 
       auto stack_before_rti = cpu.StackPointer();
@@ -1982,7 +2028,7 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       THEN("RTI should restore program counter and status register from stack") {
         REQUIRE(cpu.ProgramCounter() == return_address);
         REQUIRE((cpu.StatusFlags().to_ulong() & 0xCF) == (initial_status & 0xCF)); // Ignore bits 4-5 (Break and unused)
-        REQUIRE(cpu.StackPointer() == stack_before_rti + 3);                       // Stack pointer restored (3 bytes pulled)
+        REQUIRE(cpu.StackPointer() == stack_before_rti + 3); // Stack pointer restored (3 bytes pulled)
       }
     }
 
@@ -1993,9 +2039,9 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
         const char *description;
       };
       std::vector<TestCase> test_cases = {{0x00, "All flags clear"},
-                                           {0xFF, "All flags set"},
-                                           {0x24, "Default/typical value"},
-                                           {0x81, "Negative and Carry set"}};
+                                          {0xFF, "All flags set"},
+                                          {0x24, "Default/typical value"},
+                                          {0x81, "Negative and Carry set"}};
 
       for (const auto &test_case : test_cases) {
         auto return_address = uint16_t(0x2000);
@@ -2016,7 +2062,8 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
         cpu.RunInstruction(rti_instr);
 
         THEN(std::string("RTI should restore status correctly with ") + test_case.description) {
-          REQUIRE((cpu.StatusFlags().to_ulong() & 0xCF) == (test_case.status_value & 0xCF)); // Check status (ignore bits 4-5)
+          REQUIRE((cpu.StatusFlags().to_ulong() & 0xCF) ==
+                  (test_case.status_value & 0xCF)); // Check status (ignore bits 4-5)
           REQUIRE(cpu.ProgramCounter() == return_address);
         }
       }

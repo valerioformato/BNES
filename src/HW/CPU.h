@@ -532,7 +532,7 @@ inline void CPU::PushStatusRegister::Apply(CPU &cpu) const {
 
 inline void CPU::PullStatusRegister::Apply(CPU &cpu) const {
   cpu.m_stack_pointer++;
-  cpu.m_status = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer) & 0xCF;
+  cpu.m_status = (cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer) & 0xEF) | 0x20;
 
   // TODO: Note that the effect of changing I is delayed one instruction because the flag is changed after IRQ is
   //       polled, delaying the effect until IRQ is polled in the next instruction like with CLI and SEI.
@@ -635,7 +635,7 @@ inline void CPU::ReturnFromInterrupt::Apply(CPU &cpu) const {
 
   // Pull the status word from the stack
   cpu.m_stack_pointer++;
-  cpu.m_status = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer) & 0xCF;
+  cpu.m_status = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
   // Pull the program counter from the stack
   cpu.m_stack_pointer++;
   uint8_t low_byte = cpu.ReadFromMemory(StackBaseAddress + cpu.m_stack_pointer);
