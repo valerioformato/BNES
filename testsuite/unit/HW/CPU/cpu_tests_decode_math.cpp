@@ -1349,5 +1349,21 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.value == 0x8000);
       }
     }
+
+    WHEN("We try to decode a TOP absolute,X instruction (0xFC)") {
+      std::vector<uint8_t> bytes = {0xFC, 0xFF, 0xFF}; // TOP $FFFF,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::TripleNoOperation<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0xFFFF);
+      }
+    }
   }
 }

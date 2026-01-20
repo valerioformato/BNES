@@ -348,6 +348,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::TOP_AbsoluteX_5C:
   case OpCode::TOP_AbsoluteX_7C:
   case OpCode::TOP_AbsoluteX_DC:
+  case OpCode::TOP_AbsoluteX_FC:
     return TripleNoOperation<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);

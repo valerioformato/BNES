@@ -199,6 +199,7 @@ enum class OpCode : uint8_t {
   TOP_AbsoluteX_5C = 0x5C, // TOP arg,X (Absolute,X)
   TOP_AbsoluteX_7C = 0x7C, // TOP arg,X (Absolute,X)
   TOP_AbsoluteX_DC = 0xDC, // TOP arg,X (Absolute,X)
+  TOP_AbsoluteX_FC = 0xFC, // TOP arg,X (Absolute,X)
 
   // NOP (Undocumented NOP variants) - No operation, implied addressing
   NOP_1A = 0x1A, // NOP (Implied)
