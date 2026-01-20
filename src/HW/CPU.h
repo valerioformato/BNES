@@ -163,12 +163,13 @@ public:
 
   template <AddressingMode MODE> struct SubtractWithCarry : DecodedInstruction {
     SubtractWithCarry() = delete;
-    explicit SubtractWithCarry(uint16_t);
+    explicit SubtractWithCarry(uint16_t, bool undoc = false);
 
     void Apply(CPU &cpu) const;
 
     static constexpr AddressingMode AddrMode() { return MODE; }
     uint16_t value{0};
+    bool undocumented{false}; // true for undocumented SBC variants
   };
 
   template <AddressingMode MODE> struct LogicalAND : DecodedInstruction {
@@ -1680,7 +1681,7 @@ template <AddressingMode MODE> CPU::AddWithCarry<MODE>::AddWithCarry(uint16_t _v
   value = _value;
 }
 
-template <AddressingMode MODE> CPU::SubtractWithCarry<MODE>::SubtractWithCarry(uint16_t _value) {
+template <AddressingMode MODE> CPU::SubtractWithCarry<MODE>::SubtractWithCarry(uint16_t _value, bool undoc) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Immediate) {
@@ -1702,6 +1703,7 @@ template <AddressingMode MODE> CPU::SubtractWithCarry<MODE>::SubtractWithCarry(u
   }
 
   value = _value;
+  undocumented = undoc;
 }
 
 template <CPU::Register REG, AddressingMode MODE> CPU::CompareRegister<REG, MODE>::CompareRegister(uint16_t _value) {

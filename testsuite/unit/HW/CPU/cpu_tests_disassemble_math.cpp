@@ -529,5 +529,19 @@ SCENARIO("6502 instruction disassembly tests (math ops)", "[Disassemble][Math]")
 
       THEN("It should disassemble to 'DEC $1234,X'") { REQUIRE(disassembly == "DEC $1234,X"); }
     }
+
+    WHEN("We disassemble a SBC immediate instruction") {
+      auto instruction = CPU::SubtractWithCarry<AddressingMode::Immediate>{0x42};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'SBC #$42'") { REQUIRE(disassembly == "SBC #$42"); }
+    }
+
+    WHEN("We disassemble an undocumented SBC immediate instruction") {
+      auto instruction = CPU::SubtractWithCarry<AddressingMode::Immediate>{0x42, true};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SBC #$42'") { REQUIRE(disassembly == "*SBC #$42"); }
+    }
   }
 }

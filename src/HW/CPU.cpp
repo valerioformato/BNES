@@ -114,8 +114,9 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::ADC_IndirectY:
     return AddWithCarry<AddressingMode::IndirectY>{bytes[1]};
   case OpCode::SBC_Immediate:
-  case OpCode::SBC_Immediate_EB:
     return SubtractWithCarry<AddressingMode::Immediate>{bytes[1]};
+  case OpCode::SBC_Immediate_EB:
+    return SubtractWithCarry<AddressingMode::Immediate>{bytes[1], true};
   case OpCode::SBC_ZeroPage:
     return SubtractWithCarry<AddressingMode::ZeroPage>{bytes[1]};
   case OpCode::SBC_ZeroPageX:
@@ -454,7 +455,8 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                           return fmt::format("ADC {}", FormatOperand<MODE>(_inst.value));
                         },
                         []<AddressingMode MODE>(const SubtractWithCarry<MODE> _inst) {
-                          return fmt::format("SBC {}", FormatOperand<MODE>(_inst.value));
+                          std::string mnemonic = _inst.undocumented ? "*SBC" : "SBC";
+                          return fmt::format("{} {}", mnemonic, FormatOperand<MODE>(_inst.value));
                         },
                         []<AddressingMode MODE>(const LogicalAND<MODE> _inst) {
                           return fmt::format("AND {}", FormatOperand<MODE>(_inst.value));
