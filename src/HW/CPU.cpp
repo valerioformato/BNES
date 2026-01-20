@@ -386,19 +386,19 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return DecrementAndCompare<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::DCP_IndirectY:
     return DecrementAndCompare<AddressingMode::IndirectY>{bytes[1]};
-  case OpCode::ISC_ZeroPage:
+  case OpCode::ISB_ZeroPage:
     return IncrementAndSubtract<AddressingMode::ZeroPage>{bytes[1]};
-  case OpCode::ISC_ZeroPageX:
+  case OpCode::ISB_ZeroPageX:
     return IncrementAndSubtract<AddressingMode::ZeroPageX>{bytes[1]};
-  case OpCode::ISC_Absolute:
+  case OpCode::ISB_Absolute:
     return IncrementAndSubtract<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
-  case OpCode::ISC_AbsoluteX:
+  case OpCode::ISB_AbsoluteX:
     return IncrementAndSubtract<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
-  case OpCode::ISC_AbsoluteY:
+  case OpCode::ISB_AbsoluteY:
     return IncrementAndSubtract<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
-  case OpCode::ISC_IndirectX:
+  case OpCode::ISB_IndirectX:
     return IncrementAndSubtract<AddressingMode::IndirectX>{bytes[1]};
-  case OpCode::ISC_IndirectY:
+  case OpCode::ISB_IndirectY:
     return IncrementAndSubtract<AddressingMode::IndirectY>{bytes[1]};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
@@ -615,7 +615,7 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                           return fmt::format("*DCP {}", FormatOperand<MODE>(_inst.address));
                         },
                         []<AddressingMode MODE>(const IncrementAndSubtract<MODE> _inst) -> std::string {
-                          return fmt::format("*ISC {}", FormatOperand<MODE>(_inst.address));
+                          return fmt::format("*ISB {}", FormatOperand<MODE>(_inst.address));
                         },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
                     },

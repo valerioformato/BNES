@@ -593,53 +593,53 @@ SCENARIO("6502 instruction disassembly tests (math ops)", "[Disassemble][Math]")
       THEN("It should disassemble to '*DCP ($90),Y'") { REQUIRE(disassembly == "*DCP ($90),Y"); }
     }
 
-    WHEN("We disassemble an ISC zero page instruction") {
+    WHEN("We disassemble an ISB zero page instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::ZeroPage>{0x50};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC $50'") { REQUIRE(disassembly == "*ISC $50"); }
+      THEN("It should disassemble to '*ISB $50'") { REQUIRE(disassembly == "*ISB $50"); }
     }
 
-    WHEN("We disassemble an ISC zero page,X instruction") {
+    WHEN("We disassemble an ISB zero page,X instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::ZeroPageX>{0x60};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC $60,X'") { REQUIRE(disassembly == "*ISC $60,X"); }
+      THEN("It should disassemble to '*ISB $60,X'") { REQUIRE(disassembly == "*ISB $60,X"); }
     }
 
-    WHEN("We disassemble an ISC absolute instruction") {
+    WHEN("We disassemble an ISB absolute instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::Absolute>{0x1234};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC $1234'") { REQUIRE(disassembly == "*ISC $1234"); }
+      THEN("It should disassemble to '*ISB $1234'") { REQUIRE(disassembly == "*ISB $1234"); }
     }
 
-    WHEN("We disassemble an ISC absolute,X instruction") {
+    WHEN("We disassemble an ISB absolute,X instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::AbsoluteX>{0xABCD};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC $ABCD,X'") { REQUIRE(disassembly == "*ISC $ABCD,X"); }
+      THEN("It should disassemble to '*ISB $ABCD,X'") { REQUIRE(disassembly == "*ISB $ABCD,X"); }
     }
 
-    WHEN("We disassemble an ISC absolute,Y instruction") {
+    WHEN("We disassemble an ISB absolute,Y instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::AbsoluteY>{0x0500};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC $0500,Y'") { REQUIRE(disassembly == "*ISC $0500,Y"); }
+      THEN("It should disassemble to '*ISB $0500,Y'") { REQUIRE(disassembly == "*ISB $0500,Y"); }
     }
 
-    WHEN("We disassemble an ISC (indirect,X) instruction") {
+    WHEN("We disassemble an ISB (indirect,X) instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::IndirectX>{0x80};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC ($80,X)'") { REQUIRE(disassembly == "*ISC ($80,X)"); }
+      THEN("It should disassemble to '*ISB ($80,X)'") { REQUIRE(disassembly == "*ISB ($80,X)"); }
     }
 
-    WHEN("We disassemble an ISC (indirect),Y instruction") {
+    WHEN("We disassemble an ISB (indirect),Y instruction") {
       auto instruction = CPU::IncrementAndSubtract<AddressingMode::IndirectY>{0x90};
       auto disassembly = cpu.DisassembleInstruction(instruction);
 
-      THEN("It should disassemble to '*ISC ($90),Y'") { REQUIRE(disassembly == "*ISC ($90),Y"); }
+      THEN("It should disassemble to '*ISB ($90),Y'") { REQUIRE(disassembly == "*ISB ($90),Y"); }
     }
   }
 }
