@@ -543,5 +543,54 @@ SCENARIO("6502 instruction disassembly tests (math ops)", "[Disassemble][Math]")
 
       THEN("It should disassemble to '*SBC #$42'") { REQUIRE(disassembly == "*SBC #$42"); }
     }
+
+    WHEN("We disassemble a DCP zero page instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::ZeroPage>{0x50};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP $50'") { REQUIRE(disassembly == "*DCP $50"); }
+    }
+
+    WHEN("We disassemble a DCP zero page,X instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::ZeroPageX>{0x60};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP $60,X'") { REQUIRE(disassembly == "*DCP $60,X"); }
+    }
+
+    WHEN("We disassemble a DCP absolute instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP $1234'") { REQUIRE(disassembly == "*DCP $1234"); }
+    }
+
+    WHEN("We disassemble a DCP absolute,X instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::AbsoluteX>{0xABCD};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP $ABCD,X'") { REQUIRE(disassembly == "*DCP $ABCD,X"); }
+    }
+
+    WHEN("We disassemble a DCP absolute,Y instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::AbsoluteY>{0x8000};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP $8000,Y'") { REQUIRE(disassembly == "*DCP $8000,Y"); }
+    }
+
+    WHEN("We disassemble a DCP (indirect,X) instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::IndirectX>{0x80};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP ($80,X)'") { REQUIRE(disassembly == "*DCP ($80,X)"); }
+    }
+
+    WHEN("We disassemble a DCP (indirect),Y instruction") {
+      auto instruction = CPU::DecrementAndCompare<AddressingMode::IndirectY>{0x90};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*DCP ($90),Y'") { REQUIRE(disassembly == "*DCP ($90),Y"); }
+    }
   }
 }

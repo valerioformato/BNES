@@ -10,6 +10,20 @@
 - Exclude build artifacts, IDE files, and other untracked files not relevant to the change
 - Common files to exclude: `.idea/`, `.vs/`, build directories, cache files, temporary files
 
+## Code Style and Conventions
+
+### Following Existing Patterns
+- **ALWAYS follow the existing code style and conventions** when editing source code or unit tests
+- Review nearby code to understand the established patterns before making changes
+- Match the existing naming conventions, formatting, indentation, and structural patterns
+- Maintain consistency with the project's established practices for:
+  - Variable and function naming
+  - Class and struct organization
+  - Comment style and documentation
+  - Error handling approaches
+  - Test structure and assertion patterns
+- When in doubt, examine similar existing code in the project as a reference
+
 ## Building and Testing
 
 ### Build Configuration

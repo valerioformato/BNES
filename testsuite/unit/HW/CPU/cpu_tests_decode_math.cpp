@@ -1381,5 +1381,110 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.value == 0xFFFF);
       }
     }
+
+    WHEN("We try to decode a DCP zero page instruction (0xC7)") {
+      std::vector<uint8_t> bytes = {0xC7, 0x50}; // DCP $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x50);
+      }
+    }
+
+    WHEN("We try to decode a DCP zero page,X instruction (0xD7)") {
+      std::vector<uint8_t> bytes = {0xD7, 0x60}; // DCP $60,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x60);
+      }
+    }
+
+    WHEN("We try to decode a DCP absolute instruction (0xCF)") {
+      std::vector<uint8_t> bytes = {0xCF, 0x34, 0x12}; // DCP $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x1234);
+      }
+    }
+
+    WHEN("We try to decode a DCP absolute,X instruction (0xDF)") {
+      std::vector<uint8_t> bytes = {0xDF, 0xCD, 0xAB}; // DCP $ABCD,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0xABCD);
+      }
+    }
+
+    WHEN("We try to decode a DCP absolute,Y instruction (0xDB)") {
+      std::vector<uint8_t> bytes = {0xDB, 0x00, 0x80}; // DCP $8000,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x8000);
+      }
+    }
+
+    WHEN("We try to decode a DCP (indirect,X) instruction (0xC3)") {
+      std::vector<uint8_t> bytes = {0xC3, 0x80}; // DCP ($80,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x80);
+      }
+    }
+
+    WHEN("We try to decode a DCP (indirect),Y instruction (0xD3)") {
+      std::vector<uint8_t> bytes = {0xD3, 0x90}; // DCP ($90),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::DecrementAndCompare<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x90);
+      }
+    }
   }
 }

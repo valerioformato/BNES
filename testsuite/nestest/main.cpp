@@ -12,9 +12,9 @@
 #include <ranges>
 
 // Concept to check if a type has an AddrMode() method
-template <typename T>
-concept HasAddressingMode = requires {
-  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
+template <typename T> concept HasAddressingMode = requires {
+  { T::AddrMode() }
+  ->std::same_as<BNES::HW::AddressingMode>;
 };
 
 class NESTestCPU : public BNES::HW::CPU {
@@ -162,7 +162,7 @@ public:
     }
     auto instr = DecodeInstruction(bytes);
     auto instr_disass = DisassembleInstruction(instr);
-    unsigned int instr_cycles = std::visit([](DecodedInstruction &arg) { return arg.cycles; }, instr);
+    [[maybe_unused]] unsigned int instr_cycles = std::visit([](DecodedInstruction &arg) { return arg.cycles; }, instr);
     unsigned int instr_size = std::visit([](DecodedInstruction &arg) { return arg.size; }, instr);
     auto reg_values =
         fmt::format("A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X}", Registers()[Register::A], Registers()[Register::X],
@@ -179,7 +179,8 @@ public:
     auto mem_suffix = GetMemoryValueSuffix(instr);
     // Undocumented opcodes (starting with *) need one less space for alignment
     int opcode_width = instr_disass[0] == '*' ? 8 : 9;
-    last_log_line = fmt::format("{:04X}  {:<{}} {}{}", program_counter, opcodes, opcode_width, instr_disass, mem_suffix);
+    last_log_line =
+        fmt::format("{:04X}  {:<{}} {}{}", program_counter, opcodes, opcode_width, instr_disass, mem_suffix);
     auto tmp_width = last_log_line.size();
     last_log_line += fmt::format("{:<{}}{}", "", 48 - tmp_width, reg_values);
 

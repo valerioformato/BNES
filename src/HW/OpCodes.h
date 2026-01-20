@@ -225,6 +225,15 @@ enum class OpCode : uint8_t {
 
   // SBC (Undocumented SBC variant) - Same as official SBC #immediate (0xE9)
   SBC_Immediate_EB = 0xEB, // SBC #arg (Immediate)
+
+  // DCP (Decrement and Compare) - DEC memory then CMP with accumulator
+  DCP_ZeroPage = 0xC7,  // DCP arg (Zero Page)
+  DCP_ZeroPageX = 0xD7, // DCP arg,X (Zero Page,X)
+  DCP_Absolute = 0xCF,  // DCP arg (Absolute)
+  DCP_AbsoluteX = 0xDF, // DCP arg,X (Absolute,X)
+  DCP_AbsoluteY = 0xDB, // DCP arg,Y (Absolute,Y)
+  DCP_IndirectX = 0xC3, // DCP (arg,X) (Indirect,X)
+  DCP_IndirectY = 0xD3, // DCP (arg),Y (Indirect,Y)
 };
 
 enum class AddressingMode : uint8_t {

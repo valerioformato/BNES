@@ -371,6 +371,17 @@ public:
     uint16_t value{0};
   };
 
+  // undocumented
+  template <AddressingMode MODE> struct DecrementAndCompare : DecodedInstruction {
+    DecrementAndCompare() = delete;
+    explicit DecrementAndCompare(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    static constexpr AddressingMode AddrMode() { return MODE; }
+    uint16_t address{0};
+  };
+
   // clang-format off
   using Instruction = std::variant<
       Break,
@@ -545,7 +556,14 @@ public:
       StoreAccumulatorAndX<AddressingMode::ZeroPage>,
       StoreAccumulatorAndX<AddressingMode::ZeroPageY>,
       StoreAccumulatorAndX<AddressingMode::IndirectX>,
-      StoreAccumulatorAndX<AddressingMode::Absolute>
+      StoreAccumulatorAndX<AddressingMode::Absolute>,
+      DecrementAndCompare<AddressingMode::ZeroPage>,
+      DecrementAndCompare<AddressingMode::ZeroPageX>,
+      DecrementAndCompare<AddressingMode::Absolute>,
+      DecrementAndCompare<AddressingMode::AbsoluteX>,
+      DecrementAndCompare<AddressingMode::AbsoluteY>,
+      DecrementAndCompare<AddressingMode::IndirectX>,
+      DecrementAndCompare<AddressingMode::IndirectY>
       >;
   // clang-format on
 
@@ -1278,6 +1296,44 @@ template <AddressingMode MODE> void CPU::Decrement<MODE>::Apply(CPU &cpu) const 
   cpu.SetStatusFlagValue(StatusFlag::Negative, value_to_write & 0x80);
 }
 
+template <AddressingMode MODE> void CPU::DecrementAndCompare<MODE>::Apply(CPU &cpu) const {
+  uint8_t value_to_compare = 0;
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_compare = cpu.ReadFromMemory(address & 0xFF) - 1;
+    cpu.WriteToMemory(address & 0xFF, value_to_compare);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_compare = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF) - 1;
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_compare);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_compare = cpu.ReadFromMemory(address) - 1;
+    cpu.WriteToMemory(address, value_to_compare);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_compare = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]) - 1;
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_compare);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    value_to_compare = cpu.ReadFromMemory(address + cpu.m_registers[Register::Y]) - 1;
+    cpu.WriteToMemory(address + cpu.m_registers[Register::Y], value_to_compare);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr_low = (address + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (address + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    value_to_compare = cpu.ReadFromMemory(real_addr) - 1;
+    cpu.WriteToMemory(real_addr, value_to_compare);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr target_addr_low = address & 0xFF;
+    Addr target_addr_high = (address + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    value_to_compare = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]) - 1;
+    cpu.WriteToMemory(real_addr + cpu.m_registers[Register::Y], value_to_compare);
+  } else {
+    TODO(fmt::format("DecrementAndCompare<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlagValue(StatusFlag::Carry, cpu.m_registers[Register::A] >= value_to_compare);
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == value_to_compare);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, (cpu.m_registers[Register::A] - value_to_compare) & 0x80);
+}
+
 template <CPU::Register SRCREG, CPU::Register DSTREG>
 void CPU::TransferRegisterTo<SRCREG, DSTREG>::Apply(CPU &cpu) const {
   // See https://www.nesdev.org/obelisk-6502-guide/reference.html#TAX (or #TAY)
@@ -1827,6 +1883,29 @@ template <AddressingMode MODE> CPU::DoubleNoOperation<MODE>::DoubleNoOperation(u
 
   value = _value;
 }
+
+template <AddressingMode MODE> CPU::DecrementAndCompare<MODE>::DecrementAndCompare(uint16_t addr) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX || MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 7;
+  } else if constexpr (MODE == AddressingMode::IndirectX || MODE == AddressingMode::IndirectY) {
+    this->cycles = 8;
+  } else {
+    std::unreachable();
+  }
+
+  address = addr;
+}
+
 } // namespace BNES::HW
 
 #endif

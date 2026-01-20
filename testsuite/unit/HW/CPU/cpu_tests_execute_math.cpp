@@ -2022,5 +2022,135 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false); // Result is 0
       }
     }
+
+    WHEN("We execute a DCP zero page instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.WriteToMemory(0x0050, 0x30); // Memory contains 0x30
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory should be decremented to 0x2F and compared with A (0x50 - 0x2F = 0x21)") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0x2F);        // Decremented
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x50); // Accumulator unchanged
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // 0x50 >= 0x2F
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a DCP zero page,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x10);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x0055, 0x11); // Memory at $50 + X contains 0x11
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory should be decremented to 0x10 and compared with A (equal)") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x10);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x10);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true); // Equal
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a DCP absolute instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x05);
+      cpu.WriteToMemory(0x1234, 0x07); // Memory contains 0x07
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory should be decremented to 0x06 and compared with A (0x05 < 0x06)") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0x06);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x05);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);   // A < M
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0x05 - 0x06 = 0xFF
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a DCP absolute,X instruction with underflow") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.WriteToMemory(0x1244, 0x01); // Memory at $1234 + X contains 0x01
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::AbsoluteX>{0x1234};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory should underflow to 0x00 and compared with A") {
+        REQUIRE(cpu.ReadFromMemory(0x1244) == 0x00);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);    // 0xFF >= 0x00
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xFF - 0x00 = 0xFF
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a DCP absolute,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x80);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      cpu.WriteToMemory(0x0508, 0x81); // Memory at $0500 + Y contains 0x81
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::AbsoluteY>{0x0500};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory should be decremented to 0x80 and compared with A (equal)") {
+        REQUIRE(cpu.ReadFromMemory(0x0508) == 0x80);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x80);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a DCP (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x20);
+      cpu.SetRegister(CPU::Register::X, 0x0F);
+      // Zero page $80 + X(0x0F) = $8F contains pointer to $0200
+      cpu.WriteToMemory(0x008F, 0x00); // Low byte
+      cpu.WriteToMemory(0x0090, 0x02); // High byte
+      cpu.WriteToMemory(0x0200, 0x21); // Value at target address
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory at indirect address should be decremented to 0x20 and compared") {
+        REQUIRE(cpu.ReadFromMemory(0x0200) == 0x20);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x20);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a DCP (indirect),Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x42);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00); // Low byte
+      cpu.WriteToMemory(0x0091, 0x06); // High byte
+      cpu.WriteToMemory(0x0608, 0x44); // Value at target + Y
+
+      auto dcp_instr = CPU::DecrementAndCompare<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(dcp_instr);
+
+      THEN("Memory at (indirect) + Y should be decremented to 0x43 and compared") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0x43);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x42);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);   // 0x42 < 0x43
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0x42 - 0x43 = 0xFF
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
   }
 }
