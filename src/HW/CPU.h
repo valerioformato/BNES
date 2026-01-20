@@ -90,7 +90,9 @@ public:
 
   struct NoOperation : DecodedInstruction {
     NoOperation() : DecodedInstruction{.size = 1, .cycles = 2} {}
+    explicit NoOperation(bool undoc) : DecodedInstruction{.size = 1, .cycles = 2}, undocumented{undoc} {}
     void Apply([[maybe_unused]] CPU &cpu) const {};
+    bool undocumented{false}; // true for undocumented NOP variants
   };
 
   template <AddressingMode MODE> struct DoubleNoOperation : DecodedInstruction {

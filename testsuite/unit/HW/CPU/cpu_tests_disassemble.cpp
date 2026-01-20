@@ -369,5 +369,19 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
 
       THEN("It should disassemble to '*NOP $CDAB,X'") { REQUIRE(disassembly == "*NOP $CDAB,X"); }
     }
+
+    WHEN("We disassemble a NOP instruction") {
+      auto instruction = CPU::NoOperation{};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to 'NOP'") { REQUIRE(disassembly == "NOP"); }
+    }
+
+    WHEN("We disassemble an undocumented NOP instruction") {
+      auto instruction = CPU::NoOperation{true};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*NOP'") { REQUIRE(disassembly == "*NOP"); }
+    }
   }
 }

@@ -317,6 +317,13 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return SetStatusFlag<StatusFlag::InterruptDisable>{};
   case OpCode::NOP:
     return NoOperation{};
+  case OpCode::NOP_1A:
+  case OpCode::NOP_3A:
+  case OpCode::NOP_5A:
+  case OpCode::NOP_7A:
+  case OpCode::NOP_DA:
+  case OpCode::NOP_FA:
+    return NoOperation{true};
   case OpCode::DOP_Immediate_80:
   case OpCode::DOP_Immediate_82:
   case OpCode::DOP_Immediate_89:
@@ -539,7 +546,7 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                               (REG == Register::A) ? "CMP" : fmt::format("CP{}", magic_enum::enum_name(REG));
                           return fmt::format("{} {}", mnemonic, FormatOperand<MODE>(_inst.value));
                         },
-                        [](const NoOperation &) -> std::string { return "NOP"; },
+                        [](const NoOperation &nop) -> std::string { return nop.undocumented ? "*NOP" : "NOP"; },
                         []<AddressingMode MODE>(const DoubleNoOperation<MODE> _inst) -> std::string {
                           return fmt::format("*NOP {}", FormatOperand<MODE>(_inst.value));
                         },

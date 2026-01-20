@@ -720,5 +720,65 @@ SCENARIO("6502 instruction decoding tests (all the rest)", "[Decode]") {
         REQUIRE(decoded_instruction.size == 1);
       }
     }
+
+    WHEN("We try to decode a NOP instruction (0xEA)") {
+      std::vector<uint8_t> bytes = {0xEA}; // NOP
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::NoOperation;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode an undocumented NOP instruction (0x1A)") {
+      std::vector<uint8_t> bytes = {0x1A}; // NOP
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::NoOperation;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode an undocumented NOP instruction (0x3A)") {
+      std::vector<uint8_t> bytes = {0x3A}; // NOP
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::NoOperation;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
+
+    WHEN("We try to decode an undocumented NOP instruction (0xDA)") {
+      std::vector<uint8_t> bytes = {0xDA}; // NOP
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::NoOperation;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 1);
+      }
+    }
   }
 }
