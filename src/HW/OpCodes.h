@@ -216,6 +216,12 @@ enum class OpCode : uint8_t {
   LAX_AbsoluteY = 0xBF, // LAX arg,Y (Absolute,Y)
   LAX_IndirectX = 0xA3, // LAX (arg,X) (Indirect,X)
   LAX_IndirectY = 0xB3, // LAX (arg),Y (Indirect,Y)
+
+  // SAX (Store A AND X) - Store bitwise AND of A and X to memory
+  SAX_ZeroPage = 0x87,  // SAX arg (Zero Page)
+  SAX_ZeroPageY = 0x97, // SAX arg,Y (Zero Page,Y)
+  SAX_IndirectX = 0x83, // SAX (arg,X) (Indirect,X)
+  SAX_Absolute = 0x8F,  // SAX arg (Absolute)
 };
 
 enum class AddressingMode : uint8_t {

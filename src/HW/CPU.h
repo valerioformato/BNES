@@ -140,6 +140,17 @@ public:
     uint16_t address{0};
   };
 
+  // undocumented store instruction...
+  template <AddressingMode MODE> struct StoreAccumulatorAndX : DecodedInstruction {
+    StoreAccumulatorAndX() = delete;
+    explicit StoreAccumulatorAndX(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    static constexpr AddressingMode AddrMode() { return MODE; }
+    uint16_t address{0};
+  };
+
   template <AddressingMode MODE> struct AddWithCarry : DecodedInstruction {
     AddWithCarry() = delete;
     explicit AddWithCarry(uint16_t);
@@ -529,7 +540,11 @@ public:
       LoadAccumulatorAndX<AddressingMode::Absolute>,
       LoadAccumulatorAndX<AddressingMode::AbsoluteY>,
       LoadAccumulatorAndX<AddressingMode::IndirectX>,
-      LoadAccumulatorAndX<AddressingMode::IndirectY>
+      LoadAccumulatorAndX<AddressingMode::IndirectY>,
+      StoreAccumulatorAndX<AddressingMode::ZeroPage>,
+      StoreAccumulatorAndX<AddressingMode::ZeroPageY>,
+      StoreAccumulatorAndX<AddressingMode::IndirectX>,
+      StoreAccumulatorAndX<AddressingMode::Absolute>
       >;
   // clang-format on
 
@@ -879,6 +894,37 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, M
   } else {
     TODO(fmt::format("StoreRegister<{},{}>::Apply not implemented", magic_enum::enum_name(REG),
                      magic_enum::enum_name(MODE)));
+  }
+
+  // Note: Store instructions do not affect the processor status flags
+}
+
+template <AddressingMode MODE> void CPU::StoreAccumulatorAndX<MODE>::Apply(CPU &cpu) const {
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
+    Addr addr = address & 0xFF;
+    cpu.WriteToMemory(addr, cpu.m_registers[Register::X] & cpu.m_registers[Register::A]);
+  } else if constexpr (MODE == AddressingMode::ZeroPageY) {
+    // Zero page addressing with Y offset means the memory address is in the range 0x00 to 0xFF, and the Y register
+    // is added to the zero page address.
+    // If the result exceeds 0xFF, it wraps around to 0x00.
+    Addr addr = (address + cpu.m_registers[Register::Y]) & 0xFF;
+    cpu.WriteToMemory(addr, cpu.m_registers[Register::X] & cpu.m_registers[Register::A]);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
+    cpu.WriteToMemory(address, cpu.m_registers[Register::X] & cpu.m_registers[Register::A]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    // Indexed indirect addressing is normally used in conjunction with a table of address held on zero page. The
+    // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
+    // give the location of the least significant byte of the target address.
+
+    Addr target_addr_low = (address + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (address + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    cpu.WriteToMemory(real_addr, cpu.m_registers[Register::X] & cpu.m_registers[Register::A]);
+  } else {
+    TODO(fmt::format("StoreAccumulatorAndX<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
   }
 
   // Note: Store instructions do not affect the processor status flags
@@ -1430,6 +1476,24 @@ template <CPU::Register REG, AddressingMode MODE> CPU::StoreRegister<REG, MODE>:
     this->size = 3;
     this->cycles = 5; // Store to indexed absolute always takes 5 cycles
   } else if constexpr (MODE == AddressingMode::IndirectX || MODE == AddressingMode::IndirectY) {
+    this->cycles = 6;
+  }
+
+  address = addr;
+}
+
+template <AddressingMode MODE>
+CPU::StoreAccumulatorAndX<MODE>::StoreAccumulatorAndX(uint16_t addr) : DecodedInstruction() {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageY) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
     this->cycles = 6;
   }
 

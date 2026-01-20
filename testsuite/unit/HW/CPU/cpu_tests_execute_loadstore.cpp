@@ -1138,5 +1138,61 @@ SCENARIO("6502 instruction execution tests (stores)", "[CPU][Stores]") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
+
+    WHEN("We execute a SAX zero page instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x0F);
+
+      auto sax_instr = CPU::StoreAccumulatorAndX<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(sax_instr);
+
+      THEN("Memory should contain A AND X (0xFF AND 0x0F = 0x0F)") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0x0F);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SAX zero page,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xAA);
+      cpu.SetRegister(CPU::Register::X, 0x55);
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+
+      auto sax_instr = CPU::StoreAccumulatorAndX<AddressingMode::ZeroPageY>{0x50};
+      cpu.RunInstruction(sax_instr);
+
+      THEN("Memory at $50 + Y should contain A AND X (0xAA AND 0x55 = 0x00)") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SAX (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xF0);
+      cpu.SetRegister(CPU::Register::X, 0x0F);
+      // Zero page $80 + X(0x0F) = $8F contains pointer to $0200
+      cpu.WriteToMemory(0x008F, 0x00); // Low byte
+      cpu.WriteToMemory(0x0090, 0x02); // High byte
+
+      auto sax_instr = CPU::StoreAccumulatorAndX<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(sax_instr);
+
+      THEN("Memory at indirect address should contain A AND X (0xF0 AND 0x0F = 0x00)") {
+        REQUIRE(cpu.ReadFromMemory(0x0200) == 0x00);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SAX absolute instruction") {
+      cpu.SetRegister(CPU::Register::A, 0b11110000);
+      cpu.SetRegister(CPU::Register::X, 0b10101010);
+
+      auto sax_instr = CPU::StoreAccumulatorAndX<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(sax_instr);
+
+      THEN("Memory should contain A AND X (0xF0 AND 0xAA = 0xA0)") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0xA0);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
   }
 }

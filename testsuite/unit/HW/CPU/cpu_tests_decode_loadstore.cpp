@@ -583,5 +583,65 @@ SCENARIO("6502 instruction decoding tests (stores)") {
         REQUIRE(decoded_instruction.value == 0x90);
       }
     }
+
+    WHEN("We try to decode a SAX zero page instruction (0x87)") {
+      std::vector<uint8_t> bytes = {0x87, 0x50}; // SAX $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreAccumulatorAndX<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x50);
+      }
+    }
+
+    WHEN("We try to decode a SAX zero page,Y instruction (0x97)") {
+      std::vector<uint8_t> bytes = {0x97, 0x60}; // SAX $60,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreAccumulatorAndX<AddressingMode::ZeroPageY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x60);
+      }
+    }
+
+    WHEN("We try to decode a SAX (indirect,X) instruction (0x83)") {
+      std::vector<uint8_t> bytes = {0x83, 0x80}; // SAX ($80,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreAccumulatorAndX<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x80);
+      }
+    }
+
+    WHEN("We try to decode a SAX absolute instruction (0x8F)") {
+      std::vector<uint8_t> bytes = {0x8F, 0x34, 0x12}; // SAX $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::StoreAccumulatorAndX<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x1234);
+      }
+    }
   }
 }

@@ -277,5 +277,33 @@ SCENARIO("6502 instruction disassembly tests (load/store)", "[Disassemble][Load/
 
       THEN("It should disassemble to '*LAX ($90),Y'") { REQUIRE(disassembly == "*LAX ($90),Y"); }
     }
+
+    WHEN("We disassemble a SAX zero page instruction") {
+      auto instruction = CPU::StoreAccumulatorAndX<AddressingMode::ZeroPage>{0x50};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SAX $50'") { REQUIRE(disassembly == "*SAX $50"); }
+    }
+
+    WHEN("We disassemble a SAX zero page,Y instruction") {
+      auto instruction = CPU::StoreAccumulatorAndX<AddressingMode::ZeroPageY>{0x60};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SAX $60,Y'") { REQUIRE(disassembly == "*SAX $60,Y"); }
+    }
+
+    WHEN("We disassemble a SAX (indirect,X) instruction") {
+      auto instruction = CPU::StoreAccumulatorAndX<AddressingMode::IndirectX>{0x80};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SAX ($80,X)'") { REQUIRE(disassembly == "*SAX ($80,X)"); }
+    }
+
+    WHEN("We disassemble a SAX absolute instruction") {
+      auto instruction = CPU::StoreAccumulatorAndX<AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SAX $1234'") { REQUIRE(disassembly == "*SAX $1234"); }
+    }
   }
 }
