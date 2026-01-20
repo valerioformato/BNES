@@ -918,6 +918,22 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
       }
     }
 
+    WHEN("We try to decode an undocumented SBC immediate instruction (0xEB)") {
+      std::vector<uint8_t> bytes = {0xEB, 0x42}; // SBC #$42
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::SubtractWithCarry<AddressingMode::Immediate>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 2);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x42);
+      }
+    }
+
     WHEN("We try to decode a SBC zero-page instruction") {
       std::vector<uint8_t> bytes = {0xE5, 0x42}; // SBC $42
       auto instruction = cpu.DecodeInstruction(bytes);

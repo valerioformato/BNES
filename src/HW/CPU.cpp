@@ -114,6 +114,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::ADC_IndirectY:
     return AddWithCarry<AddressingMode::IndirectY>{bytes[1]};
   case OpCode::SBC_Immediate:
+  case OpCode::SBC_Immediate_EB:
     return SubtractWithCarry<AddressingMode::Immediate>{bytes[1]};
   case OpCode::SBC_ZeroPage:
     return SubtractWithCarry<AddressingMode::ZeroPage>{bytes[1]};

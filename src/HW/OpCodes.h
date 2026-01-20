@@ -222,6 +222,9 @@ enum class OpCode : uint8_t {
   SAX_ZeroPageY = 0x97, // SAX arg,Y (Zero Page,Y)
   SAX_IndirectX = 0x83, // SAX (arg,X) (Indirect,X)
   SAX_Absolute = 0x8F,  // SAX arg (Absolute)
+
+  // SBC (Undocumented SBC variant) - Same as official SBC #immediate (0xE9)
+  SBC_Immediate_EB = 0xEB, // SBC #arg (Immediate)
 };
 
 enum class AddressingMode : uint8_t {
