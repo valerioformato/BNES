@@ -765,10 +765,8 @@ SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
       // Set up zero page: $FF contains low byte, $00 (wrapping) contains high byte
       cpu.WriteToMemory(0x00FF, 0x00); // Low byte of target address
       cpu.WriteToMemory(0x0000, 0x04); // High byte of target address (wraps to $00)
-      
-      // Explicitly clear $100 to ensure the buggy code fails
+                                       // Explicitly clear $100 to ensure the buggy code fails
       cpu.WriteToMemory(0x0100, 0x00);
-      
       // Target address is $0400, write the value there
       cpu.WriteToMemory(0x0400, 0x5D);
 
@@ -791,10 +789,9 @@ SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
       // Set up zero page: $FF contains low byte, $00 (wrapping) contains high byte
       cpu.WriteToMemory(0x00FF, 0x00); // Low byte of base address
       cpu.WriteToMemory(0x0000, 0x04); // High byte of base address (wraps to $00)
-      
-      // Explicitly clear $100 to ensure the buggy code fails
+                                       // Explicitly clear $100 to ensure the buggy code fails
       cpu.WriteToMemory(0x0100, 0x00);
-      
+
       // Base address is $0400, add Y to get $0405, write the value there
       cpu.WriteToMemory(0x0405, 0x7A);
 
@@ -1038,6 +1035,106 @@ SCENARIO("6502 instruction execution tests (stores)", "[CPU][Stores]") {
 
       THEN("The value should be stored at address 0x0608 (base $0600 + Y $08)") {
         REQUIRE(cpu.ReadFromMemory(0x0608) == 0xCD);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a LAX zero page instruction") {
+      cpu.WriteToMemory(0x0050, 0x42);
+
+      auto lax_instr = CPU::LoadAccumulatorAndX<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(lax_instr);
+
+      THEN("Both A and X should contain the loaded value") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x42);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x42);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a LAX zero page,Y instruction") {
+      cpu.SetRegister(CPU::Register::Y, 0x05);
+      cpu.WriteToMemory(0x0055, 0x7F); // 0x50 + Y(0x05) = 0x55
+
+      auto lax_instr = CPU::LoadAccumulatorAndX<AddressingMode::ZeroPageY>{0x50};
+      cpu.RunInstruction(lax_instr);
+
+      THEN("Both A and X should contain the loaded value from zero page + Y") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x7F);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x7F);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a LAX absolute instruction with zero value") {
+      cpu.WriteToMemory(0x1234, 0x00);
+
+      auto lax_instr = CPU::LoadAccumulatorAndX<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(lax_instr);
+
+      THEN("Both A and X should be zero and Zero flag should be set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x00);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a LAX absolute,Y instruction with negative value") {
+      cpu.SetRegister(CPU::Register::Y, 0x10);
+      cpu.WriteToMemory(0x1244, 0x80); // 0x1234 + Y(0x10) = 0x1244
+
+      auto lax_instr = CPU::LoadAccumulatorAndX<AddressingMode::AbsoluteY>{0x1234};
+      cpu.RunInstruction(lax_instr);
+
+      THEN("Both A and X should contain the value and Negative flag should be set") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x80);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x80);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a LAX (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      // Zero page $80 + X(5) = $85 contains pointer to $0200
+      cpu.WriteToMemory(0x0085, 0x00); // Low byte
+      cpu.WriteToMemory(0x0086, 0x02); // High byte
+      cpu.WriteToMemory(0x0200, 0x99); // Value at target address
+
+      auto lax_instr = CPU::LoadAccumulatorAndX<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(lax_instr);
+
+      THEN("Both A and X should contain the value from the indirect address") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x99);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x99);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a LAX (indirect),Y instruction") {
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00); // Low byte
+      cpu.WriteToMemory(0x0091, 0x06); // High byte
+      cpu.WriteToMemory(0x0608, 0x33); // Value at target + Y
+
+      auto lax_instr = CPU::LoadAccumulatorAndX<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(lax_instr);
+
+      THEN("Both A and X should contain the value from (indirect) + Y") {
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x33);
+        REQUIRE(cpu.Registers()[CPU::Register::X] == 0x33);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }

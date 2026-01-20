@@ -235,5 +235,47 @@ SCENARIO("6502 instruction disassembly tests (load/store)", "[Disassemble][Load/
 
       THEN("It should disassemble to 'STY $1234'") { REQUIRE(disassembly == "STY $1234"); }
     }
+
+    WHEN("We disassemble a LAX zero page instruction") {
+      auto instruction = CPU::LoadAccumulatorAndX<AddressingMode::ZeroPage>{0x50};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*LAX $50'") { REQUIRE(disassembly == "*LAX $50"); }
+    }
+
+    WHEN("We disassemble a LAX zero page,Y instruction") {
+      auto instruction = CPU::LoadAccumulatorAndX<AddressingMode::ZeroPageY>{0x60};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*LAX $60,Y'") { REQUIRE(disassembly == "*LAX $60,Y"); }
+    }
+
+    WHEN("We disassemble a LAX absolute instruction") {
+      auto instruction = CPU::LoadAccumulatorAndX<AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*LAX $1234'") { REQUIRE(disassembly == "*LAX $1234"); }
+    }
+
+    WHEN("We disassemble a LAX absolute,Y instruction") {
+      auto instruction = CPU::LoadAccumulatorAndX<AddressingMode::AbsoluteY>{0xABCD};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*LAX $ABCD,Y'") { REQUIRE(disassembly == "*LAX $ABCD,Y"); }
+    }
+
+    WHEN("We disassemble a LAX (indirect,X) instruction") {
+      auto instruction = CPU::LoadAccumulatorAndX<AddressingMode::IndirectX>{0x80};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*LAX ($80,X)'") { REQUIRE(disassembly == "*LAX ($80,X)"); }
+    }
+
+    WHEN("We disassemble a LAX (indirect),Y instruction") {
+      auto instruction = CPU::LoadAccumulatorAndX<AddressingMode::IndirectY>{0x90};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*LAX ($90),Y'") { REQUIRE(disassembly == "*LAX ($90),Y"); }
+    }
   }
 }

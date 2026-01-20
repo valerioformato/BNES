@@ -493,5 +493,95 @@ SCENARIO("6502 instruction decoding tests (stores)") {
         REQUIRE(decoded_instruction.address == 0x42);
       }
     }
+
+    WHEN("We try to decode a LAX zero page instruction (0xA7)") {
+      std::vector<uint8_t> bytes = {0xA7, 0x50}; // LAX $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::LoadAccumulatorAndX<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 3);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x50);
+      }
+    }
+
+    WHEN("We try to decode a LAX zero page,Y instruction (0xB7)") {
+      std::vector<uint8_t> bytes = {0xB7, 0x60}; // LAX $60,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::LoadAccumulatorAndX<AddressingMode::ZeroPageY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x60);
+      }
+    }
+
+    WHEN("We try to decode a LAX absolute instruction (0xAF)") {
+      std::vector<uint8_t> bytes = {0xAF, 0x34, 0x12}; // LAX $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::LoadAccumulatorAndX<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x1234);
+      }
+    }
+
+    WHEN("We try to decode a LAX absolute,Y instruction (0xBF)") {
+      std::vector<uint8_t> bytes = {0xBF, 0xCD, 0xAB}; // LAX $ABCD,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::LoadAccumulatorAndX<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0xABCD);
+      }
+    }
+
+    WHEN("We try to decode a LAX (indirect,X) instruction (0xA3)") {
+      std::vector<uint8_t> bytes = {0xA3, 0x80}; // LAX ($80,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::LoadAccumulatorAndX<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x80);
+      }
+    }
+
+    WHEN("We try to decode a LAX (indirect),Y instruction (0xB3)") {
+      std::vector<uint8_t> bytes = {0xB3, 0x90}; // LAX ($90),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::LoadAccumulatorAndX<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.value == 0x90);
+      }
+    }
   }
 }

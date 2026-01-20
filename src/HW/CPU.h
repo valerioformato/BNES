@@ -30,9 +30,6 @@ public:
     Negative
   };
 
-  static constexpr size_t STACK_MEM_SIZE = 2048;
-  static constexpr size_t PROG_MEM_SIZE = 0x8000;
-
   explicit CPU(Bus &bus) : m_bus{&bus} {}
 
   // Helper functions to inspect the state of the CPU
@@ -58,9 +55,6 @@ private:
   uint8_t m_stack_pointer{0xFD};              // Stack pointer initialized to 0xFF
   Addr m_program_counter{ProgramBaseAddress}; // Program counter
   non_owning_ptr<Bus *> m_bus;                // Memory bus
-
-  std::array<uint8_t, STACK_MEM_SIZE> m_ram_memory{}; // CPU memory (2kB)
-  std::array<uint8_t, PROG_MEM_SIZE> m_program_memory{};
 
 protected:
   class NonMaskableInterrupt : public std::exception {};
@@ -118,6 +112,17 @@ public:
   template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction {
     LoadRegister() = delete;
     explicit LoadRegister(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    static constexpr AddressingMode AddrMode() { return MODE; }
+    uint16_t value{0};
+  };
+
+  // undocumented load instruction...
+  template <AddressingMode MODE> struct LoadAccumulatorAndX : DecodedInstruction {
+    LoadAccumulatorAndX() = delete;
+    explicit LoadAccumulatorAndX(uint16_t);
 
     void Apply(CPU &cpu) const;
 
@@ -518,7 +523,13 @@ public:
       DoubleNoOperation<AddressingMode::ZeroPage>,
       DoubleNoOperation<AddressingMode::ZeroPageX>,
       TripleNoOperation<AddressingMode::Absolute>,
-      TripleNoOperation<AddressingMode::AbsoluteX>
+      TripleNoOperation<AddressingMode::AbsoluteX>,
+      LoadAccumulatorAndX<AddressingMode::ZeroPage>,
+      LoadAccumulatorAndX<AddressingMode::ZeroPageY>,
+      LoadAccumulatorAndX<AddressingMode::Absolute>,
+      LoadAccumulatorAndX<AddressingMode::AbsoluteY>,
+      LoadAccumulatorAndX<AddressingMode::IndirectX>,
+      LoadAccumulatorAndX<AddressingMode::IndirectY>
       >;
   // clang-format on
 
@@ -760,6 +771,59 @@ template <CPU::Register REG, AddressingMode MODE> void CPU::LoadRegister<REG, MO
 
   cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[REG] == 0);
   cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[REG] & 0x80);
+}
+
+template <AddressingMode MODE> void CPU::LoadAccumulatorAndX<MODE>::Apply(CPU &cpu) const {
+  // See https://www.nesdev.org/obelisk-6502-guide/reference.html#LDA (or #LDX,#LDY)
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    // Zero page addressing means the memory address is in the range 0x00 to 0xFF.
+    Addr addr = value & 0xFF;
+    uint8_t mem_value = cpu.ReadFromMemory(addr);
+    cpu.m_registers[Register::A] = cpu.m_registers[Register::X] = mem_value;
+  } else if constexpr (MODE == AddressingMode::ZeroPageY) {
+    // Zero page addressing with Y offset means the memory address is in the range 0x00 to 0xFF, and the Y register
+    // is added to the zero page address.
+    // If the result exceeds 0xFF, it wraps around to 0x00.
+    Addr addr = (value + cpu.m_registers[Register::Y]) & 0xFF;
+    uint8_t mem_value = cpu.ReadFromMemory(addr);
+    cpu.m_registers[Register::A] = cpu.m_registers[Register::X] = mem_value;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    // Absolute addressing means the memory address is a full 16-bit address (in LE enconding).
+    uint8_t mem_value = cpu.ReadFromMemory(value);
+    cpu.m_registers[Register::A] = cpu.m_registers[Register::X] = mem_value;
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    // Indexed absolute addressing means the memory address is a full 16-bit address (in LE enconding) and the Y
+    // register is added to the zero page address.
+    Addr addr = value + cpu.m_registers[Register::Y];
+    uint8_t mem_value = cpu.ReadFromMemory(addr);
+    cpu.m_registers[Register::A] = cpu.m_registers[Register::X] = mem_value;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    // Indexed indirect addressing is normally used in conjunction with a table of address held on zero page. The
+    // address of the table is taken from the instruction and the X register added to it (with zero page wrap around) to
+    // give the location of the least significant byte of the target address.
+
+    Addr target_addr_low = (value + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (value + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    uint8_t mem_value = cpu.ReadFromMemory(real_addr);
+    cpu.m_registers[Register::A] = cpu.m_registers[Register::X] = mem_value;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    // Indirect indexed addressing is the most common indirection mode used on the 6502. In instruction contains the
+    // zero page location of the least significant byte of 16 bit address. The Y register is dynamically added to this
+    // value to generated the actual target address for operation.
+
+    Addr target_addr_low = value & 0xFF;
+    Addr target_addr_high = (value + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    uint8_t mem_value = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
+    cpu.m_registers[Register::A] = cpu.m_registers[Register::X] = mem_value;
+  } else {
+    TODO(fmt::format("LoadAccumulatorAndX<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
 }
 
 template <CPU::Register REG, AddressingMode MODE> void CPU::StoreRegister<REG, MODE>::Apply(CPU &cpu) const {
@@ -1321,6 +1385,26 @@ template <CPU::Register REG, AddressingMode MODE> CPU::LoadRegister<REG, MODE>::
     this->cycles = 4;
   } else if constexpr (MODE == AddressingMode::Absolute || MODE == AddressingMode::AbsoluteX ||
                        MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    this->cycles = 6;
+  }
+
+  value = _value;
+}
+
+template <AddressingMode MODE>
+CPU::LoadAccumulatorAndX<MODE>::LoadAccumulatorAndX(uint16_t _value) : DecodedInstruction() {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 3;
+  } else if constexpr (MODE == AddressingMode::ZeroPageY) {
+    this->cycles = 4;
+  } else if constexpr (MODE == AddressingMode::Absolute || MODE == AddressingMode::AbsoluteY) {
     this->size = 3;
     this->cycles = 4;
   } else if constexpr (MODE == AddressingMode::IndirectY) {

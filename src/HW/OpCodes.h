@@ -208,6 +208,14 @@ enum class OpCode : uint8_t {
   NOP_7A = 0x7A, // NOP (Implied)
   NOP_DA = 0xDA, // NOP (Implied)
   NOP_FA = 0xFA, // NOP (Implied)
+
+  // LAX (Load A and X) - Load accumulator and X register with memory
+  LAX_ZeroPage = 0xA7,  // LAX arg (Zero Page)
+  LAX_ZeroPageY = 0xB7, // LAX arg,Y (Zero Page,Y)
+  LAX_Absolute = 0xAF,  // LAX arg (Absolute)
+  LAX_AbsoluteY = 0xBF, // LAX arg,Y (Absolute,Y)
+  LAX_IndirectX = 0xA3, // LAX (arg,X) (Indirect,X)
+  LAX_IndirectY = 0xB3, // LAX (arg),Y (Indirect,Y)
 };
 
 enum class AddressingMode : uint8_t {
