@@ -103,6 +103,16 @@ public:
     uint16_t value{0};
   };
 
+  template <AddressingMode MODE> struct TripleNoOperation : DecodedInstruction {
+    TripleNoOperation() = delete;
+    explicit TripleNoOperation(uint16_t addr) : DecodedInstruction{.size = 3, .cycles = 4}, value{addr} {}
+
+    void Apply([[maybe_unused]] CPU &cpu) const {};
+
+    static constexpr AddressingMode AddrMode() { return MODE; }
+    uint16_t value{0};
+  };
+
   template <Register REG, AddressingMode MODE> struct LoadRegister : DecodedInstruction {
     LoadRegister() = delete;
     explicit LoadRegister(uint16_t);
@@ -504,7 +514,9 @@ public:
       NoOperation,
       DoubleNoOperation<AddressingMode::Immediate>,
       DoubleNoOperation<AddressingMode::ZeroPage>,
-      DoubleNoOperation<AddressingMode::ZeroPageX>
+      DoubleNoOperation<AddressingMode::ZeroPageX>,
+      TripleNoOperation<AddressingMode::Absolute>,
+      TripleNoOperation<AddressingMode::AbsoluteX>
       >;
   // clang-format on
 
@@ -1624,7 +1636,7 @@ template <AddressingMode MODE> CPU::ExclusiveOR<MODE>::ExclusiveOR(uint16_t addr
   value = addr;
 }
 
-template <AddressingMode MODE> CPU::BitwiseOR<MODE>::BitwiseOR(uint16_t addr) {
+template <AddressingMode MODE> CPU::BitwiseOR<MODE>::BitwiseOR(uint16_t addr) : DecodedInstruction() {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::Immediate) {
@@ -1663,7 +1675,6 @@ template <AddressingMode MODE> CPU::DoubleNoOperation<MODE>::DoubleNoOperation(u
 
   value = _value;
 }
-
 } // namespace BNES::HW
 
 #endif

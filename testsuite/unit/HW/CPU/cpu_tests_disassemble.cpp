@@ -355,5 +355,19 @@ SCENARIO("6502 instruction disassembly tests (general)", "[Disassemble]") {
 
       THEN("It should disassemble to '*NOP $70,X'") { REQUIRE(disassembly == "*NOP $70,X"); }
     }
+
+    WHEN("We disassemble a TOP absolute instruction") {
+      auto instruction = CPU::TripleNoOperation<AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*NOP $1234'") { REQUIRE(disassembly == "*NOP $1234"); }
+    }
+
+    WHEN("We disassemble a TOP absolute,X instruction") {
+      auto instruction = CPU::TripleNoOperation<AddressingMode::AbsoluteX>{0xCDAB};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*NOP $CDAB,X'") { REQUIRE(disassembly == "*NOP $CDAB,X"); }
+    }
   }
 }

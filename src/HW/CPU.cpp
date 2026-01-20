@@ -334,6 +334,14 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::DOP_ZeroPageX_D4:
   case OpCode::DOP_ZeroPageX_F4:
     return DoubleNoOperation<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::TOP_Absolute:
+    return TripleNoOperation<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::TOP_AbsoluteX_1C:
+  case OpCode::TOP_AbsoluteX_3C:
+  case OpCode::TOP_AbsoluteX_5C:
+  case OpCode::TOP_AbsoluteX_7C:
+  case OpCode::TOP_AbsoluteX_DC:
+    return TripleNoOperation<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
@@ -533,6 +541,9 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                         },
                         [](const NoOperation &) -> std::string { return "NOP"; },
                         []<AddressingMode MODE>(const DoubleNoOperation<MODE> _inst) -> std::string {
+                          return fmt::format("*NOP {}", FormatOperand<MODE>(_inst.value));
+                        },
+                        []<AddressingMode MODE>(const TripleNoOperation<MODE> _inst) -> std::string {
                           return fmt::format("*NOP {}", FormatOperand<MODE>(_inst.value));
                         },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },

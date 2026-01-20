@@ -1301,5 +1301,53 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.value == 0x80);
       }
     }
+
+    WHEN("We try to decode a TOP absolute instruction (0x0C)") {
+      std::vector<uint8_t> bytes = {0x0C, 0x34, 0x12}; // TOP $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::TripleNoOperation<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x1234);
+      }
+    }
+
+    WHEN("We try to decode a TOP absolute,X instruction (0x1C)") {
+      std::vector<uint8_t> bytes = {0x1C, 0xAB, 0xCD}; // TOP $CDAB,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::TripleNoOperation<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0xCDAB);
+      }
+    }
+
+    WHEN("We try to decode a TOP absolute,X instruction (0x7C)") {
+      std::vector<uint8_t> bytes = {0x7C, 0x00, 0x80}; // TOP $8000,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::TripleNoOperation<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+
+        REQUIRE(decoded_instruction.cycles == 4);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.value == 0x8000);
+      }
+    }
   }
 }

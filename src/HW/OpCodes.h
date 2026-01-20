@@ -177,20 +177,28 @@ enum class OpCode : uint8_t {
 
   // Undocumented opcodes
   // DOP (Double NOP) - No operation, reads argument but ignores it
-  DOP_Immediate_80 = 0x80,  // DOP #arg (Immediate)
-  DOP_Immediate_82 = 0x82,  // DOP #arg (Immediate)
-  DOP_Immediate_89 = 0x89,  // DOP #arg (Immediate)
-  DOP_Immediate_C2 = 0xC2,  // DOP #arg (Immediate)
-  DOP_Immediate_E2 = 0xE2,  // DOP #arg (Immediate)
-  DOP_ZeroPage_04 = 0x04,   // DOP arg (Zero Page)
-  DOP_ZeroPage_44 = 0x44,   // DOP arg (Zero Page)
-  DOP_ZeroPage_64 = 0x64,   // DOP arg (Zero Page)
-  DOP_ZeroPageX_14 = 0x14,  // DOP arg,X (Zero Page,X)
-  DOP_ZeroPageX_34 = 0x34,  // DOP arg,X (Zero Page,X)
-  DOP_ZeroPageX_54 = 0x54,  // DOP arg,X (Zero Page,X)
-  DOP_ZeroPageX_74 = 0x74,  // DOP arg,X (Zero Page,X)
-  DOP_ZeroPageX_D4 = 0xD4,  // DOP arg,X (Zero Page,X)
-  DOP_ZeroPageX_F4 = 0xF4,  // DOP arg,X (Zero Page,X)
+  DOP_Immediate_80 = 0x80, // DOP #arg (Immediate)
+  DOP_Immediate_82 = 0x82, // DOP #arg (Immediate)
+  DOP_Immediate_89 = 0x89, // DOP #arg (Immediate)
+  DOP_Immediate_C2 = 0xC2, // DOP #arg (Immediate)
+  DOP_Immediate_E2 = 0xE2, // DOP #arg (Immediate)
+  DOP_ZeroPage_04 = 0x04,  // DOP arg (Zero Page)
+  DOP_ZeroPage_44 = 0x44,  // DOP arg (Zero Page)
+  DOP_ZeroPage_64 = 0x64,  // DOP arg (Zero Page)
+  DOP_ZeroPageX_14 = 0x14, // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_34 = 0x34, // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_54 = 0x54, // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_74 = 0x74, // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_D4 = 0xD4, // DOP arg,X (Zero Page,X)
+  DOP_ZeroPageX_F4 = 0xF4, // DOP arg,X (Zero Page,X)
+
+  // TOP (Triple NOP) - No operation, reads 2-byte argument but ignores it
+  TOP_Absolute = 0x0C,     // TOP arg (Absolute)
+  TOP_AbsoluteX_1C = 0x1C, // TOP arg,X (Absolute,X)
+  TOP_AbsoluteX_3C = 0x3C, // TOP arg,X (Absolute,X)
+  TOP_AbsoluteX_5C = 0x5C, // TOP arg,X (Absolute,X)
+  TOP_AbsoluteX_7C = 0x7C, // TOP arg,X (Absolute,X)
+  TOP_AbsoluteX_DC = 0xDC, // TOP arg,X (Absolute,X)
 };
 
 enum class AddressingMode : uint8_t {
