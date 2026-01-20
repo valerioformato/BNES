@@ -234,6 +234,15 @@ enum class OpCode : uint8_t {
   DCP_AbsoluteY = 0xDB, // DCP arg,Y (Absolute,Y)
   DCP_IndirectX = 0xC3, // DCP (arg,X) (Indirect,X)
   DCP_IndirectY = 0xD3, // DCP (arg),Y (Indirect,Y)
+
+  // ISC (Increment and Subtract with Carry) - INC memory then SBC from accumulator
+  ISC_ZeroPage = 0xE7,  // ISC arg (Zero Page)
+  ISC_ZeroPageX = 0xF7, // ISC arg,X (Zero Page,X)
+  ISC_Absolute = 0xEF,  // ISC arg (Absolute)
+  ISC_AbsoluteX = 0xFF, // ISC arg,X (Absolute,X)
+  ISC_AbsoluteY = 0xFB, // ISC arg,Y (Absolute,Y)
+  ISC_IndirectX = 0xE3, // ISC (arg,X) (Indirect,X)
+  ISC_IndirectY = 0xF3, // ISC (arg),Y (Indirect,Y)
 };
 
 enum class AddressingMode : uint8_t {

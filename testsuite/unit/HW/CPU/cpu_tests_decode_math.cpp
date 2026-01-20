@@ -1486,5 +1486,110 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.address == 0x90);
       }
     }
+
+    WHEN("We try to decode an ISC zero page instruction (0xE7)") {
+      std::vector<uint8_t> bytes = {0xE7, 0x50}; // ISC $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x50);
+      }
+    }
+
+    WHEN("We try to decode an ISC zero page,X instruction (0xF7)") {
+      std::vector<uint8_t> bytes = {0xF7, 0x60}; // ISC $60,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x60);
+      }
+    }
+
+    WHEN("We try to decode an ISC absolute instruction (0xEF)") {
+      std::vector<uint8_t> bytes = {0xEF, 0x34, 0x12}; // ISC $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x1234);
+      }
+    }
+
+    WHEN("We try to decode an ISC absolute,X instruction (0xFF)") {
+      std::vector<uint8_t> bytes = {0xFF, 0xCD, 0xAB}; // ISC $ABCD,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0xABCD);
+      }
+    }
+
+    WHEN("We try to decode an ISC absolute,Y instruction (0xFB)") {
+      std::vector<uint8_t> bytes = {0xFB, 0x00, 0x05}; // ISC $0500,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x0500);
+      }
+    }
+
+    WHEN("We try to decode an ISC (indirect,X) instruction (0xE3)") {
+      std::vector<uint8_t> bytes = {0xE3, 0x80}; // ISC ($80,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x80);
+      }
+    }
+
+    WHEN("We try to decode an ISC (indirect),Y instruction (0xF3)") {
+      std::vector<uint8_t> bytes = {0xF3, 0x90}; // ISC ($90),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::IncrementAndSubtract<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x90);
+      }
+    }
   }
 }

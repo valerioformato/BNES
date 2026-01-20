@@ -2152,5 +2152,142 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
+
+    WHEN("We execute an ISC zero page instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true); // No borrow
+      cpu.WriteToMemory(0x0050, 0x2F);                      // Memory contains 0x2F
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory should be incremented to 0x30, then subtracted from A (0x50 - 0x30 = 0x20)") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0x30);        // Incremented
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x20); // Result of subtraction
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // No borrow
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute an ISC zero page,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x10);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0055, 0x0F); // Memory at $50 + X contains 0x0F
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory should be incremented to 0x10, then subtracted from A (0x10 - 0x10 = 0)") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x10);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);  // Result is zero
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // No borrow
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute an ISC absolute instruction with borrow") {
+      cpu.SetRegister(CPU::Register::A, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x1234, 0x06); // Memory contains 0x06
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory should be incremented to 0x07, then subtracted from A (0x05 - 0x07 = 0xFE)") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0x07);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFE);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false); // Borrow occurred
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute an ISC absolute,X instruction with overflow") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x1244, 0xFF); // Memory at $1234 + X contains 0xFF
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::AbsoluteX>{0x1234};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory should overflow to 0x00, then subtracted from A (0xFF - 0x00 = 0xFF)") {
+        REQUIRE(cpu.ReadFromMemory(0x1244) == 0x00);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute an ISC absolute,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x80);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0508, 0x7F); // Memory at $0500 + Y contains 0x7F
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::AbsoluteY>{0x0500};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory should be incremented to 0x80, then subtracted from A (0x80 - 0x80 = 0)") {
+        REQUIRE(cpu.ReadFromMemory(0x0508) == 0x80);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute an ISC (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x21);
+      cpu.SetRegister(CPU::Register::X, 0x0F);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      // Zero page $80 + X(0x0F) = $8F contains pointer to $0200
+      cpu.WriteToMemory(0x008F, 0x00); // Low byte
+      cpu.WriteToMemory(0x0090, 0x02); // High byte
+      cpu.WriteToMemory(0x0200, 0x1F); // Value at target address
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory at indirect address should be incremented to 0x20, then subtracted (0x21 - 0x20 = 1)") {
+        REQUIRE(cpu.ReadFromMemory(0x0200) == 0x20);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x01);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute an ISC (indirect),Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x42);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00); // Low byte
+      cpu.WriteToMemory(0x0091, 0x06); // High byte
+      cpu.WriteToMemory(0x0608, 0x42); // Value at target + Y
+
+      auto isc_instr = CPU::IncrementAndSubtract<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(isc_instr);
+
+      THEN("Memory at (indirect) + Y should be incremented to 0x43, then subtracted (0x42 - 0x43 = 0xFF)") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0x43);
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false); // Borrow
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
   }
 }
