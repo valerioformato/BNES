@@ -442,6 +442,20 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return ShiftRightAndEOR<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::SRE_IndirectY:
     return ShiftRightAndEOR<AddressingMode::IndirectY>{bytes[1]};
+  case OpCode::RRA_ZeroPage:
+    return RotateRightAndAdd<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::RRA_ZeroPageX:
+    return RotateRightAndAdd<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::RRA_Absolute:
+    return RotateRightAndAdd<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::RRA_AbsoluteX:
+    return RotateRightAndAdd<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::RRA_AbsoluteY:
+    return RotateRightAndAdd<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::RRA_IndirectX:
+    return RotateRightAndAdd<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::RRA_IndirectY:
+    return RotateRightAndAdd<AddressingMode::IndirectY>{bytes[1]};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
@@ -667,6 +681,9 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                         },
                         []<AddressingMode MODE>(const ShiftRightAndEOR<MODE> _inst) -> std::string {
                           return fmt::format("*SRE {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        []<AddressingMode MODE>(const RotateRightAndAdd<MODE> _inst) -> std::string {
+                          return fmt::format("*RRA {}", FormatOperand<MODE>(_inst.address));
                         },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
                     },

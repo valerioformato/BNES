@@ -2686,5 +2686,163 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
+
+    WHEN("We execute a RRA zero page instruction with carry clear") {
+      cpu.SetRegister(CPU::Register::A, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.WriteToMemory(0x0050, 0b00001010); // Memory contains 0x0A
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Memory should be rotated right and added to A") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0x05);        // Rotated: 0x0A >> 1 = 0x05 (carry was 0)
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x0A); // ADC: 0x05 + 0x05 + 0 = 0x0A
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RRA zero page instruction with carry set") {
+      cpu.SetRegister(CPU::Register::A, 0x00);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0050, 0b00001000); // Memory contains 0x08
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Memory should be rotated right with carry and added to A") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0x84);        // Rotated: 0x08 >> 1 | 0x80 = 0x84
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x84); // ADC: 0x00 + 0x84 + 0 = 0x84
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RRA zero page,X instruction with result producing carry") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.WriteToMemory(0x0055, 0b00000011); // Memory at $50 + X contains 0x03
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Memory should be rotated and addition should produce carry") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x01);        // Rotated: 0x03 >> 1 = 0x01
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x01); // ADC: 0xFF + 0x01 + 1 = 0x101 (wraps)
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Result overflowed
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RRA absolute instruction with overflow") {
+      cpu.SetRegister(CPU::Register::A, 0x7F);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.WriteToMemory(0x1234, 0b00000100); // Memory contains 0x04
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Overflow flag should be set") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0x02);        // Rotated: 0x04 >> 1 = 0x02
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x81); // ADC: 0x7F + 0x02 + 0 = 0x81
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == true); // Positive + Positive = Negative
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a RRA absolute,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x10);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.WriteToMemory(0x0310, 0b11111110); // Memory at $0300 + X contains 0xFE
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Memory should be rotated with carry and added") {
+        REQUIRE(cpu.ReadFromMemory(0x0310) == 0xFF);        // Rotated: 0xFE >> 1 | 0x80 = 0xFF
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x0F); // ADC: 0x10 + 0xFF + 0 = 0x10F (wraps to 0x0F)
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a RRA absolute,Y instruction resulting in zero") {
+      cpu.SetRegister(CPU::Register::A, 0x00);
+      cpu.SetRegister(CPU::Register::Y, 0x20);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.WriteToMemory(0x0820, 0b00000001); // Memory at $0800 + Y contains 0x01
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::AbsoluteY>{0x0800};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Result should be zero with carry from rotation") {
+        REQUIRE(cpu.ReadFromMemory(0x0820) == 0x00);        // Rotated: 0x01 >> 1 = 0x00
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x01); // ADC: 0x00 + 0x00 + 1 = 0x01
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a RRA (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x20);
+      cpu.SetRegister(CPU::Register::X, 0x04);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      // Zero page $80 + X = $84 contains pointer to $0500
+      cpu.WriteToMemory(0x0084, 0x00);       // Low byte
+      cpu.WriteToMemory(0x0085, 0x05);       // High byte
+      cpu.WriteToMemory(0x0500, 0b10101010); // Value at target
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Memory at (indirect,X) should be rotated and added") {
+        REQUIRE(cpu.ReadFromMemory(0x0500) == 0x55);        // Rotated: 0xAA >> 1 = 0x55
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x75); // ADC: 0x20 + 0x55 + 0 = 0x75
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RRA (indirect),Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x50);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00);       // Low byte
+      cpu.WriteToMemory(0x0091, 0x06);       // High byte
+      cpu.WriteToMemory(0x0608, 0b01100110); // Value at target + Y (0x66)
+
+      auto rra_instr = CPU::RotateRightAndAdd<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(rra_instr);
+
+      THEN("Memory at (indirect) + Y should be rotated and added") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0xB3);        // Rotated: 0x66 >> 1 | 0x80 = 0xB3
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x03); // ADC: 0x50 + 0xB3 + 0 = 0x103 (wraps to 0x03)
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
   }
 }

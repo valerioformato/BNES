@@ -273,6 +273,15 @@ enum class OpCode : uint8_t {
   SRE_AbsoluteY = 0x5B, // SRE arg,Y (Absolute,Y)
   SRE_IndirectX = 0x43, // SRE (arg,X) (Indirect,X)
   SRE_IndirectY = 0x53, // SRE (arg),Y (Indirect,Y)
+
+  // RRA (Rotate Right and Add) - ROR memory then ADC with accumulator
+  RRA_ZeroPage = 0x67,  // RRA arg (Zero Page)
+  RRA_ZeroPageX = 0x77, // RRA arg,X (Zero Page,X)
+  RRA_Absolute = 0x6F,  // RRA arg (Absolute)
+  RRA_AbsoluteX = 0x7F, // RRA arg,X (Absolute,X)
+  RRA_AbsoluteY = 0x7B, // RRA arg,Y (Absolute,Y)
+  RRA_IndirectX = 0x63, // RRA (arg,X) (Indirect,X)
+  RRA_IndirectY = 0x73, // RRA (arg),Y (Indirect,Y)
 };
 
 enum class AddressingMode : uint8_t {
