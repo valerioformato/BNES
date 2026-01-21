@@ -641,5 +641,54 @@ SCENARIO("6502 instruction disassembly tests (math ops)", "[Disassemble][Math]")
 
       THEN("It should disassemble to '*ISB ($90),Y'") { REQUIRE(disassembly == "*ISB ($90),Y"); }
     }
+
+    WHEN("We disassemble a SLO zero page instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::ZeroPage>{0x50};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO $50'") { REQUIRE(disassembly == "*SLO $50"); }
+    }
+
+    WHEN("We disassemble a SLO zero page,X instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::ZeroPageX>{0x60};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO $60,X'") { REQUIRE(disassembly == "*SLO $60,X"); }
+    }
+
+    WHEN("We disassemble a SLO absolute instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::Absolute>{0x1234};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO $1234'") { REQUIRE(disassembly == "*SLO $1234"); }
+    }
+
+    WHEN("We disassemble a SLO absolute,X instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::AbsoluteX>{0xABCD};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO $ABCD,X'") { REQUIRE(disassembly == "*SLO $ABCD,X"); }
+    }
+
+    WHEN("We disassemble a SLO absolute,Y instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::AbsoluteY>{0x0500};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO $0500,Y'") { REQUIRE(disassembly == "*SLO $0500,Y"); }
+    }
+
+    WHEN("We disassemble a SLO (indirect,X) instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::IndirectX>{0x80};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO ($80,X)'") { REQUIRE(disassembly == "*SLO ($80,X)"); }
+    }
+
+    WHEN("We disassemble a SLO (indirect),Y instruction") {
+      auto instruction = CPU::ShiftLeftAndOR<AddressingMode::IndirectY>{0x90};
+      auto disassembly = cpu.DisassembleInstruction(instruction);
+
+      THEN("It should disassemble to '*SLO ($90),Y'") { REQUIRE(disassembly == "*SLO ($90),Y"); }
+    }
   }
 }

@@ -400,6 +400,20 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return IncrementAndSubtract<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::ISB_IndirectY:
     return IncrementAndSubtract<AddressingMode::IndirectY>{bytes[1]};
+  case OpCode::SLO_ZeroPage:
+    return ShiftLeftAndOR<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::SLO_ZeroPageX:
+    return ShiftLeftAndOR<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::SLO_Absolute:
+    return ShiftLeftAndOR<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SLO_AbsoluteX:
+    return ShiftLeftAndOR<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SLO_AbsoluteY:
+    return ShiftLeftAndOR<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SLO_IndirectX:
+    return ShiftLeftAndOR<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::SLO_IndirectY:
+    return ShiftLeftAndOR<AddressingMode::IndirectY>{bytes[1]};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
@@ -616,6 +630,9 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                         },
                         []<AddressingMode MODE>(const IncrementAndSubtract<MODE> _inst) -> std::string {
                           return fmt::format("*ISB {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        []<AddressingMode MODE>(const ShiftLeftAndOR<MODE> _inst) -> std::string {
+                          return fmt::format("*SLO {}", FormatOperand<MODE>(_inst.address));
                         },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
                     },

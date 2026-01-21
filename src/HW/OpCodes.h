@@ -244,6 +244,16 @@ enum class OpCode : uint8_t {
   ISB_AbsoluteY = 0xFB, // ISB arg,Y (Absolute,Y)
   ISB_IndirectX = 0xE3, // ISB (arg,X) (Indirect,X)
   ISB_IndirectY = 0xF3, // ISB (arg),Y (Indirect,Y)
+
+  // SLO (Shift Left and OR) - ASL memory then ORA with accumulator
+  // Also known as ASO
+  SLO_ZeroPage = 0x07,  // SLO arg (Zero Page)
+  SLO_ZeroPageX = 0x17, // SLO arg,X (Zero Page,X)
+  SLO_Absolute = 0x0F,  // SLO arg (Absolute)
+  SLO_AbsoluteX = 0x1F, // SLO arg,X (Absolute,X)
+  SLO_AbsoluteY = 0x1B, // SLO arg,Y (Absolute,Y)
+  SLO_IndirectX = 0x03, // SLO (arg,X) (Indirect,X)
+  SLO_IndirectY = 0x13, // SLO (arg),Y (Indirect,Y)
 };
 
 enum class AddressingMode : uint8_t {

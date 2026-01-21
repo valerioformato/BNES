@@ -393,6 +393,17 @@ public:
     uint16_t address{0};
   };
 
+  // undocumented
+  template <AddressingMode MODE> struct ShiftLeftAndOR : DecodedInstruction {
+    ShiftLeftAndOR() = delete;
+    explicit ShiftLeftAndOR(uint16_t);
+
+    void Apply(CPU &cpu) const;
+
+    static constexpr AddressingMode AddrMode() { return MODE; }
+    uint16_t address{0};
+  };
+
   // clang-format off
   using Instruction = std::variant<
       Break,
@@ -581,7 +592,14 @@ public:
       IncrementAndSubtract<AddressingMode::AbsoluteX>,
       IncrementAndSubtract<AddressingMode::AbsoluteY>,
       IncrementAndSubtract<AddressingMode::IndirectX>,
-      IncrementAndSubtract<AddressingMode::IndirectY>
+      IncrementAndSubtract<AddressingMode::IndirectY>,
+      ShiftLeftAndOR<AddressingMode::ZeroPage>,
+      ShiftLeftAndOR<AddressingMode::ZeroPageX>,
+      ShiftLeftAndOR<AddressingMode::Absolute>,
+      ShiftLeftAndOR<AddressingMode::AbsoluteX>,
+      ShiftLeftAndOR<AddressingMode::AbsoluteY>,
+      ShiftLeftAndOR<AddressingMode::IndirectX>,
+      ShiftLeftAndOR<AddressingMode::IndirectY>
       >;
   // clang-format on
 
@@ -1547,6 +1565,66 @@ template <AddressingMode MODE> void CPU::BitwiseOR<MODE>::Apply(CPU &cpu) const 
   cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
 }
 
+template <AddressingMode MODE> void CPU::ShiftLeftAndOR<MODE>::Apply(CPU &cpu) const {
+  uint8_t value_to_shift = 0;
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    value_to_shift = cpu.ReadFromMemory(address & 0xFF);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    value_to_shift = cpu.ReadFromMemory((address + cpu.m_registers[Register::X]) & 0xFF);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    value_to_shift = cpu.ReadFromMemory(address);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    value_to_shift = cpu.ReadFromMemory(address + cpu.m_registers[Register::X]);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    value_to_shift = cpu.ReadFromMemory(address + cpu.m_registers[Register::Y]);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr_low = (address + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (address + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    value_to_shift = cpu.ReadFromMemory(real_addr);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr target_addr_low = address & 0xFF;
+    Addr target_addr_high = (address + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    value_to_shift = cpu.ReadFromMemory(real_addr + cpu.m_registers[Register::Y]);
+  } else {
+    TODO(fmt::format("ShiftLeftAndOR<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  uint16_t shifted_value = value_to_shift << 1;
+  uint8_t value_to_store = shifted_value & 0xFF;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    cpu.WriteToMemory(address & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    cpu.WriteToMemory((address + cpu.m_registers[Register::X]) & 0xFF, value_to_store);
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    cpu.WriteToMemory(address, value_to_store);
+  } else if constexpr (MODE == AddressingMode::AbsoluteX) {
+    cpu.WriteToMemory(address + cpu.m_registers[Register::X], value_to_store);
+  } else if constexpr (MODE == AddressingMode::AbsoluteY) {
+    cpu.WriteToMemory(address + cpu.m_registers[Register::Y], value_to_store);
+  } else if constexpr (MODE == AddressingMode::IndirectX) {
+    Addr target_addr_low = (address + cpu.m_registers[Register::X]) & 0xFF;
+    Addr target_addr_high = (address + cpu.m_registers[Register::X] + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    cpu.WriteToMemory(real_addr, value_to_store);
+  } else if constexpr (MODE == AddressingMode::IndirectY) {
+    Addr target_addr_low = address & 0xFF;
+    Addr target_addr_high = (address + 1) & 0xFF;
+    Addr real_addr = cpu.ReadFromMemory(target_addr_high) << 8 | cpu.ReadFromMemory(target_addr_low);
+    cpu.WriteToMemory(real_addr + cpu.m_registers[Register::Y], value_to_store);
+  } else {
+    TODO(fmt::format("ShiftLeftAndOR<{}>::Apply not implemented", magic_enum::enum_name(MODE)));
+  }
+
+  cpu.m_registers[Register::A] |= value_to_store;
+
+  cpu.SetStatusFlagValue(StatusFlag::Zero, cpu.m_registers[Register::A] == 0);
+  cpu.SetStatusFlagValue(StatusFlag::Negative, cpu.m_registers[Register::A] & 0x80);
+  cpu.SetStatusFlagValue(StatusFlag::Carry, shifted_value & 0x100);
+}
+
 // Constructors
 template <CPU::Register REG, AddressingMode MODE> CPU::LoadRegister<REG, MODE>::LoadRegister(uint16_t _value) {
   this->size = 2;
@@ -1978,6 +2056,28 @@ template <AddressingMode MODE> CPU::DecrementAndCompare<MODE>::DecrementAndCompa
 }
 
 template <AddressingMode MODE> CPU::IncrementAndSubtract<MODE>::IncrementAndSubtract(uint16_t addr) {
+  this->size = 2;
+
+  if constexpr (MODE == AddressingMode::ZeroPage) {
+    this->cycles = 5;
+  } else if constexpr (MODE == AddressingMode::ZeroPageX) {
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::Absolute) {
+    this->size = 3;
+    this->cycles = 6;
+  } else if constexpr (MODE == AddressingMode::AbsoluteX || MODE == AddressingMode::AbsoluteY) {
+    this->size = 3;
+    this->cycles = 7;
+  } else if constexpr (MODE == AddressingMode::IndirectX || MODE == AddressingMode::IndirectY) {
+    this->cycles = 8;
+  } else {
+    std::unreachable();
+  }
+
+  address = addr;
+}
+
+template <AddressingMode MODE> CPU::ShiftLeftAndOR<MODE>::ShiftLeftAndOR(uint16_t addr) {
   this->size = 2;
 
   if constexpr (MODE == AddressingMode::ZeroPage) {

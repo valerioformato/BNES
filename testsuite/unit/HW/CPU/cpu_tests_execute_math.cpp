@@ -2289,5 +2289,135 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
+
+    WHEN("We execute a SLO zero page instruction") {
+      cpu.SetRegister(CPU::Register::A, 0b00001111);
+      cpu.WriteToMemory(0x0050, 0b01010101); // Memory contains 0x55
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory should be shifted left to 0xAA and OR'd with A to give 0xAF") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0xAA);        // Shifted: 0x55 << 1 = 0xAA
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xAF); // OR: 0x0F | 0xAA = 0xAF
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);   // No bit shifted out
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xAF has bit 7 set
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SLO zero page,X instruction with carry") {
+      cpu.SetRegister(CPU::Register::A, 0x00);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x0055, 0x80); // Memory at $50 + X contains 0x80 (bit 7 set)
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory should be shifted left with carry set") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x00);        // Shifted: 0x80 << 1 = 0x00
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00); // OR: 0x00 | 0x00 = 0x00
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Bit 7 was shifted out
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SLO absolute instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x01);
+      cpu.WriteToMemory(0x1234, 0x22); // Memory contains 0x22
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory should be shifted and OR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0x44);        // Shifted: 0x22 << 1 = 0x44
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x45); // OR: 0x01 | 0x44 = 0x45
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a SLO absolute,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.WriteToMemory(0x0310, 0x0F); // Memory at $0300 + X contains 0x0F
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory should be shifted and OR'd with A") {
+        REQUIRE(cpu.ReadFromMemory(0x0310) == 0x1E);        // Shifted: 0x0F << 1 = 0x1E
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF); // OR: 0xFF | 0x1E = 0xFF
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a SLO absolute,Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0b10000000);
+      cpu.SetRegister(CPU::Register::Y, 0x20);
+      cpu.WriteToMemory(0x0320, 0b01000000); // Memory at $0300 + Y contains 0x40
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::AbsoluteY>{0x0300};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory should be shifted and OR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0320) == 0x80);        // Shifted: 0x40 << 1 = 0x80
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x80); // OR: 0x80 | 0x80 = 0x80
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a SLO (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x03);
+      cpu.SetRegister(CPU::Register::X, 0x04);
+      // Zero page $80 + X ($84) contains pointer to $0400
+      cpu.WriteToMemory(0x0084, 0x00); // Low byte
+      cpu.WriteToMemory(0x0085, 0x04); // High byte
+      cpu.WriteToMemory(0x0400, 0x11); // Value at target
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory at (indirect,X) should be shifted and OR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0400) == 0x22);        // Shifted: 0x11 << 1 = 0x22
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x23); // OR: 0x03 | 0x22 = 0x23
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SLO (indirect),Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xF0);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00); // Low byte
+      cpu.WriteToMemory(0x0091, 0x06); // High byte
+      cpu.WriteToMemory(0x0608, 0x33); // Value at target + Y
+
+      auto slo_instr = CPU::ShiftLeftAndOR<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(slo_instr);
+
+      THEN("Memory at (indirect) + Y should be shifted and OR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0x66);        // Shifted: 0x33 << 1 = 0x66
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xF6); // OR: 0xF0 | 0x66 = 0xF6
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
   }
 }
