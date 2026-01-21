@@ -2419,5 +2419,272 @@ SCENARIO("6502 instruction execution tests (logical ops)") {
         REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
       }
     }
+
+    WHEN("We execute a RLA zero page instruction with carry clear") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0b11111111);
+      cpu.WriteToMemory(0x0050, 0b01010101); // Memory contains 0x55
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory should be rotated left (carry=0 in bit 0) and AND'd with A") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0xAA);        // Rotated: 0x55 << 1 | 0 = 0xAA
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xAA); // AND: 0xFF & 0xAA = 0xAA
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);   // Bit 7 of 0x55 was 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xAA has bit 7 set
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RLA zero page,X instruction with carry set") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetRegister(CPU::Register::A, 0b11110000);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x0055, 0b10000000); // Memory at $50 + X contains 0x80 (bit 7 set)
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory should be rotated left with carry in bit 0 and carry out set") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x01);        // Rotated: 0x80 << 1 | 1 = 0x01
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00); // AND: 0xF0 & 0x01 = 0x00
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Bit 7 was 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RLA absolute instruction") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0b00001111);
+      cpu.WriteToMemory(0x1234, 0b01000010); // Memory contains 0x42
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory should be rotated and AND'd") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0x84);        // Rotated: 0x42 << 1 = 0x84
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x04); // AND: 0x0F & 0x84 = 0x04
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a RLA absolute,X instruction") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.WriteToMemory(0x0310, 0b01111111); // Memory at $0300 + X contains 0x7F
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory should be rotated and AND'd with A") {
+        REQUIRE(cpu.ReadFromMemory(0x0310) == 0xFF);        // Rotated: 0x7F << 1 | 1 = 0xFF
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF); // AND: 0xFF & 0xFF = 0xFF
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false); // Bit 7 of 0x7F was 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a RLA absolute,Y instruction") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0b11000000);
+      cpu.SetRegister(CPU::Register::Y, 0x20);
+      cpu.WriteToMemory(0x0320, 0b11000000); // Memory at $0300 + Y contains 0xC0
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::AbsoluteY>{0x0300};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory should be rotated and AND'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0320) == 0x80);        // Rotated: 0xC0 << 1 = 0x80
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x80); // AND: 0xC0 & 0x80 = 0x80
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Bit 7 was 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a RLA (indirect,X) instruction") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, true);
+      cpu.SetRegister(CPU::Register::A, 0b10101010);
+      cpu.SetRegister(CPU::Register::X, 0x04);
+      // Zero page $80 + X ($84) contains pointer to $0400
+      cpu.WriteToMemory(0x0084, 0x00);       // Low byte
+      cpu.WriteToMemory(0x0085, 0x04);       // High byte
+      cpu.WriteToMemory(0x0400, 0b00110011); // Value at target
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory at (indirect,X) should be rotated and AND'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0400) == 0x67);        // Rotated: 0x33 << 1 | 1 = 0x67
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x22); // AND: 0xAA & 0x67 = 0x22
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a RLA (indirect),Y instruction") {
+      cpu.SetStatusFlagValue(CPU::StatusFlag::Carry, false);
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00);       // Low byte
+      cpu.WriteToMemory(0x0091, 0x06);       // High byte
+      cpu.WriteToMemory(0x0608, 0b10101010); // Value at target + Y
+
+      auto rla_instr = CPU::RotateLeftAndAND<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(rla_instr);
+
+      THEN("Memory at (indirect) + Y should be rotated and AND'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0x54);        // Rotated: 0xAA << 1 = 0x54
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x54); // AND: 0xFF & 0x54 = 0x54
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Bit 7 was 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SRE zero page instruction") {
+      cpu.SetRegister(CPU::Register::A, 0b11110000);
+      cpu.WriteToMemory(0x0050, 0b10101010); // Memory contains 0xAA
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::ZeroPage>{0x50};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory should be shifted right and XOR'd with A") {
+        REQUIRE(cpu.ReadFromMemory(0x0050) == 0x55);        // Shifted: 0xAA >> 1 = 0x55
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xA5); // XOR: 0xF0 ^ 0x55 = 0xA5
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);   // Bit 0 of 0xAA was 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true); // 0xA5 has bit 7 set
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SRE zero page,X instruction with carry") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::X, 0x05);
+      cpu.WriteToMemory(0x0055, 0b00000001); // Memory at $50 + X contains 0x01 (bit 0 set)
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::ZeroPageX>{0x50};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory should be shifted right with carry set") {
+        REQUIRE(cpu.ReadFromMemory(0x0055) == 0x00);        // Shifted: 0x01 >> 1 = 0x00
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0xFF); // XOR: 0xFF ^ 0x00 = 0xFF
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Bit 0 was 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SRE absolute instruction") {
+      cpu.SetRegister(CPU::Register::A, 0b00001111);
+      cpu.WriteToMemory(0x1234, 0b10000100); // Memory contains 0x84
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::Absolute>{0x1234};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory should be shifted and XOR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x1234) == 0x42);        // Shifted: 0x84 >> 1 = 0x42
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x4D); // XOR: 0x0F ^ 0x42 = 0x4D
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a SRE absolute,X instruction") {
+      cpu.SetRegister(CPU::Register::A, 0x00);
+      cpu.SetRegister(CPU::Register::X, 0x10);
+      cpu.WriteToMemory(0x0310, 0b11111110); // Memory at $0300 + X contains 0xFE
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::AbsoluteX>{0x0300};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory should be shifted and XOR'd with A") {
+        REQUIRE(cpu.ReadFromMemory(0x0310) == 0x7F);        // Shifted: 0xFE >> 1 = 0x7F
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x7F); // XOR: 0x00 ^ 0x7F = 0x7F
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false); // Bit 0 of 0xFE was 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a SRE absolute,Y instruction resulting in zero") {
+      cpu.SetRegister(CPU::Register::A, 0b01000000);
+      cpu.SetRegister(CPU::Register::Y, 0x20);
+      cpu.WriteToMemory(0x0320, 0b10000001); // Memory at $0300 + Y contains 0x81
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::AbsoluteY>{0x0300};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory should be shifted and XOR'd to produce zero") {
+        REQUIRE(cpu.ReadFromMemory(0x0320) == 0x40);        // Shifted: 0x81 >> 1 = 0x40
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x00); // XOR: 0x40 ^ 0x40 = 0x00
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true); // Bit 0 was 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == false);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 3);
+      }
+    }
+
+    WHEN("We execute a SRE (indirect,X) instruction") {
+      cpu.SetRegister(CPU::Register::A, 0b10101010);
+      cpu.SetRegister(CPU::Register::X, 0x04);
+      // Zero page $80 + X ($84) contains pointer to $0400
+      cpu.WriteToMemory(0x0084, 0x00);       // Low byte
+      cpu.WriteToMemory(0x0085, 0x04);       // High byte
+      cpu.WriteToMemory(0x0400, 0b01100110); // Value at target
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::IndirectX>{0x80};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory at (indirect,X) should be shifted and XOR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0400) == 0x33);        // Shifted: 0x66 >> 1 = 0x33
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x99); // XOR: 0xAA ^ 0x33 = 0x99
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
+
+    WHEN("We execute a SRE (indirect),Y instruction") {
+      cpu.SetRegister(CPU::Register::A, 0xFF);
+      cpu.SetRegister(CPU::Register::Y, 0x08);
+      // Zero page $90 contains pointer to $0600
+      cpu.WriteToMemory(0x0090, 0x00);       // Low byte
+      cpu.WriteToMemory(0x0091, 0x06);       // High byte
+      cpu.WriteToMemory(0x0608, 0b11001100); // Value at target + Y
+
+      auto sre_instr = CPU::ShiftRightAndEOR<AddressingMode::IndirectY>{0x90};
+      cpu.RunInstruction(sre_instr);
+
+      THEN("Memory at (indirect) + Y should be shifted and XOR'd") {
+        REQUIRE(cpu.ReadFromMemory(0x0608) == 0x66);        // Shifted: 0xCC >> 1 = 0x66
+        REQUIRE(cpu.Registers()[CPU::Register::A] == 0x99); // XOR: 0xFF ^ 0x66 = 0x99
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == false);
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == false); // Bit 0 was 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);
+        REQUIRE(cpu.ProgramCounter() == original_program_counter + 2);
+      }
+    }
   }
 }

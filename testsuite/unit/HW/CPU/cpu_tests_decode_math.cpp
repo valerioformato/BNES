@@ -1696,5 +1696,215 @@ SCENARIO("6502 instruction decoding tests (math ops)", "[Decode][Math]") {
         REQUIRE(decoded_instruction.address == 0x90);
       }
     }
+
+    WHEN("We try to decode a RLA zero page instruction (0x27)") {
+      std::vector<uint8_t> bytes = {0x27, 0x50}; // RLA $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x50);
+      }
+    }
+
+    WHEN("We try to decode a RLA zero page,X instruction (0x37)") {
+      std::vector<uint8_t> bytes = {0x37, 0x60}; // RLA $60,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x60);
+      }
+    }
+
+    WHEN("We try to decode a RLA absolute instruction (0x2F)") {
+      std::vector<uint8_t> bytes = {0x2F, 0x34, 0x12}; // RLA $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x1234);
+      }
+    }
+
+    WHEN("We try to decode a RLA absolute,X instruction (0x3F)") {
+      std::vector<uint8_t> bytes = {0x3F, 0xCD, 0xAB}; // RLA $ABCD,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0xABCD);
+      }
+    }
+
+    WHEN("We try to decode a RLA absolute,Y instruction (0x3B)") {
+      std::vector<uint8_t> bytes = {0x3B, 0x00, 0x80}; // RLA $8000,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x8000);
+      }
+    }
+
+    WHEN("We try to decode a RLA (indirect,X) instruction (0x23)") {
+      std::vector<uint8_t> bytes = {0x23, 0x80}; // RLA ($80,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x80);
+      }
+    }
+
+    WHEN("We try to decode a RLA (indirect),Y instruction (0x33)") {
+      std::vector<uint8_t> bytes = {0x33, 0x90}; // RLA ($90),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::RotateLeftAndAND<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x90);
+      }
+    }
+
+    WHEN("We try to decode a SRE zero page instruction (0x47)") {
+      std::vector<uint8_t> bytes = {0x47, 0x50}; // SRE $50
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::ZeroPage>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 5);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x50);
+      }
+    }
+
+    WHEN("We try to decode a SRE zero page,X instruction (0x57)") {
+      std::vector<uint8_t> bytes = {0x57, 0x60}; // SRE $60,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::ZeroPageX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x60);
+      }
+    }
+
+    WHEN("We try to decode a SRE absolute instruction (0x4F)") {
+      std::vector<uint8_t> bytes = {0x4F, 0x34, 0x12}; // SRE $1234
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::Absolute>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 6);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x1234);
+      }
+    }
+
+    WHEN("We try to decode a SRE absolute,X instruction (0x5F)") {
+      std::vector<uint8_t> bytes = {0x5F, 0xCD, 0xAB}; // SRE $ABCD,X
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::AbsoluteX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0xABCD);
+      }
+    }
+
+    WHEN("We try to decode a SRE absolute,Y instruction (0x5B)") {
+      std::vector<uint8_t> bytes = {0x5B, 0x00, 0x80}; // SRE $8000,Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::AbsoluteY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 7);
+        REQUIRE(decoded_instruction.size == 3);
+        REQUIRE(decoded_instruction.address == 0x8000);
+      }
+    }
+
+    WHEN("We try to decode a SRE (indirect,X) instruction (0x43)") {
+      std::vector<uint8_t> bytes = {0x43, 0x80}; // SRE ($80,X)
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::IndirectX>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x80);
+      }
+    }
+
+    WHEN("We try to decode a SRE (indirect),Y instruction (0x53)") {
+      std::vector<uint8_t> bytes = {0x53, 0x90}; // SRE ($90),Y
+      auto instruction = cpu.DecodeInstruction(bytes);
+
+      THEN("It should decode correctly") {
+        using ExpectedInstruction = CPU::ShiftRightAndEOR<AddressingMode::IndirectY>;
+        REQUIRE(std::holds_alternative<ExpectedInstruction>(instruction));
+
+        auto decoded_instruction = std::get<ExpectedInstruction>(instruction);
+        REQUIRE(decoded_instruction.cycles == 8);
+        REQUIRE(decoded_instruction.size == 2);
+        REQUIRE(decoded_instruction.address == 0x90);
+      }
+    }
   }
 }

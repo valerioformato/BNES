@@ -414,6 +414,34 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
     return ShiftLeftAndOR<AddressingMode::IndirectX>{bytes[1]};
   case OpCode::SLO_IndirectY:
     return ShiftLeftAndOR<AddressingMode::IndirectY>{bytes[1]};
+  case OpCode::RLA_ZeroPage:
+    return RotateLeftAndAND<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::RLA_ZeroPageX:
+    return RotateLeftAndAND<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::RLA_Absolute:
+    return RotateLeftAndAND<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::RLA_AbsoluteX:
+    return RotateLeftAndAND<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::RLA_AbsoluteY:
+    return RotateLeftAndAND<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::RLA_IndirectX:
+    return RotateLeftAndAND<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::RLA_IndirectY:
+    return RotateLeftAndAND<AddressingMode::IndirectY>{bytes[1]};
+  case OpCode::SRE_ZeroPage:
+    return ShiftRightAndEOR<AddressingMode::ZeroPage>{bytes[1]};
+  case OpCode::SRE_ZeroPageX:
+    return ShiftRightAndEOR<AddressingMode::ZeroPageX>{bytes[1]};
+  case OpCode::SRE_Absolute:
+    return ShiftRightAndEOR<AddressingMode::Absolute>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SRE_AbsoluteX:
+    return ShiftRightAndEOR<AddressingMode::AbsoluteX>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SRE_AbsoluteY:
+    return ShiftRightAndEOR<AddressingMode::AbsoluteY>{uint16_t(bytes[2] << 8 | bytes[1])};
+  case OpCode::SRE_IndirectX:
+    return ShiftRightAndEOR<AddressingMode::IndirectX>{bytes[1]};
+  case OpCode::SRE_IndirectY:
+    return ShiftRightAndEOR<AddressingMode::IndirectY>{bytes[1]};
   default:
     spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
@@ -633,6 +661,12 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                         },
                         []<AddressingMode MODE>(const ShiftLeftAndOR<MODE> _inst) -> std::string {
                           return fmt::format("*SLO {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        []<AddressingMode MODE>(const RotateLeftAndAND<MODE> _inst) -> std::string {
+                          return fmt::format("*RLA {}", FormatOperand<MODE>(_inst.address));
+                        },
+                        []<AddressingMode MODE>(const ShiftRightAndEOR<MODE> _inst) -> std::string {
+                          return fmt::format("*SRE {}", FormatOperand<MODE>(_inst.address));
                         },
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
                     },

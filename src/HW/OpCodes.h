@@ -254,6 +254,25 @@ enum class OpCode : uint8_t {
   SLO_AbsoluteY = 0x1B, // SLO arg,Y (Absolute,Y)
   SLO_IndirectX = 0x03, // SLO (arg,X) (Indirect,X)
   SLO_IndirectY = 0x13, // SLO (arg),Y (Indirect,Y)
+
+  // RLA (Rotate Left and AND) - ROL memory then AND with accumulator
+  RLA_ZeroPage = 0x27,  // RLA arg (Zero Page)
+  RLA_ZeroPageX = 0x37, // RLA arg,X (Zero Page,X)
+  RLA_Absolute = 0x2F,  // RLA arg (Absolute)
+  RLA_AbsoluteX = 0x3F, // RLA arg,X (Absolute,X)
+  RLA_AbsoluteY = 0x3B, // RLA arg,Y (Absolute,Y)
+  RLA_IndirectX = 0x23, // RLA (arg,X) (Indirect,X)
+  RLA_IndirectY = 0x33, // RLA (arg),Y (Indirect,Y)
+
+  // SRE (Shift Right and EOR) - LSR memory then EOR with accumulator
+  // Also known as LSE
+  SRE_ZeroPage = 0x47,  // SRE arg (Zero Page)
+  SRE_ZeroPageX = 0x57, // SRE arg,X (Zero Page,X)
+  SRE_Absolute = 0x4F,  // SRE arg (Absolute)
+  SRE_AbsoluteX = 0x5F, // SRE arg,X (Absolute,X)
+  SRE_AbsoluteY = 0x5B, // SRE arg,Y (Absolute,Y)
+  SRE_IndirectX = 0x43, // SRE (arg,X) (Indirect,X)
+  SRE_IndirectY = 0x53, // SRE (arg),Y (Indirect,Y)
 };
 
 enum class AddressingMode : uint8_t {
