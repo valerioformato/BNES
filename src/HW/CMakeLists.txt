@@ -1,2 +1,2 @@
-add_library(NESHW STATIC CPU.cpp Bus.cpp Rom.cpp Instructions/LoadStoreInstructions.cpp Instructions/ArithmeticInstructions.cpp Instructions/LogicalAndCompareInstructions.cpp Instructions/ShiftRotateInstructions.cpp Instructions/ControlFlowInstructions.cpp Instructions/UndocumentedInstructions.cpp Instructions/MiscellaneousInstructions.cpp)
+add_library(NESHW STATIC CPU.cpp PPU.cpp Bus.cpp Rom.cpp Instructions/LoadStoreInstructions.cpp Instructions/ArithmeticInstructions.cpp Instructions/LogicalAndCompareInstructions.cpp Instructions/ShiftRotateInstructions.cpp Instructions/ControlFlowInstructions.cpp Instructions/UndocumentedInstructions.cpp Instructions/MiscellaneousInstructions.cpp)
 target_link_libraries(NESHW PUBLIC magic_enum::magic_enum spdlog::spdlog)
