@@ -9,6 +9,7 @@
 #include "common/Types/EnumArray.h"
 
 #include <array>
+#include <bitset>
 #include <cstdint>
 #include <span>
 
@@ -18,18 +19,45 @@ class PPU {
 public:
   friend class Bus;
 
+  static constexpr uint16_t MAX_ADDRESSABLE_CHR_ROM_ADDRESS = 0x1FFF;
+  static constexpr uint16_t VRAM_START_ADDRESS = 0x2000;
+  static constexpr uint16_t MAX_ADDRESSABLE_VRAM_ADDRESS = 0x2FFF;
+  static constexpr uint16_t PALETTE_TABLE_START_ADDRESS = 0x3F00;
+  static constexpr uint16_t MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS = 0x3FFF;
+
   using Addr = Bus::Addr;
   enum class MMIORegister {
     Address,
   };
-  enum class Register { V, T, X, W };
+  enum class Register { V = 0, T, X, W };
 
   PPU() = delete;
   explicit PPU(Bus &bus)
       : m_bus{&bus}, m_mirroring{m_bus->Rom().mirroring}, m_character_rom{m_bus->Rom().character_rom} {};
 
   [[nodiscard]] EnumArray<uint16_t, Register> InternalRegisters() const { return m_internal_registers; };
-  [[nodiscard]] EnumArray<uint16_t, MMIORegister> MMIORegisters() const { return m_mmio_registers; };
+
+protected:
+  void WritePPUADDR(uint8_t value);
+  void WritePPUCTRL(uint8_t value);
+
+  [[nodiscard]] ErrorOr<uint8_t> ReadPPUDATA();
+
+  // Getter for the PPUADDR register
+  [[nodiscard]] uint16_t AddressRegister() const { return m_address_register; };
+
+  // Helper getters for PPUCTRL settings
+  [[nodiscard]] uint8_t BaseNametableAddress() const { return m_control_register & 0b00000011; };
+  [[nodiscard]] bool VRAMAddressIncrement() const { return m_control_register & 0b00000100; };
+  [[nodiscard]] bool SpritePatternTableAddress() const { return m_control_register & 0b00001000; };
+  [[nodiscard]] bool BackgroundPatternTableAddress() const { return m_control_register & 0b00010000; };
+  [[nodiscard]] bool SpriteSize() const { return m_control_register & 0b00100000; };
+  [[nodiscard]] bool PPUMasterSlaveSelect() const { return m_control_register & 0b01000000; };
+  [[nodiscard]] bool VblankNMIEnable() const { return m_control_register & 0b10000000; };
+
+  // Protected members for testing
+  std::array<uint8_t, 32> m_palette_table{0};
+  std::array<uint8_t, 0x800> m_vram{0};
 
 private:
   non_owning_ptr<Bus *> m_bus;
@@ -37,14 +65,14 @@ private:
   Rom::Mirroring m_mirroring{Rom::Mirroring::Vertical};
 
   std::span<const uint8_t> m_character_rom;
-  std::array<uint8_t, 32> m_palette_table{0};
   std::array<uint8_t, 256> m_oam_data{0};
 
+  uint8_t m_control_register;
+  Addr m_address_register;
   EnumArray<uint16_t, Register> m_internal_registers{};
-  EnumArray<uint16_t, MMIORegister> m_mmio_registers{};
 
-protected:
-  void WritePPUADDR(uint8_t value);
+  Addr m_vram_address_increment{1};
+  uint8_t m_read_buffer{0};
 };
 
 } // namespace BNES::HW

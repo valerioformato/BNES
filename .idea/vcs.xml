@@ -5,6 +5,12 @@
     <mapping directory="$PROJECT_DIR$/vendor/Catch2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/freetype" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/freetype/subprojects/dlg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/harfbuzz" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/plutosvg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/plutosvg/plutovg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/plutovg" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/magic_enum" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/spdlog" vcs="Git" />
   </component>

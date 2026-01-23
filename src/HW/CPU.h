@@ -30,6 +30,7 @@ public:
     Negative
   };
 
+  CPU() = delete;
   explicit CPU(Bus &bus) : m_bus{&bus} {}
 
   // Helper functions to inspect the state of the CPU
@@ -664,14 +665,6 @@ public:
   [[nodiscard]] std::string DisassembleInstruction(const Instruction &instr) const;
   [[nodiscard]] Instruction CurrentInstruction() const { return m_current_instruction; }
 };
-
-
-
-// Constructors
-
-
-
-
 } // namespace BNES::HW
 
 #endif
