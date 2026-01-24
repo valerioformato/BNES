@@ -34,9 +34,7 @@ void PPU::WritePPUCTRL(uint8_t value) {
 }
 
 ErrorOr<uint8_t> PPU::ReadPPUDATA() {
-  static uint8_t buffered_value{0};
-
-  uint8_t value_to_return{buffered_value};
+  uint8_t value_to_return{m_read_buffer};
 
   auto mirrored_address = [this](Addr address) -> Addr {
     Addr mirrored_vram = address & 0b10111111111111;
@@ -59,18 +57,24 @@ ErrorOr<uint8_t> PPU::ReadPPUDATA() {
   };
 
   if (m_address_register <= MAX_ADDRESSABLE_CHR_ROM_ADDRESS) {
-    buffered_value = m_character_rom[m_address_register];
+    m_read_buffer = m_character_rom[m_address_register];
   } else if (m_address_register >= VRAM_START_ADDRESS && m_address_register <= MAX_ADDRESSABLE_VRAM_ADDRESS) {
-    // TODO: Check if mirroring correct
-    buffered_value = m_vram[mirrored_address(m_address_register)];
-  } else if (m_address_register > PALETTE_TABLE_START_ADDRESS &&
+    m_read_buffer = m_vram[mirrored_address(m_address_register)];
+  } else if (m_address_register >= PALETTE_TABLE_START_ADDRESS &&
              m_address_register <= MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS) {
-    buffered_value = m_palette_table[m_address_register - PALETTE_TABLE_START_ADDRESS];
+    uint16_t palette_offset = (m_address_register - PALETTE_TABLE_START_ADDRESS) % 0x20;
+    value_to_return = m_palette_table[palette_offset];
+    // Palette reads also update the buffer with the "underneath" nametable memory
+    // $3Fxx maps to $2Fxx underneath (following $3xxx -> $2xxx mirror pattern)
+
+    // TODO: check this if possible. Not sure how this interacts with different mirrorings
+    Addr underlying_address = m_address_register - 0x1000;
+    m_read_buffer = m_vram[mirrored_address(underlying_address)];
   } else {
     throw std::runtime_error(fmt::format("Invalid read of PPUADDR value {}", m_address_register));
   }
 
   m_address_register += m_vram_address_increment;
-   return value_to_return;
+  return value_to_return;
 }
 } // namespace BNES::HW
