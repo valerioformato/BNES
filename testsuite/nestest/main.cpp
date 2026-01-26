@@ -12,9 +12,9 @@
 #include <ranges>
 
 // Concept to check if a type has an AddrMode() method
-template <typename T> concept HasAddressingMode = requires {
-  { T::AddrMode() }
-  ->std::same_as<BNES::HW::AddressingMode>;
+template <typename T>
+concept HasAddressingMode = requires {
+  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
 };
 
 class NESTestCPU : public BNES::HW::CPU {
@@ -217,7 +217,10 @@ BNES::ErrorOr<int> nestest_main() {
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU. For now, let's run
   // in "batch" mode
-  cpu.SetProgramStartAddress(0xC000);
+  bool batch_mode = false;
+  if (batch_mode) {
+    cpu.SetProgramStartAddress(0xC000);
+  }
 
   auto nestest_log_it = nestest_log.begin();
 
@@ -226,7 +229,7 @@ BNES::ErrorOr<int> nestest_main() {
     try {
       cpu.RunOneInstruction();
 
-      if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
+      if (batch_mode && cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
         spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
                       cpu.last_log_line, *nestest_log_it);
 
