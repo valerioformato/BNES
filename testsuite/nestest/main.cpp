@@ -3,6 +3,7 @@
 //
 
 #include "HW/CPU.h"
+#include "HW/PPU.h"
 
 #include <algorithm>
 #include <concepts>
@@ -214,6 +215,8 @@ BNES::ErrorOr<int> nestest_main() {
   NESTestCPU cpu{bus};
   cpu.Init();
 
+  BNES::HW::PPU ppu{bus};
+
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU. For now, let's run
   // in "batch" mode
@@ -229,16 +232,19 @@ BNES::ErrorOr<int> nestest_main() {
     try {
       cpu.RunOneInstruction();
 
-      if (batch_mode && cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
-        spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
-                      cpu.last_log_line, *nestest_log_it);
-
-        break;
-      }
-
       spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
 
-      ++nestest_log_it;
+      if (batch_mode) {
+        if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
+          spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
+                        cpu.last_log_line, *nestest_log_it);
+
+          break;
+        }
+
+        ++nestest_log_it;
+      }
+
     } catch (const NESTestCPU::NonMaskableInterrupt &nmi) {
       break;
     }

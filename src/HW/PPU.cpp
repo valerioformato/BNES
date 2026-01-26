@@ -20,6 +20,17 @@ void PPU::WritePPUADDR(uint8_t value) {
   m_internal_registers[Register::W] = 1 - m_internal_registers[Register::W];
 }
 
+void PPU::WritePPUSCROLL(uint8_t value) {
+  // W = 0 means first write, where high bits are written
+  if (m_internal_registers[Register::W] == 0) {
+    m_ppu_scroll_x = value | ((m_control_register & 0x1) << 8);
+  } else {
+    m_ppu_scroll_y = value | ((m_control_register & 0x2) << 8);
+  }
+
+  m_internal_registers[Register::W] = 1 - m_internal_registers[Register::W];
+}
+
 void PPU::WritePPUCTRL(uint8_t value) {
   // TODO: After power/reset, writes to this register are ignored until the first
   // pre-render scanline.
@@ -70,6 +81,43 @@ void PPU::WritePPUDATA(uint8_t value) {
   m_address_register += m_vram_address_increment;
 }
 
+void PPU::WritePPUMASK(uint8_t value) {
+  // TODO: After power/reset, writes to this register are ignored until the first pre-render scanline.
+  m_mask_register = value;
+}
+
+void PPU::WriteOAMADDR(uint8_t value) {
+  // NOTE from https://www.nesdev.org/wiki/PPU_registers#OAMADDR
+  // OAMADDR is set to 0 during each of ticks 257–320 (the sprite tile loading interval) of the pre-render and
+  // visible scanlines. This also means that at the end of a normal complete rendered frame, OAMADDR will always have
+  // returned to 0.
+
+  // if (... ) {
+  //   m_oam_address = 0;
+  // }
+
+  m_oam_address = value;
+}
+
+void PPU::WriteOAMDATA(uint8_t value) {
+  // https://www.nesdev.org/wiki/PPU_registers#OAMDATA
+  // Writes will increment OAMADDR after the write.
+  // ****BUT****
+  // Writes to OAMDATA during rendering (on the pre-render line and the visible lines 0–239, provided either sprite or
+  // background rendering is enabled) do not modify values in OAM, but do perform a glitchy increment of OAMADDR,
+  // bumping only the high 6 bits (i.e., it bumps the [n] value in PPU sprite evaluation – it's plausible that it could
+  // bump the low bits instead depending on the current status of sprite evaluation). This extends to DMA transfers via
+  // OAMDMA, since that uses writes to $2004. For emulation purposes, it is probably best to completely ignore writes
+  // during rendering.
+
+  if (true /* !RenderingInProgress() */) {
+    m_oam_data[m_oam_address] = value;
+    m_oam_address = (m_oam_address + 1);
+  } else {
+    m_oam_address = (m_oam_address + 4);
+  }
+}
+
 uint8_t PPU::ReadPPUDATA() {
   uint8_t value_to_return{m_read_buffer};
 
@@ -94,4 +142,12 @@ uint8_t PPU::ReadPPUDATA() {
   m_address_register += m_vram_address_increment;
   return value_to_return;
 }
+
+uint8_t PPU::ReadPPUSTATUS() {
+  m_internal_registers[Register::W] = 0;
+  return m_status_register;
+}
+
+uint8_t PPU::ReadOAMDATA() { return m_oam_data[m_oam_address]; }
+
 } // namespace BNES::HW

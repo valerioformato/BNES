@@ -40,8 +40,14 @@ protected:
   void WritePPUADDR(uint8_t value);
   void WritePPUCTRL(uint8_t value);
   void WritePPUDATA(uint8_t value);
+  void WritePPUMASK(uint8_t value);
+  void WritePPUSCROLL(uint8_t value);
+  void WriteOAMADDR(uint8_t value);
+  void WriteOAMDATA(uint8_t value);
 
   [[nodiscard]] uint8_t ReadPPUDATA();
+  [[nodiscard]] uint8_t ReadPPUSTATUS();
+  [[nodiscard]] uint8_t ReadOAMDATA();
 
   // Getter for the PPUADDR register
   [[nodiscard]] uint16_t AddressRegister() const { return m_address_register; };
@@ -69,6 +75,12 @@ private:
 
   uint8_t m_control_register{0};
   Addr m_address_register{0};
+  uint8_t m_status_register{0};
+  uint8_t m_mask_register{0};
+  uint8_t m_oam_address{0};
+  uint16_t m_ppu_scroll_x{0};
+  uint16_t m_ppu_scroll_y{0};
+
   EnumArray<uint16_t, Register> m_internal_registers{};
 
   Addr m_vram_address_increment{1};

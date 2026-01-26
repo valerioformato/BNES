@@ -26,6 +26,12 @@ uint8_t Bus::Read(Addr address) {
     spdlog::error("Bus read request for address {}: Address is write-only", address);
     throw std::runtime_error("Bus read request for write-only address");
   }
+  if (address == 0x2002) {
+    return m_ppu->ReadPPUSTATUS();
+  }
+  if (address == 0x2004) {
+    return m_ppu->ReadOAMDATA();
+  }
   if (address == 0x2007) {
     return m_ppu->ReadPPUDATA();
   }
@@ -62,6 +68,14 @@ void Bus::Write(Addr address, uint8_t data) {
   }
   if (address == 0x2000) {
     m_ppu->WritePPUCTRL(data);
+  } else if (address == 0x2001) {
+    m_ppu->WritePPUMASK(data);
+  } else if (address == 0x2003) {
+    m_ppu->WriteOAMADDR(data);
+  } else if (address == 0x2004) {
+    m_ppu->WriteOAMDATA(data);
+  } else if (address == 0x2005) {
+    m_ppu->WritePPUSCROLL(data);
   } else if (address == 0x2006) {
     m_ppu->WritePPUADDR(data);
   } else if (address == 0x2007) {
