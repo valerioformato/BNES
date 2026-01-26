@@ -3,17 +3,33 @@
 //
 
 #include "HW/Bus.h"
+#include "HW/CPU.h"
+#include "HW/PPU.h"
 #include "common/Utils.h"
 
 #include <spdlog/spdlog.h>
 
 namespace BNES::HW {
+
+void Bus::AttachCPU(CPU *cpu) { m_cpu = cpu; }
+void Bus::AttachPPU(PPU *ppu) { m_ppu = ppu; }
+
 uint8_t Bus::Read(Addr address) {
   if (address <= MAX_ADDRESSABLE_RAM_ADDRESS) {
     // mask out bit 12 and 13 to simulate mirroring
     address &= 0b11111111111;
     return m_ram[address];
-  } else if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
+  }
+
+  if (address == 0x2000 || address == 0x2001 || address == 0x2003 || address == 0x2005 || address == 0x2006 ||
+      address == 0x4014) {
+    spdlog::error("Bus read request for address {}: Address is write-only", address);
+    throw std::runtime_error("Bus read request for write-only address");
+  }
+  if (address == 0x2007) {
+    return m_ppu->ReadPPUDATA();
+  }
+  if (address >= 0x2008 && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
     TODO("PPU not implemented yet");
   } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {
     Addr rom_address = address - ROM_START_REGISTER;

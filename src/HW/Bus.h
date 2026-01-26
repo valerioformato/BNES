@@ -14,6 +14,11 @@
 #include <span>
 
 namespace BNES::HW {
+
+// Forward declarations - Bus only needs pointers, not complete definitions
+class CPU;
+class PPU;
+
 class Bus {
 public:
   using Addr = std::uint16_t;
@@ -30,6 +35,9 @@ public:
     return {};
   }
 
+  void AttachCPU(CPU *cpu);
+  void AttachPPU(PPU *ppu);
+
   [[nodiscard]] uint8_t Read(Addr address);
   void Write(Addr address, uint8_t data);
 
@@ -41,6 +49,9 @@ public:
 private:
   std::array<uint8_t, RAM_MEM_SIZE> m_ram{0};
   ::BNES::HW::Rom m_rom{};
+
+  CPU *m_cpu{nullptr};
+  PPU *m_ppu{nullptr};
 };
 } // namespace BNES::HW
 

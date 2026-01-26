@@ -31,7 +31,7 @@ public:
   };
 
   CPU() = delete;
-  explicit CPU(Bus &bus) : m_bus{&bus} {}
+  explicit CPU(Bus &bus) : m_bus{&bus} { m_bus->AttachCPU(this); }
 
   // Helper functions to inspect the state of the CPU
   [[nodiscard]] EnumArray<uint8_t, Register> Registers() const { return m_registers; };

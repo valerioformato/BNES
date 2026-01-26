@@ -55,12 +55,14 @@ PPU::Addr PPU::MirrorVRAMAddress(Addr address) {
 
 void PPU::WritePPUDATA(uint8_t value) {
   if (m_address_register < VRAM_START_ADDRESS) {
-    throw std::runtime_error(fmt::format("Invalid write to PPUADDR value {} - Inside character ROM", m_address_register));
+    throw std::runtime_error(
+        fmt::format("Invalid write to PPUADDR value {} - Inside character ROM", m_address_register));
   }
 
   if (m_address_register >= VRAM_START_ADDRESS && m_address_register <= MAX_ADDRESSABLE_VRAM_ADDRESS) {
     m_vram[MirrorVRAMAddress(m_address_register)] = value;
-  } else if (m_address_register >= PALETTE_TABLE_START_ADDRESS && m_address_register <= MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS) {
+  } else if (m_address_register >= PALETTE_TABLE_START_ADDRESS &&
+             m_address_register <= MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS) {
     uint16_t palette_offset = (m_address_register - PALETTE_TABLE_START_ADDRESS) % 0x20;
     m_palette_table[palette_offset] = value;
   }
@@ -68,7 +70,7 @@ void PPU::WritePPUDATA(uint8_t value) {
   m_address_register += m_vram_address_increment;
 }
 
-ErrorOr<uint8_t> PPU::ReadPPUDATA() {
+uint8_t PPU::ReadPPUDATA() {
   uint8_t value_to_return{m_read_buffer};
 
   if (m_address_register <= MAX_ADDRESSABLE_CHR_ROM_ADDRESS) {

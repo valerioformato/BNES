@@ -26,14 +26,13 @@ public:
   static constexpr uint16_t MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS = 0x3FFF;
 
   using Addr = Bus::Addr;
-  enum class MMIORegister {
-    Address,
-  };
   enum class Register { V = 0, T, X, W };
 
   PPU() = delete;
   explicit PPU(Bus &bus)
-      : m_bus{&bus}, m_mirroring{m_bus->Rom().mirroring}, m_character_rom{m_bus->Rom().character_rom} {};
+      : m_bus{&bus}, m_mirroring{m_bus->Rom().mirroring}, m_character_rom{m_bus->Rom().character_rom} {
+    m_bus->AttachPPU(this);
+  };
 
   [[nodiscard]] EnumArray<uint16_t, Register> InternalRegisters() const { return m_internal_registers; };
 
@@ -42,7 +41,7 @@ protected:
   void WritePPUCTRL(uint8_t value);
   void WritePPUDATA(uint8_t value);
 
-  [[nodiscard]] ErrorOr<uint8_t> ReadPPUDATA();
+  [[nodiscard]] uint8_t ReadPPUDATA();
 
   // Getter for the PPUADDR register
   [[nodiscard]] uint16_t AddressRegister() const { return m_address_register; };

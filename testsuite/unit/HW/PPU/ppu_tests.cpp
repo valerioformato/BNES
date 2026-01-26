@@ -227,30 +227,24 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("the first read should return the buffered value (0)") {
         auto first_read = ppu.ReadPPUDATA();  // First read buffers the value, returns 0
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x00);  // Initial buffer is 0
+        REQUIRE(first_read == 0x00);  // Initial buffer is 0
         
         auto second_read = ppu.ReadPPUDATA();  // Second read returns the buffered value from first read
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0xAB);
+        REQUIRE(second_read == 0xAB);
       }
 
       THEN("subsequent reads should return the previous buffered values") {
         auto first_read = ppu.ReadPPUDATA();  // Returns 0, buffers 0xAB from address 0x2200
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x00);
+        REQUIRE(first_read == 0x00);
 
         auto second_read = ppu.ReadPPUDATA();  // Returns 0xAB, buffers 0xCD from address 0x2201
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0xAB);
+        REQUIRE(second_read == 0xAB);
         
         auto third_read = ppu.ReadPPUDATA();  // Returns 0xCD, buffers 0 from address 0x2202
-        REQUIRE(third_read.has_value());
-        REQUIRE(third_read.value() == 0xCD);
+        REQUIRE(third_read == 0xCD);
         
         auto fourth_read = ppu.ReadPPUDATA();  // Returns 0
-        REQUIRE(fourth_read.has_value());
-        REQUIRE(fourth_read.value() == 0x00);
+        REQUIRE(fourth_read == 0x00);
       }
     }
 
@@ -265,26 +259,21 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("palette reads return immediately without buffering") {
         auto first_read = ppu.ReadPPUDATA();  // Palette reads return immediately
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x34);
+        REQUIRE(first_read == 0x34);
         
         auto second_read = ppu.ReadPPUDATA();  // Next palette value (uninitialized)
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0x00);
+        REQUIRE(second_read == 0x00);
       }
 
       THEN("palette reads return data immediately") {
         auto first_read = ppu.ReadPPUDATA();  // Returns palette[1] = 0x34 immediately
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x34);
+        REQUIRE(first_read == 0x34);
         
         auto second_read = ppu.ReadPPUDATA();  // Returns palette[2] (uninitialized) = 0x00
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0x00);
+        REQUIRE(second_read == 0x00);
         
         auto third_read = ppu.ReadPPUDATA();  // Returns palette[3] (uninitialized) = 0x00
-        REQUIRE(third_read.has_value());
-        REQUIRE(third_read.value() == 0x00);
+        REQUIRE(third_read == 0x00);
       }
     }
 
@@ -299,24 +288,19 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("sequential reads should return buffered values in order") {
         auto read1 = ppu.ReadPPUDATA();  // Returns 0, buffers 0xAA
-        REQUIRE(read1.has_value());
-        REQUIRE(read1.value() == 0x00);
+        REQUIRE(read1 == 0x00);
 
         auto read2 = ppu.ReadPPUDATA();  // Returns 0xAA, buffers 0xBB
-        REQUIRE(read2.has_value());
-        REQUIRE(read2.value() == 0xAA);
+        REQUIRE(read2 == 0xAA);
 
         auto read3 = ppu.ReadPPUDATA();  // Returns 0xBB, buffers 0xCC
-        REQUIRE(read3.has_value());
-        REQUIRE(read3.value() == 0xBB);
+        REQUIRE(read3 == 0xBB);
         
         auto read4 = ppu.ReadPPUDATA();  // Returns 0xCC, buffers 0
-        REQUIRE(read4.has_value());
-        REQUIRE(read4.value() == 0xCC);
+        REQUIRE(read4 == 0xCC);
         
         auto read5 = ppu.ReadPPUDATA();  // Returns 0
-        REQUIRE(read5.has_value());
-        REQUIRE(read5.value() == 0x00);
+        REQUIRE(read5 == 0x00);
       }
     }
 
@@ -328,12 +312,10 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("the read should access VRAM correctly") {
         auto first_read = ppu.ReadPPUDATA();  // Returns 0, buffers 0x55
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x00);
+        REQUIRE(first_read == 0x00);
         
         auto second_read = ppu.ReadPPUDATA();  // Returns 0x55
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0x55);
+        REQUIRE(second_read == 0x55);
       }
     }
 
@@ -345,12 +327,10 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("the read should access VRAM correctly") {
         auto first_read = ppu.ReadPPUDATA();  // Returns 0, buffers 0x99
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x00);
+        REQUIRE(first_read == 0x00);
         
         auto second_read = ppu.ReadPPUDATA();  // Returns 0x99
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0x99);
+        REQUIRE(second_read == 0x99);
       }
     }
 
@@ -362,13 +342,11 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("palette reads return immediately without buffering") {
         auto first_read = ppu.ReadPPUDATA();  // Palette reads return immediately
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x77);
+        REQUIRE(first_read == 0x77);
         
         ppu.WriteToPalette(1, 0x88);
         auto second_read = ppu.ReadPPUDATA();  // Next palette value
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0x88);
+        REQUIRE(second_read == 0x88);
       }
     }
 
@@ -380,13 +358,11 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
 
       THEN("palette reads return immediately") {
         auto first_read = ppu.ReadPPUDATA();  // Palette reads return immediately
-        REQUIRE(first_read.has_value());
-        REQUIRE(first_read.value() == 0x88);
+        REQUIRE(first_read == 0x88);
         
         ppu.WriteToPalette(0, 0x99);  // Wraps to 0x3F00 after increment
         auto second_read = ppu.ReadPPUDATA();  // Reads from 0x3F20, wraps to 0x3F00
-        REQUIRE(second_read.has_value());
-        REQUIRE(second_read.value() == 0x99);
+        REQUIRE(second_read == 0x99);
       }
     }
   }
