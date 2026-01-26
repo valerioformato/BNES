@@ -67,8 +67,8 @@ private:
   std::span<const uint8_t> m_character_rom;
   std::array<uint8_t, 256> m_oam_data{0};
 
-  uint8_t m_control_register;
-  Addr m_address_register;
+  uint8_t m_control_register{0};
+  Addr m_address_register{0};
   EnumArray<uint16_t, Register> m_internal_registers{};
 
   Addr m_vram_address_increment{1};
