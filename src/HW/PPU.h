@@ -40,6 +40,7 @@ public:
 protected:
   void WritePPUADDR(uint8_t value);
   void WritePPUCTRL(uint8_t value);
+  void WritePPUDATA(uint8_t value);
 
   [[nodiscard]] ErrorOr<uint8_t> ReadPPUDATA();
 
@@ -73,6 +74,8 @@ private:
 
   Addr m_vram_address_increment{1};
   uint8_t m_read_buffer{0};
+
+  Addr MirrorVRAMAddress(Addr address);
 };
 
 } // namespace BNES::HW

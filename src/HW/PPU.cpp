@@ -33,33 +33,48 @@ void PPU::WritePPUCTRL(uint8_t value) {
   }
 }
 
+PPU::Addr PPU::MirrorVRAMAddress(Addr address) {
+  Addr mirrored_vram = address & 0b10111111111111;
+  Addr vram_index = mirrored_vram - VRAM_START_ADDRESS;
+  uint8_t name_table = vram_index / 0x400;
+
+  if (m_mirroring == Rom::Mirroring::Vertical && (name_table == 2 || name_table == 3)) {
+    return vram_index - 0x800;
+  }
+
+  if (m_mirroring == Rom::Mirroring::Horizontal && (name_table == 2 || name_table == 1)) {
+    return vram_index - 0x400;
+  }
+
+  if (m_mirroring == Rom::Mirroring::Horizontal && name_table == 3) {
+    return vram_index - 0x800;
+  }
+
+  return vram_index;
+};
+
+void PPU::WritePPUDATA(uint8_t value) {
+  if (m_address_register < VRAM_START_ADDRESS) {
+    throw std::runtime_error(fmt::format("Invalid write to PPUADDR value {} - Inside character ROM", m_address_register));
+  }
+
+  if (m_address_register >= VRAM_START_ADDRESS && m_address_register <= MAX_ADDRESSABLE_VRAM_ADDRESS) {
+    m_vram[MirrorVRAMAddress(m_address_register)] = value;
+  } else if (m_address_register >= PALETTE_TABLE_START_ADDRESS && m_address_register <= MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS) {
+    uint16_t palette_offset = (m_address_register - PALETTE_TABLE_START_ADDRESS) % 0x20;
+    m_palette_table[palette_offset] = value;
+  }
+
+  m_address_register += m_vram_address_increment;
+}
+
 ErrorOr<uint8_t> PPU::ReadPPUDATA() {
   uint8_t value_to_return{m_read_buffer};
-
-  auto mirrored_address = [this](Addr address) -> Addr {
-    Addr mirrored_vram = address & 0b10111111111111;
-    Addr vram_index = mirrored_vram - VRAM_START_ADDRESS;
-    uint8_t name_table = vram_index / 0x400;
-
-    if (m_mirroring == Rom::Mirroring::Vertical && (name_table == 2 || name_table == 3)) {
-      return vram_index - 0x800;
-    }
-
-    if (m_mirroring == Rom::Mirroring::Horizontal && (name_table == 2 || name_table == 1)) {
-      return vram_index - 0x400;
-    }
-
-    if (m_mirroring == Rom::Mirroring::Horizontal && name_table == 3) {
-      return vram_index - 0x800;
-    }
-
-    return vram_index;
-  };
 
   if (m_address_register <= MAX_ADDRESSABLE_CHR_ROM_ADDRESS) {
     m_read_buffer = m_character_rom[m_address_register];
   } else if (m_address_register >= VRAM_START_ADDRESS && m_address_register <= MAX_ADDRESSABLE_VRAM_ADDRESS) {
-    m_read_buffer = m_vram[mirrored_address(m_address_register)];
+    m_read_buffer = m_vram[MirrorVRAMAddress(m_address_register)];
   } else if (m_address_register >= PALETTE_TABLE_START_ADDRESS &&
              m_address_register <= MAX_ADDRESSABLE_PALETTE_TABLE_ADDRESS) {
     uint16_t palette_offset = (m_address_register - PALETTE_TABLE_START_ADDRESS) % 0x20;
@@ -69,7 +84,7 @@ ErrorOr<uint8_t> PPU::ReadPPUDATA() {
 
     // TODO: check this if possible. Not sure how this interacts with different mirrorings
     Addr underlying_address = m_address_register - 0x1000;
-    m_read_buffer = m_vram[mirrored_address(underlying_address)];
+    m_read_buffer = m_vram[MirrorVRAMAddress(underlying_address)];
   } else {
     throw std::runtime_error(fmt::format("Invalid read of PPUADDR value {}", m_address_register));
   }

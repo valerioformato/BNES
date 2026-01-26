@@ -21,8 +21,11 @@ public:
   using PPU::VRAMAddressIncrement;
   using PPU::WritePPUADDR;
   using PPU::WritePPUCTRL;
+  using PPU::WritePPUDATA;
   void WriteToVRAM(Addr addr, uint8_t value) { m_vram[addr] = value; }
   void WriteToPalette(uint8_t index, uint8_t value) { m_palette_table[index] = value; }
+  uint8_t ReadFromVRAM(Addr addr) const { return m_vram[addr]; }
+  uint8_t ReadFromPalette(uint8_t index) const { return m_palette_table[index]; }
 };
 
 SCENARIO("NES PPU initialization", "[PPU]") {
@@ -384,6 +387,201 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
         auto second_read = ppu.ReadPPUDATA();  // Reads from 0x3F20, wraps to 0x3F00
         REQUIRE(second_read.has_value());
         REQUIRE(second_read.value() == 0x99);
+      }
+    }
+  }
+}
+
+SCENARIO("PPUDATA register write tests", "[PPU]") {
+  GIVEN("a PPU instance") {
+    Bus bus;
+    PPUMock ppu{bus};
+
+    WHEN("writing to VRAM region (0x2000-0x2FFF)") {
+      ppu.WritePPUADDR(0x20);
+      ppu.WritePPUADDR(0x50);
+      ppu.WritePPUDATA(0xAB);
+
+      THEN("the value should be written to VRAM at the correct mirrored address") {
+        // Address 0x2050 maps to VRAM index 0x50
+        REQUIRE(ppu.ReadFromVRAM(0x50) == 0xAB);
+      }
+    }
+
+    WHEN("writing to VRAM at address 0x2000") {
+      ppu.WritePPUADDR(0x20);
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUDATA(0x12);
+
+      THEN("the value should be written to VRAM index 0") {
+        REQUIRE(ppu.ReadFromVRAM(0x00) == 0x12);
+      }
+    }
+
+    WHEN("writing to VRAM at address 0x2FFF") {
+      ppu.WritePPUADDR(0x2F);
+      ppu.WritePPUADDR(0xFF);
+      ppu.WritePPUDATA(0x99);
+
+      THEN("the value should be written to VRAM at the correct mirrored address") {
+        // Address 0x2FFF - 0x2000 = 0x7FF
+        REQUIRE(ppu.ReadFromVRAM(0x7FF) == 0x99);
+      }
+    }
+
+    WHEN("writing to palette table region (0x3F00-0x3FFF)") {
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUDATA(0x25);
+
+      THEN("the value should be written to the palette table at index 0") {
+        REQUIRE(ppu.ReadFromPalette(0) == 0x25);
+      }
+    }
+
+    WHEN("writing to palette table at address 0x3F10") {
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0x10);
+      ppu.WritePPUDATA(0x38);
+
+      THEN("the value should be written to palette index 0x10") {
+        REQUIRE(ppu.ReadFromPalette(0x10) == 0x38);
+      }
+    }
+
+    WHEN("writing to palette table at address 0x3F1F") {
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0x1F);
+      ppu.WritePPUDATA(0x3D);
+
+      THEN("the value should be written to palette index 0x1F") {
+        REQUIRE(ppu.ReadFromPalette(0x1F) == 0x3D);
+      }
+    }
+
+    WHEN("writing to palette table with mirroring (0x3F20-0x3FFF)") {
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0x25);
+      ppu.WritePPUDATA(0x15);
+
+      THEN("the value should be written with palette table wrapping") {
+        // 0x3F25 - 0x3F00 = 0x25, 0x25 % 0x20 = 0x05
+        REQUIRE(ppu.ReadFromPalette(0x05) == 0x15);
+      }
+    }
+
+    WHEN("writing to palette table at 0x3FFF") {
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0xFF);
+      ppu.WritePPUDATA(0x3A);
+
+      THEN("the value should be written with palette table wrapping") {
+        // 0x3FFF - 0x3F00 = 0xFF, 0xFF % 0x20 = 0x1F
+        REQUIRE(ppu.ReadFromPalette(0x1F) == 0x3A);
+      }
+    }
+
+    WHEN("writing multiple values to VRAM sequentially") {
+      ppu.WritePPUADDR(0x21);
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUDATA(0x11);
+      ppu.WritePPUDATA(0x22);
+      ppu.WritePPUDATA(0x33);
+
+      THEN("each value should be written with address auto-increment") {
+        // Default increment is 1
+        REQUIRE(ppu.ReadFromVRAM(0x100) == 0x11);
+        REQUIRE(ppu.ReadFromVRAM(0x101) == 0x22);
+        REQUIRE(ppu.ReadFromVRAM(0x102) == 0x33);
+      }
+    }
+
+    WHEN("writing multiple values to palette table sequentially") {
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0x08);
+      ppu.WritePPUDATA(0xAA);
+      ppu.WritePPUDATA(0xBB);
+      ppu.WritePPUDATA(0xCC);
+
+      THEN("each value should be written with address auto-increment") {
+        REQUIRE(ppu.ReadFromPalette(0x08) == 0xAA);
+        REQUIRE(ppu.ReadFromPalette(0x09) == 0xBB);
+        REQUIRE(ppu.ReadFromPalette(0x0A) == 0xCC);
+      }
+    }
+
+    WHEN("writing with VRAM address increment set to 32") {
+      ppu.WritePPUCTRL(0b00000100);  // Set VRAM increment to 32
+      ppu.WritePPUADDR(0x20);
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUDATA(0xF1);
+      ppu.WritePPUDATA(0xF2);
+
+      THEN("the address should increment by 32 after each write") {
+        REQUIRE(ppu.ReadFromVRAM(0x00) == 0xF1);
+        REQUIRE(ppu.ReadFromVRAM(0x20) == 0xF2);
+      }
+    }
+
+    WHEN("writing to CHR ROM region (< 0x2000)") {
+      ppu.WritePPUADDR(0x10);
+      ppu.WritePPUADDR(0x00);
+
+      THEN("writing to PPUDATA should throw an exception") {
+        REQUIRE_THROWS_AS(ppu.WritePPUDATA(0xFF), std::runtime_error);
+      }
+    }
+
+    WHEN("writing to address 0x0000 (CHR ROM)") {
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUADDR(0x00);
+
+      THEN("writing to PPUDATA should throw an exception") {
+        REQUIRE_THROWS_AS(ppu.WritePPUDATA(0xFF), std::runtime_error);
+      }
+    }
+
+    WHEN("writing to address 0x1FFF (last CHR ROM address)") {
+      ppu.WritePPUADDR(0x1F);
+      ppu.WritePPUADDR(0xFF);
+
+      THEN("writing to PPUDATA should throw an exception") {
+        REQUIRE_THROWS_AS(ppu.WritePPUDATA(0xFF), std::runtime_error);
+      }
+    }
+
+    WHEN("writing a sequence of values across VRAM and palette regions") {
+      // Write to VRAM
+      ppu.WritePPUADDR(0x23);
+      ppu.WritePPUADDR(0xC0);
+      ppu.WritePPUDATA(0x55);
+      
+      // Write to palette
+      ppu.WritePPUADDR(0x3F);
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUDATA(0x0F);
+      
+      // Write to VRAM again
+      ppu.WritePPUADDR(0x24);
+      ppu.WritePPUADDR(0x00);
+      ppu.WritePPUDATA(0xAA);
+
+      THEN("all values should be written to their respective memory regions") {
+        REQUIRE(ppu.ReadFromVRAM(0x3C0) == 0x55);
+        REQUIRE(ppu.ReadFromPalette(0x00) == 0x0F);
+        REQUIRE(ppu.ReadFromVRAM(0x400) == 0xAA);
+      }
+    }
+
+    WHEN("writing to VRAM with address wrapping") {
+      ppu.WritePPUADDR(0x2F);
+      ppu.WritePPUADDR(0xFE);
+      ppu.WritePPUDATA(0xDD);
+      ppu.WritePPUDATA(0xEE);  // Should wrap around
+
+      THEN("writes should handle address wrapping correctly") {
+        REQUIRE(ppu.ReadFromVRAM(0x7FE) == 0xDD);
+        REQUIRE(ppu.ReadFromVRAM(0x7FF) == 0xEE);
       }
     }
   }
