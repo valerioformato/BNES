@@ -14,6 +14,8 @@ namespace BNES::HW {
 void Bus::AttachCPU(CPU *cpu) { m_cpu = cpu; }
 void Bus::AttachPPU(PPU *ppu) { m_ppu = ppu; }
 
+void Bus::PropagateNMI() { m_cpu->ProcessNMI(); }
+
 uint8_t Bus::Read(Addr address) {
   if (address <= MAX_ADDRESSABLE_RAM_ADDRESS) {
     // mask out bit 12 and 13 to simulate mirroring
@@ -93,8 +95,10 @@ void Bus::Write(Addr address, uint8_t data) {
   spdlog::error("Bus write request for address {}: Address out of range", address);
 }
 
+void Bus::Tick(unsigned int cycles) { m_ppu->Tick(cycles * PPU_FREQ_RATIO); }
+
 ErrorOr<void> Bus::LoadIntoProgramRom(std::span<const uint8_t> program) {
-  if (program.size() > (MAX_ADDRESSABLE_ROM_ADDRESS - ROM_START_REGISTER)) {
+  if (program.size() > (MAX_ADDRESSABLE_ROM_ADDRESS - ROM_START_REGISTER + 1)) {
     return make_error(std::make_error_code(std::errc::not_enough_memory), "Program too large to fit in memory");
   }
 

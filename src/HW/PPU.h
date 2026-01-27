@@ -37,6 +37,8 @@ public:
   [[nodiscard]] EnumArray<uint16_t, Register> InternalRegisters() const { return m_internal_registers; };
 
 protected:
+  void Tick(unsigned int cycles);
+
   void WritePPUADDR(uint8_t value);
   void WritePPUCTRL(uint8_t value);
   void WritePPUDATA(uint8_t value);
@@ -59,13 +61,19 @@ protected:
   [[nodiscard]] bool BackgroundPatternTableAddress() const { return m_control_register & 0b00010000; };
   [[nodiscard]] bool SpriteSize() const { return m_control_register & 0b00100000; };
   [[nodiscard]] bool PPUMasterSlaveSelect() const { return m_control_register & 0b01000000; };
-  [[nodiscard]] bool VblankNMIEnable() const { return m_control_register & 0b10000000; };
+  [[nodiscard]] bool VblankNMIEnabled() const { return m_control_register & 0b10000000; };
+
+  // Helper getters for PPUSTATUS register
+  [[nodiscard]] bool IsInVblank() const { return m_status_register & 0b01000000; };
 
   // Protected members for testing
   std::array<uint8_t, 32> m_palette_table{0};
   std::array<uint8_t, 0x800> m_vram{0};
 
 private:
+  size_t m_cycles{0};
+  uint16_t m_current_scanline{0};
+
   non_owning_ptr<Bus *> m_bus;
 
   Rom::Mirroring m_mirroring{Rom::Mirroring::Vertical};

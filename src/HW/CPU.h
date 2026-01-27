@@ -15,6 +15,7 @@
 namespace BNES::HW {
 class CPU {
   friend class CPUDebugger;
+  friend class Bus;
 
 public:
   using Addr = Bus::Addr;
@@ -58,7 +59,7 @@ private:
   non_owning_ptr<Bus *> m_bus;                // Memory bus
 
 protected:
-  class NonMaskableInterrupt : public std::exception {};
+  void ProcessNMI();
 
   [[nodiscard]] uint8_t ReadFromMemory(Addr addr) const;
   void WriteToMemory(Addr addr, uint8_t value);

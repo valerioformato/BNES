@@ -25,7 +25,7 @@ SCENARIO("Bus unit tests") {
     }
 
     WHEN("We try loading a program too big") {
-      std::vector<uint8_t> program(Bus::MAX_ADDRESSABLE_ROM_ADDRESS - Bus::ROM_START_REGISTER + 1);
+      std::vector<uint8_t> program(Bus::MAX_ADDRESSABLE_ROM_ADDRESS - Bus::ROM_START_REGISTER + 2);
       std::iota(program.begin(), program.end(), 0);
 
       THEN("We get an error") {

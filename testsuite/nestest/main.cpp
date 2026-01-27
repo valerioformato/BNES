@@ -13,14 +13,13 @@
 #include <ranges>
 
 // Concept to check if a type has an AddrMode() method
-template <typename T>
-concept HasAddressingMode = requires {
-  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
+template <typename T> concept HasAddressingMode = requires {
+  { T::AddrMode() }
+  ->std::same_as<BNES::HW::AddressingMode>;
 };
 
 class NESTestCPU : public BNES::HW::CPU {
 public:
-  using CPU::NonMaskableInterrupt;
   using CPU::ProgramCounter;
   using CPU::ReadFromMemory;
   using CPU::SetProgramStartAddress;
@@ -220,7 +219,7 @@ BNES::ErrorOr<int> nestest_main() {
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU. For now, let's run
   // in "batch" mode
-  bool batch_mode = false;
+  bool batch_mode = true;
   if (batch_mode) {
     cpu.SetProgramStartAddress(0xC000);
   }
@@ -229,6 +228,12 @@ BNES::ErrorOr<int> nestest_main() {
 
   unsigned int i_line = 0;
   while (true) {
+    // Check if we hit a BRK instruction (opcode 0x00) - stop execution
+    uint8_t opcode = bus.Read(cpu.ProgramCounter());
+    if (opcode == 0x00) {
+      break;
+    }
+
     try {
       cpu.RunOneInstruction();
 
@@ -245,7 +250,8 @@ BNES::ErrorOr<int> nestest_main() {
         ++nestest_log_it;
       }
 
-    } catch (const NESTestCPU::NonMaskableInterrupt &nmi) {
+    } catch (const std::exception &e) {
+      spdlog::error("Exception during instruction execution: {}", e.what());
       break;
     }
   }

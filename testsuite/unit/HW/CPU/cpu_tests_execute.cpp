@@ -29,9 +29,22 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
     auto original_program_counter = cpu.ProgramCounter();
 
     WHEN("We execute a BRK instruction") {
-      THEN("It should throw a NonMaskableInterrupt exception") {
-        REQUIRE_THROWS(cpu.RunInstruction(CPU::Break{}));
-        REQUIRE(cpu.ProgramCounter() == original_program_counter + 1);
+      THEN("It should set the InterruptDisable flag and jump to the IRQ vector") {
+        // Create a minimal ROM that includes the IRQ vector at 0xFFFE/0xFFFF
+        // Program ROM starts at 0x8000, so 0xFFFE is at offset 0x7FFE
+        std::vector<uint8_t> rom(0x8000, 0x00);
+        rom[0x7FFE] = 0x34; // IRQ vector low byte -> 0x1234
+        rom[0x7FFF] = 0x12; // IRQ vector high byte
+        auto load_result = bus.LoadIntoProgramRom(rom);
+        REQUIRE(load_result.has_value());
+
+        // Verify we can read the IRQ vector
+        REQUIRE(cpu.ReadFromMemory(0xFFFE) == 0x34);
+        REQUIRE(cpu.ReadFromMemory(0xFFFF) == 0x12);
+
+        cpu.RunInstruction(CPU::Break{});
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true);
+        REQUIRE(cpu.ProgramCounter() == 0x1234);
       }
     }
 
@@ -2116,10 +2129,10 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       // According to 6502 spec (same as PLP):
       // - Bit 4 (Break flag, 0x10) is ignored on RTI
       // - Bit 5 (unused, 0x20) should always be 1 after RTI
-      
+
       auto rti_instr = CPU::ReturnFromInterrupt{};
       uint8_t target_sp = uint8_t(0xFC);
-      
+
       // Set up stack pointer using TXS
       cpu.SetRegister(CPU::Register::X, target_sp);
       auto txs_instr = CPU::TransferXToStackPointer{};
@@ -2129,9 +2142,9 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
       // Stack layout (bottom to top): status, PC low, PC high
       uint16_t return_address = 0xCECE;
       uint8_t status_value = 0x87; // Status with bit 5 cleared (10000111)
-      
-      cpu.WriteToMemory(0x0100 + target_sp + 1, status_value);                // Status
-      cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF);      // PC low byte
+
+      cpu.WriteToMemory(0x0100 + target_sp + 1, status_value);                 // Status
+      cpu.WriteToMemory(0x0100 + target_sp + 2, return_address & 0xFF);        // PC low byte
       cpu.WriteToMemory(0x0100 + target_sp + 3, (return_address >> 8) & 0xFF); // PC high byte
 
       original_program_counter = cpu.ProgramCounter();
@@ -2152,14 +2165,14 @@ SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
 
         // Expected status: 0x87 with bit 5 set = 0xA7
         REQUIRE(status_byte == 0xA7);
-        
+
         // Verify individual flags match the stack value (with bit 5 forced to 1)
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);        // bit 0
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);         // bit 1
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Carry) == true);            // bit 0
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Zero) == true);             // bit 1
         REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::InterruptDisable) == true); // bit 2
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == false); // bit 3
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);    // bit 6
-        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);     // bit 7
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::DecimalMode) == false);     // bit 3
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Overflow) == false);        // bit 6
+        REQUIRE(cpu.TestStatusFlag(CPU::StatusFlag::Negative) == true);         // bit 7
       }
     }
   }

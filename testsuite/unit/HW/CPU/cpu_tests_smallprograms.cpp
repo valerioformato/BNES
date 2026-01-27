@@ -16,9 +16,7 @@ class CPUMock : public CPU {
 public:
   CPUMock(BNES::HW::Bus &bus) : CPU(bus) {}
 
-  // Expose protected exception type
   using CPU::GetBus;
-  using CPU::NonMaskableInterrupt;
   using CPU::ReadFromMemory;
   using CPU::SetProgramStartAddress;
   using CPU::SetRegister;
@@ -47,11 +45,14 @@ void SimpleRun(CPUMock &cpu) {
     }
 
     std::span bytes(instr_bytes.begin(), 3);
+
+    // Check if we hit a BRK instruction (opcode 0x00) - stop execution
+    if (instr_bytes[0] == 0x00) {
+      break;
+    }
+
     try {
       cpu.RunInstruction(cpu.DecodeInstruction(bytes));
-    } catch (const CPUMock::NonMaskableInterrupt &) {
-      // NMI is not handled in this test (BRK was executed)
-      break;
     } catch ([[maybe_unused]] const std::out_of_range &e) {
       // Out of range access, we stop the execution
       break;
@@ -79,7 +80,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x08, 0x00, 0x00}},
         .expected_status = {0b00100100},
-        .expected_program_counter = 0x8010,
+        .expected_program_counter = 0x800f,
         .expected_memory_slices = {MemorySlice{
             .start_address = 0x200,
             .data = {{0x01, 0x05, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}},
@@ -90,7 +91,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x84, 0xc1, 0x00}},
         .expected_status = {0b10100101},
-        .expected_program_counter = 0x8007,
+        .expected_program_counter = 0x8006,
         .expected_memory_slices = {},
         .code = {0xa9, 0xc0, 0xaa, 0xe8, 0x69, 0xc4, 0x00},
     },
@@ -98,7 +99,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x00, 0x00, 0x00}},
         .expected_status = {0b01100111},
-        .expected_program_counter = 0x8007,
+        .expected_program_counter = 0x8006,
         .expected_memory_slices = {},
         .code = {0xa9, 0x80, 0x85, 0x01, 0x65, 0x01},
     },
@@ -106,7 +107,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x00, 0x03, 0x00}},
         .expected_status = {0b00100111},
-        .expected_program_counter = 0x800e,
+        .expected_program_counter = 0x800d,
         .expected_memory_slices = {},
         .code = {0xa2, 0x08, 0xca, 0x8e, 0x00, 0x02, 0xe0, 0x03, 0xd0, 0xf8, 0x8e, 0x01, 0x02, 0x00},
     },
@@ -114,7 +115,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0xcc, 0x00, 0x00}},
         .expected_status = {0b10100100},
-        .expected_program_counter = 0xcc02,
+        .expected_program_counter = 0xcc01,
         .expected_memory_slices = {},
         .code = {0xa9, 0x01, 0x85, 0xf0, 0xa9, 0xcc, 0x85, 0xf1, 0x6c, 0xf0, 0x00},
     },
@@ -122,7 +123,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x0a, 0x01, 0x0a}},
         .expected_status = {0b00100100},
-        .expected_program_counter = 0x8012,
+        .expected_program_counter = 0x8011,
         .expected_memory_slices = {},
         .code = {0xa2, 0x01, 0xa9, 0x05, 0x85, 0x01, 0xa9, 0x07, 0x85, 0x02, 0xa0, 0x0a, 0x8c, 0x05, 0x07, 0xa1, 0x00},
     },
@@ -130,7 +131,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x0a, 0x0a, 0x01}},
         .expected_status = {0b00100100},
-        .expected_program_counter = 0x8012,
+        .expected_program_counter = 0x8011,
         .expected_memory_slices = {},
         .code = {0xa0, 0x01, 0xa9, 0x03, 0x85, 0x01, 0xa9, 0x07, 0x85, 0x02, 0xa2, 0x0a, 0x8e, 0x04, 0x07, 0xb1, 0x01},
     },
@@ -138,7 +139,7 @@ std::array programs = {
     Program{
         .expected_register_values = {{0x00, 0x10, 0x20}},
         .expected_status = {0b00100111},
-        .expected_program_counter = 0x8019,
+        .expected_program_counter = 0x8018,
         .expected_memory_slices =
             {
                 MemorySlice{

@@ -86,11 +86,22 @@ template <Conditional COND> void CPU::Branch<COND>::Apply(CPU &cpu) {
 // ===========================================================================================
 
 void CPU::Break::Apply([[maybe_unused]] CPU &cpu) const {
-  // FIXME: Not elegant, but to break from the main CPU loop we throw an exception.
-  //        Since we are throwing, the program_counter will not be updated by the main loop.
-  //        Let's do it here.
-  cpu.m_program_counter += size;
-  throw NonMaskableInterrupt{};
+  // Push program counter (high byte first, then low byte)
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, (cpu.m_program_counter >> 8) & 0xFF);
+  cpu.m_stack_pointer--;
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, cpu.m_program_counter & 0xFF);
+  cpu.m_stack_pointer--;
+
+  // Push status register
+  cpu.WriteToMemory(StackBaseAddress + cpu.m_stack_pointer, cpu.m_status.to_ulong());
+  cpu.m_stack_pointer--;
+
+  cpu.SetStatusFlagValue(StatusFlag::InterruptDisable, true);
+
+  // Load IRQ vector from 0xFFFE/0xFFFF
+  uint8_t low_byte = cpu.ReadFromMemory(0xFFFE);
+  uint8_t hi_byte = cpu.ReadFromMemory(0xFFFF);
+  cpu.m_program_counter = (hi_byte << 8) | low_byte;
 }
 
 void CPU::JumpToSubroutine::Apply(CPU &cpu) const {
@@ -191,4 +202,3 @@ template struct CPU::Branch<Conditional::Minus>;
 template struct CPU::Branch<Conditional::Positive>;
 template struct CPU::Branch<Conditional::OverflowSet>;
 template struct CPU::Branch<Conditional::OverflowClear>;
-

@@ -17,7 +17,7 @@ public:
   using PPU::ReadPPUDATA;
   using PPU::SpritePatternTableAddress;
   using PPU::SpriteSize;
-  using PPU::VblankNMIEnable;
+  using PPU::VblankNMIEnabled;
   using PPU::VRAMAddressIncrement;
   using PPU::WritePPUADDR;
   using PPU::WritePPUCTRL;
@@ -123,7 +123,7 @@ SCENARIO("PPUCTRL register tests", "[PPU]") {
         REQUIRE(ppu.BackgroundPatternTableAddress() == false);
         REQUIRE(ppu.SpriteSize() == false);
         REQUIRE(ppu.PPUMasterSlaveSelect() == false);
-        REQUIRE(ppu.VblankNMIEnable() == false);
+        REQUIRE(ppu.VblankNMIEnabled() == false);
       }
     }
 
@@ -137,7 +137,7 @@ SCENARIO("PPUCTRL register tests", "[PPU]") {
         REQUIRE(ppu.BackgroundPatternTableAddress() == true);
         REQUIRE(ppu.SpriteSize() == true);
         REQUIRE(ppu.PPUMasterSlaveSelect() == true);
-        REQUIRE(ppu.VblankNMIEnable() == true);
+        REQUIRE(ppu.VblankNMIEnabled() == true);
       }
     }
 
@@ -164,7 +164,7 @@ SCENARIO("PPUCTRL register tests", "[PPU]") {
     WHEN("writing to enable VBlank NMI") {
       ppu.WritePPUCTRL(0b10000000);
 
-      THEN("the VBlank NMI flag should be enabled") { REQUIRE(ppu.VblankNMIEnable() == true); }
+      THEN("the VBlank NMI flag should be enabled") { REQUIRE(ppu.VblankNMIEnabled() == true); }
     }
 
     WHEN("writing to set sprite pattern table address") {
@@ -204,7 +204,7 @@ SCENARIO("PPUCTRL register tests", "[PPU]") {
         REQUIRE(ppu.BackgroundPatternTableAddress() == true);
         REQUIRE(ppu.SpriteSize() == false);
         REQUIRE(ppu.PPUMasterSlaveSelect() == true);
-        REQUIRE(ppu.VblankNMIEnable() == false);
+        REQUIRE(ppu.VblankNMIEnabled() == false);
       }
     }
   }
@@ -226,24 +226,24 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
       ppu.WritePPUADDR(0x00);
 
       THEN("the first read should return the buffered value (0)") {
-        auto first_read = ppu.ReadPPUDATA();  // First read buffers the value, returns 0
-        REQUIRE(first_read == 0x00);  // Initial buffer is 0
-        
-        auto second_read = ppu.ReadPPUDATA();  // Second read returns the buffered value from first read
+        auto first_read = ppu.ReadPPUDATA(); // First read buffers the value, returns 0
+        REQUIRE(first_read == 0x00);         // Initial buffer is 0
+
+        auto second_read = ppu.ReadPPUDATA(); // Second read returns the buffered value from first read
         REQUIRE(second_read == 0xAB);
       }
 
       THEN("subsequent reads should return the previous buffered values") {
-        auto first_read = ppu.ReadPPUDATA();  // Returns 0, buffers 0xAB from address 0x2200
+        auto first_read = ppu.ReadPPUDATA(); // Returns 0, buffers 0xAB from address 0x2200
         REQUIRE(first_read == 0x00);
 
-        auto second_read = ppu.ReadPPUDATA();  // Returns 0xAB, buffers 0xCD from address 0x2201
+        auto second_read = ppu.ReadPPUDATA(); // Returns 0xAB, buffers 0xCD from address 0x2201
         REQUIRE(second_read == 0xAB);
-        
-        auto third_read = ppu.ReadPPUDATA();  // Returns 0xCD, buffers 0 from address 0x2202
+
+        auto third_read = ppu.ReadPPUDATA(); // Returns 0xCD, buffers 0 from address 0x2202
         REQUIRE(third_read == 0xCD);
-        
-        auto fourth_read = ppu.ReadPPUDATA();  // Returns 0
+
+        auto fourth_read = ppu.ReadPPUDATA(); // Returns 0
         REQUIRE(fourth_read == 0x00);
       }
     }
@@ -258,21 +258,21 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
       ppu.WritePPUADDR(0x01);
 
       THEN("palette reads return immediately without buffering") {
-        auto first_read = ppu.ReadPPUDATA();  // Palette reads return immediately
+        auto first_read = ppu.ReadPPUDATA(); // Palette reads return immediately
         REQUIRE(first_read == 0x34);
-        
-        auto second_read = ppu.ReadPPUDATA();  // Next palette value (uninitialized)
+
+        auto second_read = ppu.ReadPPUDATA(); // Next palette value (uninitialized)
         REQUIRE(second_read == 0x00);
       }
 
       THEN("palette reads return data immediately") {
-        auto first_read = ppu.ReadPPUDATA();  // Returns palette[1] = 0x34 immediately
+        auto first_read = ppu.ReadPPUDATA(); // Returns palette[1] = 0x34 immediately
         REQUIRE(first_read == 0x34);
-        
-        auto second_read = ppu.ReadPPUDATA();  // Returns palette[2] (uninitialized) = 0x00
+
+        auto second_read = ppu.ReadPPUDATA(); // Returns palette[2] (uninitialized) = 0x00
         REQUIRE(second_read == 0x00);
-        
-        auto third_read = ppu.ReadPPUDATA();  // Returns palette[3] (uninitialized) = 0x00
+
+        auto third_read = ppu.ReadPPUDATA(); // Returns palette[3] (uninitialized) = 0x00
         REQUIRE(third_read == 0x00);
       }
     }
@@ -287,19 +287,19 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
       ppu.WritePPUADDR(0x00);
 
       THEN("sequential reads should return buffered values in order") {
-        auto read1 = ppu.ReadPPUDATA();  // Returns 0, buffers 0xAA
+        auto read1 = ppu.ReadPPUDATA(); // Returns 0, buffers 0xAA
         REQUIRE(read1 == 0x00);
 
-        auto read2 = ppu.ReadPPUDATA();  // Returns 0xAA, buffers 0xBB
+        auto read2 = ppu.ReadPPUDATA(); // Returns 0xAA, buffers 0xBB
         REQUIRE(read2 == 0xAA);
 
-        auto read3 = ppu.ReadPPUDATA();  // Returns 0xBB, buffers 0xCC
+        auto read3 = ppu.ReadPPUDATA(); // Returns 0xBB, buffers 0xCC
         REQUIRE(read3 == 0xBB);
-        
-        auto read4 = ppu.ReadPPUDATA();  // Returns 0xCC, buffers 0
+
+        auto read4 = ppu.ReadPPUDATA(); // Returns 0xCC, buffers 0
         REQUIRE(read4 == 0xCC);
-        
-        auto read5 = ppu.ReadPPUDATA();  // Returns 0
+
+        auto read5 = ppu.ReadPPUDATA(); // Returns 0
         REQUIRE(read5 == 0x00);
       }
     }
@@ -311,10 +311,10 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
       ppu.WritePPUADDR(0x00);
 
       THEN("the read should access VRAM correctly") {
-        auto first_read = ppu.ReadPPUDATA();  // Returns 0, buffers 0x55
+        auto first_read = ppu.ReadPPUDATA(); // Returns 0, buffers 0x55
         REQUIRE(first_read == 0x00);
-        
-        auto second_read = ppu.ReadPPUDATA();  // Returns 0x55
+
+        auto second_read = ppu.ReadPPUDATA(); // Returns 0x55
         REQUIRE(second_read == 0x55);
       }
     }
@@ -323,13 +323,13 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
       ppu.WriteToVRAM(0x7FE, 0x99);
 
       ppu.WritePPUADDR(0x2F);
-      ppu.WritePPUADDR(0xFE);  // Address 0x2FFE
+      ppu.WritePPUADDR(0xFE); // Address 0x2FFE
 
       THEN("the read should access VRAM correctly") {
-        auto first_read = ppu.ReadPPUDATA();  // Returns 0, buffers 0x99
+        auto first_read = ppu.ReadPPUDATA(); // Returns 0, buffers 0x99
         REQUIRE(first_read == 0x00);
-        
-        auto second_read = ppu.ReadPPUDATA();  // Returns 0x99
+
+        auto second_read = ppu.ReadPPUDATA(); // Returns 0x99
         REQUIRE(second_read == 0x99);
       }
     }
@@ -341,27 +341,27 @@ SCENARIO("PPUDATA register read tests", "[PPU]") {
       ppu.WritePPUADDR(0x00);
 
       THEN("palette reads return immediately without buffering") {
-        auto first_read = ppu.ReadPPUDATA();  // Palette reads return immediately
+        auto first_read = ppu.ReadPPUDATA(); // Palette reads return immediately
         REQUIRE(first_read == 0x77);
-        
+
         ppu.WriteToPalette(1, 0x88);
-        auto second_read = ppu.ReadPPUDATA();  // Next palette value
+        auto second_read = ppu.ReadPPUDATA(); // Next palette value
         REQUIRE(second_read == 0x88);
       }
     }
 
     WHEN("reading from palette table at 0x3F1F (within addressable palette)") {
       ppu.WriteToPalette(0x1F, 0x88);
-      
+
       ppu.WritePPUADDR(0x3F);
       ppu.WritePPUADDR(0x1F);
 
       THEN("palette reads return immediately") {
-        auto first_read = ppu.ReadPPUDATA();  // Palette reads return immediately
+        auto first_read = ppu.ReadPPUDATA(); // Palette reads return immediately
         REQUIRE(first_read == 0x88);
-        
-        ppu.WriteToPalette(0, 0x99);  // Wraps to 0x3F00 after increment
-        auto second_read = ppu.ReadPPUDATA();  // Reads from 0x3F20, wraps to 0x3F00
+
+        ppu.WriteToPalette(0, 0x99);          // Wraps to 0x3F00 after increment
+        auto second_read = ppu.ReadPPUDATA(); // Reads from 0x3F20, wraps to 0x3F00
         REQUIRE(second_read == 0x99);
       }
     }
@@ -389,9 +389,7 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
       ppu.WritePPUADDR(0x00);
       ppu.WritePPUDATA(0x12);
 
-      THEN("the value should be written to VRAM index 0") {
-        REQUIRE(ppu.ReadFromVRAM(0x00) == 0x12);
-      }
+      THEN("the value should be written to VRAM index 0") { REQUIRE(ppu.ReadFromVRAM(0x00) == 0x12); }
     }
 
     WHEN("writing to VRAM at address 0x2FFF") {
@@ -410,9 +408,7 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
       ppu.WritePPUADDR(0x00);
       ppu.WritePPUDATA(0x25);
 
-      THEN("the value should be written to the palette table at index 0") {
-        REQUIRE(ppu.ReadFromPalette(0) == 0x25);
-      }
+      THEN("the value should be written to the palette table at index 0") { REQUIRE(ppu.ReadFromPalette(0) == 0x25); }
     }
 
     WHEN("writing to palette table at address 0x3F10") {
@@ -420,9 +416,7 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
       ppu.WritePPUADDR(0x10);
       ppu.WritePPUDATA(0x38);
 
-      THEN("the value should be written to palette index 0x10") {
-        REQUIRE(ppu.ReadFromPalette(0x10) == 0x38);
-      }
+      THEN("the value should be written to palette index 0x10") { REQUIRE(ppu.ReadFromPalette(0x10) == 0x38); }
     }
 
     WHEN("writing to palette table at address 0x3F1F") {
@@ -430,9 +424,7 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
       ppu.WritePPUADDR(0x1F);
       ppu.WritePPUDATA(0x3D);
 
-      THEN("the value should be written to palette index 0x1F") {
-        REQUIRE(ppu.ReadFromPalette(0x1F) == 0x3D);
-      }
+      THEN("the value should be written to palette index 0x1F") { REQUIRE(ppu.ReadFromPalette(0x1F) == 0x3D); }
     }
 
     WHEN("writing to palette table with mirroring (0x3F20-0x3FFF)") {
@@ -487,7 +479,7 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
     }
 
     WHEN("writing with VRAM address increment set to 32") {
-      ppu.WritePPUCTRL(0b00000100);  // Set VRAM increment to 32
+      ppu.WritePPUCTRL(0b00000100); // Set VRAM increment to 32
       ppu.WritePPUADDR(0x20);
       ppu.WritePPUADDR(0x00);
       ppu.WritePPUDATA(0xF1);
@@ -531,12 +523,12 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
       ppu.WritePPUADDR(0x23);
       ppu.WritePPUADDR(0xC0);
       ppu.WritePPUDATA(0x55);
-      
+
       // Write to palette
       ppu.WritePPUADDR(0x3F);
       ppu.WritePPUADDR(0x00);
       ppu.WritePPUDATA(0x0F);
-      
+
       // Write to VRAM again
       ppu.WritePPUADDR(0x24);
       ppu.WritePPUADDR(0x00);
@@ -553,7 +545,7 @@ SCENARIO("PPUDATA register write tests", "[PPU]") {
       ppu.WritePPUADDR(0x2F);
       ppu.WritePPUADDR(0xFE);
       ppu.WritePPUDATA(0xDD);
-      ppu.WritePPUDATA(0xEE);  // Should wrap around
+      ppu.WritePPUDATA(0xEE); // Should wrap around
 
       THEN("writes should handle address wrapping correctly") {
         REQUIRE(ppu.ReadFromVRAM(0x7FE) == 0xDD);

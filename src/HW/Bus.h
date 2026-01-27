@@ -30,6 +30,8 @@ public:
   static constexpr size_t ROM_START_REGISTER = 0x8000;
   static constexpr size_t MAX_ADDRESSABLE_ROM_ADDRESS = 0xFFFF;
 
+  static constexpr unsigned int PPU_FREQ_RATIO = 3; // ratio between PPU clock freq and CPU clock freq
+
   [[nodiscard]] ErrorOr<void> LoadRom(std::string_view rom_file) {
     m_rom = TRY(::BNES::HW::Rom::FromFile(rom_file));
     return {};
@@ -38,8 +40,12 @@ public:
   void AttachCPU(CPU *cpu);
   void AttachPPU(PPU *ppu);
 
+  void PropagateNMI();
+
   [[nodiscard]] uint8_t Read(Addr address);
   void Write(Addr address, uint8_t data);
+
+  void Tick(unsigned int cycles);
 
   // Used mainly in unit tests...
   ErrorOr<void> LoadIntoProgramRom(std::span<const uint8_t> program);

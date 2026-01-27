@@ -6,6 +6,25 @@
 
 namespace BNES::HW {
 
+void PPU::Tick(unsigned int cycles) {
+  m_cycles += cycles;
+
+  if (m_cycles >= 341) {
+    m_cycles -= 341;
+    m_current_scanline += 1;
+
+    if (m_current_scanline == 241 && VblankNMIEnabled()) {
+      m_status_register |= 0b1000000;
+      m_bus->PropagateNMI();
+    }
+
+    if (m_current_scanline >= 262) {
+      m_current_scanline = 0;
+      m_status_register &= ~0b1000000;
+    }
+  }
+}
+
 void PPU::WritePPUADDR(uint8_t value) {
   // W = 0 means first write, where high bits are written
   if (m_internal_registers[Register::W] == 0) {
@@ -35,12 +54,21 @@ void PPU::WritePPUCTRL(uint8_t value) {
   // TODO: After power/reset, writes to this register are ignored until the first
   // pre-render scanline.
 
+  bool last_vblank_nmi_enabled = VblankNMIEnabled();
+
   m_control_register = value;
 
   if (VRAMAddressIncrement()) {
     m_vram_address_increment = 32;
   } else {
     m_vram_address_increment = 1;
+  }
+
+  // In addition to scanline position, PPU would immediately trigger NMI if both of these conditions are met:
+  //  - PPU is VBLANK state
+  //  - "Generate NMI" bit in the control Register is updated from 0 to 1.
+  if (!last_vblank_nmi_enabled && VblankNMIEnabled() && IsInVblank()) {
+    m_bus->PropagateNMI();
   }
 }
 

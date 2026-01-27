@@ -472,7 +472,8 @@ void CPU::RunInstruction(Instruction &&instr) {
         // Run the instruction on the CPU
         instruction.Apply(*this);
 
-        if constexpr (!(std::is_same_v<std::decay_t<decltype(instruction)>, JumpToSubroutine> ||
+        if constexpr (!(std::is_same_v<std::decay_t<decltype(instruction)>, Break> ||
+                        std::is_same_v<std::decay_t<decltype(instruction)>, JumpToSubroutine> ||
                         std::is_same_v<std::decay_t<decltype(instruction)>, ReturnFromSubroutine> ||
                         std::is_same_v<std::decay_t<decltype(instruction)>, ReturnFromInterrupt> ||
                         std::is_same_v<std::decay_t<decltype(instruction)>, Jump<AddressingMode::Absolute>> ||
@@ -688,6 +689,31 @@ std::string CPU::DisassembleInstruction(const Instruction &instr) const {
                         [](const auto &) -> std::string { return "Unimplemented disassembly"; },
                     },
                     instr);
+}
+
+void CPU::ProcessNMI() {
+  // Upon receiving a NMI the CPU:
+  // - Finishes execution of the current instruction (we can ignore this)
+  // - Stores Program Counter and Status flag on the stack
+  // - Disables Interrupts by setting Disable Interrupt flag in the status register P
+  // - Loads the Address of Interrupt handler routine from 0xFFFA (for NMI)
+  // - Sets Program Counter register pointing to that address
+
+  WriteToMemory(StackBaseAddress + m_stack_pointer, (m_program_counter >> 8) & 0xFF); // Push high byte
+  m_stack_pointer--;
+  WriteToMemory(StackBaseAddress + m_stack_pointer, m_program_counter & 0xFF); // Push low byte
+  m_stack_pointer--;
+
+  WriteToMemory(StackBaseAddress + m_stack_pointer, m_status.to_ulong());
+  m_stack_pointer--;
+
+  SetStatusFlagValue(StatusFlag::InterruptDisable, true);
+
+  m_bus->Tick(2);
+
+  uint8_t low_byte = ReadFromMemory(0xFFFA);
+  uint8_t hi_byte = ReadFromMemory(0xFFFB);
+  m_program_counter = (hi_byte << 8) | low_byte;
 }
 
 uint8_t CPU::ReadFromMemory(Addr addr) const { return m_bus->Read(addr); }
