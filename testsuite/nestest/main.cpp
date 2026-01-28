@@ -6,7 +6,6 @@
 #include "HW/PPU.h"
 #include "SDLBind/Init.h"
 #include "Tools/CPUDebugger.h"
-#include "Tools/PPUDebugger.h"
 
 #include <docopt.h>
 
