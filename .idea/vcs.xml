@@ -9,6 +9,7 @@
     <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/harfbuzz" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/plutosvg" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL_ttf/external/plutovg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/docopt" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/magic_enum" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/spdlog" vcs="Git" />
   </component>

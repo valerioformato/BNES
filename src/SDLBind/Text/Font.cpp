@@ -4,11 +4,19 @@
 
 #include "SDLBind/Text/Font.h"
 
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace BNES::SDL {
 namespace {
 std::unordered_map<size_t, Font> Fonts;
+}
+
+void ReleaseFonts() {
+  std::ranges::for_each(Fonts, [](auto &font_p) {
+    auto [hash, font] = font_p;
+    TTF_CloseFont(font.native_font);
+  });
 }
 
 ErrorOr<Font> Font::Get(std::string name, FontVariant variant) {
@@ -18,8 +26,7 @@ ErrorOr<Font> Font::Get(std::string name, FontVariant variant) {
     return FromFile(name, variant);
   }
 
-  return make_error(std::errc::invalid_argument,
-                    fmt::format("Font {}-{} not found", name, magic_enum::enum_name(variant)));
+  std::unreachable();
 }
 
 ErrorOr<Font> Font::FromFile(std::string_view name, FontVariant variant) {
@@ -38,7 +45,7 @@ ErrorOr<Font> Font::FromFile(std::string_view name, FontVariant variant) {
     auto [handle, result] = Fonts.insert({Hash(name, variant), Font{
                                                                    .name = font_path.string(),
                                                                    .variant = variant,
-                                                                   .font = font,
+                                                                   .native_font = font,
                                                                }});
 
     if (!result) {

@@ -23,17 +23,19 @@ enum class FontVariant {
   BoldItalic,
 };
 
+void ReleaseFonts();
+
 class Font {
 public:
-  bool operator==(const Font &other) const { return name == other.name || font == other.font; }
+  bool operator==(const Font &other) const { return name == other.name || native_font == other.native_font; }
 
   std::string name;
   FontVariant variant;
-  TTF_Font *font{nullptr};
+  TTF_Font *native_font{nullptr};
 
   static ErrorOr<Font> Get(std::string name, FontVariant variant);
 
-  [[nodiscard]] unsigned int LineSkip() const { return TTF_GetFontLineSkip(font); }
+  [[nodiscard]] unsigned int LineSkip() const { return TTF_GetFontLineSkip(native_font); }
 
 private:
   static size_t Hash(std::string_view name, FontVariant variant) {

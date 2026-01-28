@@ -1,13 +1,11 @@
 #ifndef BNES_SDL_INIT_H
 #define BNES_SDL_INIT_H
 
+#include "SDLBind/Text/Font.h"
 #include "common/Utils.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
-#include <algorithm>
-
-#include <ranges>
 
 namespace BNES::SDL {
 
@@ -30,6 +28,7 @@ inline ErrorOr<void> Init() {
 
 inline void Quit() {
   // Quit SDL subsystems
+  ReleaseFonts();
   TTF_Quit();
   SDL_Quit();
 }

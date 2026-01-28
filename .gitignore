@@ -113,5 +113,5 @@ tramp
 .vscode
 
 ##### JetBrains ########
-.idea
+.idea*
 cmake-build*

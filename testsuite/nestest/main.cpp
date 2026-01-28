@@ -4,6 +4,11 @@
 
 #include "HW/CPU.h"
 #include "HW/PPU.h"
+#include "SDLBind/Init.h"
+#include "Tools/CPUDebugger.h"
+#include "Tools/PPUDebugger.h"
+
+#include <docopt.h>
 
 #include <algorithm>
 #include <concepts>
@@ -186,11 +191,21 @@ public:
 
     RunInstruction(std::move(instr));
   }
+
   std::string last_log_line;
 };
 
-BNES::ErrorOr<int> nestest_main() {
-  spdlog::set_level(spdlog::level::debug);
+struct Options {
+  bool batch{false};
+  bool stepping{false};
+};
+
+BNES::ErrorOr<int> nestest_main(Options options) {
+  // Initialize SDL
+  if (auto result = BNES::SDL::Init(); !result) {
+    spdlog::error("Unable to initialize program!");
+    return 1;
+  }
 
   BNES::HW::Bus bus;
   TRY(bus.LoadRom("assets/roms/nestest.nes"));
@@ -216,11 +231,15 @@ BNES::ErrorOr<int> nestest_main() {
 
   BNES::HW::PPU ppu{bus};
 
+  BNES::Tools::CPUDebugger cpu_debugger(cpu);
+  // BNES::Tools::PPUDebugger ppu_debugger(ppu);
+
+  cpu_debugger.Update();
+  cpu_debugger.Present();
+
   // Force the start in automated mode.
-  // The reset vector points to a starting address that we can use once we implement a working PPU. For now, let's run
-  // in "batch" mode
-  bool batch_mode = true;
-  if (batch_mode) {
+  // The reset vector points to a starting address that we can use once we implement a working PPU.
+  if (options.batch) {
     cpu.SetProgramStartAddress(0xC000);
   }
 
@@ -228,6 +247,47 @@ BNES::ErrorOr<int> nestest_main() {
 
   unsigned int i_line = 0;
   while (true) {
+    bool proceed = false;
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      case SDL_EVENT_KEY_DOWN:
+        switch (event.key.key) {
+        case SDLK_S:
+          if (!options.stepping) {
+            options.stepping = true;
+            spdlog::info("Single stepping enabled. Press 's' to step through instructions.");
+          } else {
+            proceed = true;
+          }
+          break;
+        case SDLK_C:
+          if (options.stepping) {
+            options.stepping = false;
+            spdlog::info("Single stepping disabled. Execution continues.");
+          }
+          break;
+        case SDLK_Q:
+        case SDLK_ESCAPE:
+          spdlog::info("Quit requested");
+          BNES::SDL::Quit();
+          return 0;
+        }
+        break;
+      case SDL_EVENT_QUIT:
+        spdlog::info("Quit requested");
+        BNES::SDL::Quit();
+        return 0;
+      }
+    }
+
+    // If stepping is enabled and we haven't received a proceed signal, wait for events
+    if (options.stepping && !proceed) {
+      SDL_Delay(10); // Small delay to avoid busy-waiting
+      continue;
+    }
+
     // Check if we hit a BRK instruction (opcode 0x00) - stop execution
     uint8_t opcode = bus.Read(cpu.ProgramCounter());
     if (opcode == 0x00) {
@@ -239,7 +299,7 @@ BNES::ErrorOr<int> nestest_main() {
 
       spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
 
-      if (batch_mode) {
+      if (options.batch) {
         if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
           spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
                         cpu.last_log_line, *nestest_log_it);
@@ -256,11 +316,49 @@ BNES::ErrorOr<int> nestest_main() {
     }
   }
 
+  // Clean up
+  BNES::SDL::Quit();
+
   return 0;
 }
 
-int main() {
-  auto result = nestest_main();
+static constexpr auto USAGE_STRING = R"(nestest, Run the NESTEST rom and dump CPU status
+
+Usage:
+  nestest [-v | -vv] [options]
+  nestest --version
+
+Options:
+    -b, --batch                Run in batch mode, starting at 0xC000
+    -s, --stepping             Start with single stepping enabled
+    -v...                      Verbosity level (once for Debug, twice for Trace)
+
+Controls:
+    s                          Toggle/step: Enable stepping mode, or step one instruction
+    c                          Continue: Disable stepping mode and resume execution
+    q/ESC                      Quit the program)";
+
+int main(int argc, char **argv) {
+  auto versionString = fmt::format("{} v{}.{}.{}", "nestest", 0, 0, 0);
+  std::map<std::string, docopt::value> arguments =
+      docopt::docopt(USAGE_STRING, {std::next(argv), std::next(argv, argc)},
+                     true,           // show help if requested
+                     versionString); // version string
+
+  switch (arguments["-v"].asLong()) {
+  case 1:
+    spdlog::set_level(spdlog::level::debug);
+    break;
+  case 2:
+    spdlog::set_level(spdlog::level::trace);
+    break;
+  }
+
+  auto result = nestest_main({
+      .batch = arguments["--batch"].asBool(),
+      .stepping = arguments["--stepping"].asBool(),
+  });
+
   if (!result) {
     spdlog::error("Error: {}", result.error().Message());
     return result.error().Code().value();

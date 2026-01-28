@@ -76,10 +76,10 @@ ErrorOr<Texture> Texture::FromText(SDL_Renderer *renderer, TextSpec spec) {
   SDL_Surface *surface;
   auto &[content, font, color, wrapping, width] = spec;
 
-  if (surface =
-          wrapping == TextWrapping::Wrapped
-              ? TTF_RenderText_Blended_Wrapped(font.font, content.data(), content.size(), color.ToSDL_Color(), width)
-              : TTF_RenderText_Blended(font.font, content.data(), content.size(), color.ToSDL_Color());
+  if (surface = wrapping == TextWrapping::Wrapped
+                    ? TTF_RenderText_Blended_Wrapped(font.native_font, content.data(), content.size(),
+                                                     color.ToSDL_Color(), width)
+                    : TTF_RenderText_Blended(font.native_font, content.data(), content.size(), color.ToSDL_Color());
       surface == nullptr) {
     spdlog::error("Failed to render text: {}", SDL_GetError());
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());

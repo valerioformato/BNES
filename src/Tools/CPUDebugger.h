@@ -5,16 +5,15 @@
 #ifndef CPUDEBUGGER_H
 #define CPUDEBUGGER_H
 
-#include "../SDLBind/Graphics/Window.h"
 #include "HW/CPU.h"
+#include "SDLBind/Graphics/Window.h"
 #include "common/Types/non_owning_ptr.h"
 
 namespace BNES::Tools {
 
 class CPUDebugger {
 public:
-  class Window {
-  public:
+  struct Window {
     explicit Window(SDL::Buffer &&buffer);
 
     ErrorOr<void> Update(SDL::TextSpec text_content);
@@ -29,6 +28,8 @@ public:
   [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const {
     return m_window.m_window.SetPosition(x, y);
   };
+
+  void Present() const { SDL_RenderPresent(m_window.m_window.Renderer()); }
 
   void Update();
 
