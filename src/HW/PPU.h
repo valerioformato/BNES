@@ -36,6 +36,9 @@ public:
 
   [[nodiscard]] EnumArray<uint16_t, Register> InternalRegisters() const { return m_internal_registers; };
 
+  [[nodiscard]] uint16_t CurrentScanline() const { return m_current_scanline; }
+  [[nodiscard]] size_t Cycles() const { return m_cycles; }
+
 protected:
   void Tick(unsigned int cycles);
 
@@ -64,7 +67,7 @@ protected:
   [[nodiscard]] bool VblankNMIEnabled() const { return m_control_register & 0b10000000; };
 
   // Helper getters for PPUSTATUS register
-  [[nodiscard]] bool IsInVblank() const { return m_status_register & 0b01000000; };
+  [[nodiscard]] bool IsInVblank() const { return m_status_register & 0b10000000; };
 
   // Protected members for testing
   std::array<uint8_t, 32> m_palette_table{0};

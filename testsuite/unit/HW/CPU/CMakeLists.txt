@@ -10,6 +10,7 @@ set(test_SRC
     HW/CPU/cpu_tests_execute.cpp
     HW/CPU/cpu_tests_execute_loadstore.cpp
     HW/CPU/cpu_tests_execute_math.cpp
+    HW/CPU/cpu_tests_nmi.cpp
     HW/CPU/cpu_tests_smallprograms.cpp
     PARENT_SCOPE
 )

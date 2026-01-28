@@ -4,6 +4,6 @@ add_subdirectory(Rom)
 add_subdirectory(Bus)
 
 set(test_SRC
-        ${test_SRC}
-        PARENT_SCOPE
+    ${test_SRC} HW/nmi_integration_tests.cpp
+    PARENT_SCOPE
 )

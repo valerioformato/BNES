@@ -9,18 +9,20 @@ namespace BNES::HW {
 void PPU::Tick(unsigned int cycles) {
   m_cycles += cycles;
 
-  if (m_cycles >= 341) {
+  while (m_cycles >= 341) {
     m_cycles -= 341;
     m_current_scanline += 1;
 
-    if (m_current_scanline == 241 && VblankNMIEnabled()) {
-      m_status_register |= 0b1000000;
-      m_bus->PropagateNMI();
+    if (m_current_scanline == 241) {
+      m_status_register |= 0b10000000;
+      if (VblankNMIEnabled()) {
+        m_bus->PropagateNMI();
+      }
     }
 
     if (m_current_scanline >= 262) {
       m_current_scanline = 0;
-      m_status_register &= ~0b1000000;
+      m_status_register &= ~0b10000000;
     }
   }
 }
