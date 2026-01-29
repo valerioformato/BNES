@@ -4,6 +4,7 @@
 
 #include "Tools/PPUDebugger.h"
 #include "SDLBind/Graphics/Texture.h"
+#include "Tools/PPUPalette.h"
 
 #include <spdlog/fmt/ranges.h>
 
@@ -64,13 +65,27 @@ ErrorOr<void> PPUDebugger::Update() {
     std::ranges::copy(tile_pixels_v | rv::transform([](uint8_t value) {
                         // FIXME: we should actually look into the palette data and choose the right color. For now
                         //        let's make it bright enough to be seen on screen...
-                        value *= 80;
-                        return SDL::Pixel{value, value, value, 0xFF};
+                        uint8_t idx{0};
+                        switch (value) {
+                        case 0:
+                          idx = 0x01;
+                          break;
+                        case 1:
+                          idx = 0x23;
+                          break;
+                        case 2:
+                          idx = 0x27;
+                          break;
+                        case 3:
+                          idx = 0x30;
+                          break;
+                        }
+                        return HW::PPUPalette[idx];
                       }),
                       tile_pixels.begin());
 
     auto starting_pixel_x = (tile_index * tile_width) % chr_rom_buffer.Width();
-    auto starting_pixel_y = tile_index / (chr_rom_buffer.Width() / tile_width);
+    auto starting_pixel_y = (tile_index / (chr_rom_buffer.Width() / tile_width)) * tile_height;
 
     for (const auto [index, pixel] : rv::enumerate(tile_pixels)) {
       auto pixel_x = index % tile_width + starting_pixel_x;

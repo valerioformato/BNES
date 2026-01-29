@@ -32,7 +32,7 @@ ErrorOr<void> CPUDebugger::Window::Update(SDL::TextSpec text_content) {
   return {};
 }
 
-void CPUDebugger::Update() {
+ErrorOr<void> CPUDebugger::Update() {
   using CPU = HW::CPU;
 
   std::vector<std::string> lines;
@@ -41,6 +41,10 @@ void CPUDebugger::Update() {
                               m_cpu->DisassembleInstruction(m_cpu->CurrentInstruction())));
   lines.push_back(
       fmt::format("PC: {:4X} {}", m_cpu->ProgramCounter(), m_cpu->DisassembleInstruction(m_cpu->CurrentInstruction())));
+
+  lines.push_back("");
+  lines.push_back("              NV1BDIZC");
+  lines.push_back(fmt::format("Status Flags: {}", m_cpu->StatusFlags().to_string()));
 
   std::string content = std::reduce(begin(lines), end(lines), std::string{},
                                     [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });
@@ -53,7 +57,7 @@ void CPUDebugger::Update() {
       .wrap_size = static_cast<unsigned int>(m_window.m_window.Size()[1]),
   };
 
-  m_window.Update(text_content);
+  return m_window.Update(text_content);
 }
 
 } // namespace BNES::Tools

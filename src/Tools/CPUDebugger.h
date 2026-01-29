@@ -25,13 +25,9 @@ public:
   CPUDebugger() = delete;
   explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
 
-  [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const {
-    return m_window.m_window.SetPosition(x, y);
-  };
+  [[nodiscard]] SDL::Window &GetWindow() { return m_window.m_window; }
 
-  void Present() const { m_window.m_window.Present(); }
-
-  void Update();
+  ErrorOr<void> Update();
 
 private:
   non_owning_ptr<const HW::CPU *> m_cpu;

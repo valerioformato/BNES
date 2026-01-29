@@ -232,10 +232,20 @@ BNES::ErrorOr<int> nestest_main(Options options) {
   BNES::HW::PPU ppu{bus};
 
   BNES::Tools::CPUDebugger cpu_debugger(cpu);
-  cpu_debugger.Present();
+  cpu_debugger.GetWindow().Present();
 
   BNES::Tools::PPUDebugger ppu_debugger(ppu);
-  ppu_debugger.Present();
+  ppu_debugger.GetWindow().SetRenderScale(2, 2);
+  ppu_debugger.GetWindow().Present();
+
+  auto cpu_d_pos = cpu_debugger.GetWindow().Position();
+  auto ppu_d_pos = ppu_debugger.GetWindow().Position();
+
+  cpu_d_pos[0] -= cpu_debugger.GetWindow().Size()[0] / 2;
+  ppu_d_pos[0] += cpu_debugger.GetWindow().Size()[0] / 2;
+
+  TRY(cpu_debugger.GetWindow().SetPosition(cpu_d_pos[0], cpu_d_pos[1]));
+  TRY(ppu_debugger.GetWindow().SetPosition(ppu_d_pos[0], ppu_d_pos[1]));
 
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU.
@@ -298,6 +308,9 @@ BNES::ErrorOr<int> nestest_main(Options options) {
       cpu.RunOneInstruction();
 
       spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
+
+      TRY(cpu_debugger.Update());
+      TRY(ppu_debugger.Update());
 
       if (options.batch) {
         if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {

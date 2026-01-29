@@ -25,7 +25,7 @@ uint8_t Bus::Read(Addr address) {
 
   if (address == 0x2000 || address == 0x2001 || address == 0x2003 || address == 0x2005 || address == 0x2006 ||
       address == 0x4014) {
-    spdlog::error("Bus read request for address {}: Address is write-only", address);
+    spdlog::error("Bus read request for address 0x{:04X}: Address is write-only", address);
     throw std::runtime_error("Bus read request for write-only address");
   }
   if (address == 0x2002) {

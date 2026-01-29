@@ -16,27 +16,26 @@ public:
   struct Window {
     explicit Window(SDL::Buffer &&buffer);
 
-    ErrorOr<void> Update();
+    ErrorOr<void> Update(SDL::Texture &chr_rom_tex);
 
     SDL::Window m_window;
-    SDL::Font m_font;
   };
 
   PPUDebugger() = delete;
-  explicit PPUDebugger(const HW::PPU &ppu) : m_ppu(&ppu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
+  explicit PPUDebugger(const HW::PPU &ppu)
+      : m_ppu(&ppu), m_window(SDL::Buffer::FromSize(800, 600).value()),
+        m_chr_rom_texture(
+            SDL::Texture::FromBuffer(m_window.m_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()).value()) {}
 
-  [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const {
-    return m_window.m_window.SetPosition(x, y);
-  };
+  [[nodiscard]] SDL::Window &GetWindow() { return m_window.m_window; }
 
-  void Present() const { m_window.m_window.Present(); }
-
-  void Update();
+  ErrorOr<void> Update();
 
 private:
   non_owning_ptr<const HW::PPU *> m_ppu;
 
   Window m_window;
+  SDL::Texture m_chr_rom_texture;
 };
 
 } // namespace BNES::Tools
