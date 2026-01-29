@@ -2,28 +2,28 @@
 // Created by vformato on 10/17/25.
 //
 
-#ifndef CPUDEBUGGER_H
-#define CPUDEBUGGER_H
+#ifndef PPUDEBUGGER_H
+#define PPUDEBUGGER_H
 
-#include "HW/CPU.h"
+#include "HW/PPU.h"
 #include "SDLBind/Graphics/Window.h"
 #include "common/Types/non_owning_ptr.h"
 
 namespace BNES::Tools {
 
-class CPUDebugger {
+class PPUDebugger {
 public:
   struct Window {
     explicit Window(SDL::Buffer &&buffer);
 
-    ErrorOr<void> Update(SDL::TextSpec text_content);
+    ErrorOr<void> Update();
 
     SDL::Window m_window;
     SDL::Font m_font;
   };
 
-  CPUDebugger() = delete;
-  explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
+  PPUDebugger() = delete;
+  explicit PPUDebugger(const HW::PPU &ppu) : m_ppu(&ppu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
 
   [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const {
     return m_window.m_window.SetPosition(x, y);
@@ -34,7 +34,7 @@ public:
   void Update();
 
 private:
-  non_owning_ptr<const HW::CPU *> m_cpu;
+  non_owning_ptr<const HW::PPU *> m_ppu;
 
   Window m_window;
 };

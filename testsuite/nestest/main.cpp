@@ -6,6 +6,7 @@
 #include "HW/PPU.h"
 #include "SDLBind/Init.h"
 #include "Tools/CPUDebugger.h"
+#include "Tools/PPUDebugger.h"
 
 #include <cxxopts.hpp>
 
@@ -231,10 +232,10 @@ BNES::ErrorOr<int> nestest_main(Options options) {
   BNES::HW::PPU ppu{bus};
 
   BNES::Tools::CPUDebugger cpu_debugger(cpu);
-  // BNES::Tools::PPUDebugger ppu_debugger(ppu);
-
-  cpu_debugger.Update();
   cpu_debugger.Present();
+
+  BNES::Tools::PPUDebugger ppu_debugger(ppu);
+  ppu_debugger.Present();
 
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU.
@@ -323,33 +324,34 @@ BNES::ErrorOr<int> nestest_main(Options options) {
 
 int main(int argc, char **argv) {
   cxxopts::Options options("nestest", "Run the NESTEST rom and dump CPU status");
-  
+
+  // clang-format off
   options.add_options()
     ("b,batch", "Run in batch mode, starting at 0xC000")
     ("s,stepping", "Start with single stepping enabled")
     ("v,verbose", "Verbosity level (use -v for Debug, -vv for Trace)", cxxopts::value<int>()->default_value("0")->implicit_value("1"))
     ("version", "Print version information")
     ("h,help", "Print usage");
+  // clang-format on
 
   options.parse_positional({});
-  
+
   try {
     auto result = options.parse(argc, argv);
-    
     if (result.count("help")) {
-      std::cout << options.help() << std::endl;
-      std::cout << "\nControls:" << std::endl;
-      std::cout << "  s         Toggle/step: Enable stepping mode, or step one instruction" << std::endl;
-      std::cout << "  c         Continue: Disable stepping mode and resume execution" << std::endl;
-      std::cout << "  q/ESC     Quit the program" << std::endl;
+      std::cout << options.help() << '\n';
+      std::cout << "\nControls:" << '\n';
+      std::cout << "  s         Toggle/step: Enable stepping mode, or step one instruction" << '\n';
+      std::cout << "  c         Continue: Disable stepping mode and resume execution" << '\n';
+      std::cout << "  q/ESC     Quit the program" << '\n';
       return 0;
     }
-    
+
     if (result.count("version")) {
       std::cout << "nestest v0.0.0" << std::endl;
       return 0;
     }
-    
+
     int verbosity = result["verbose"].count();
     switch (verbosity) {
     case 1:
@@ -371,7 +373,7 @@ int main(int argc, char **argv) {
     }
 
     return 0;
-  } catch (const cxxopts::exceptions::exception& e) {
+  } catch (const cxxopts::exceptions::exception &e) {
     std::cerr << "Error parsing options: " << e.what() << std::endl;
     return 1;
   }

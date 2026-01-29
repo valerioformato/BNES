@@ -57,6 +57,8 @@ public:
   [[nodiscard]] ::BNES::SDL::Surface Surface() const { return ::BNES::SDL::Surface{SDL_GetWindowSurface(m_window)}; }
   [[nodiscard]] ErrorOr<Texture> CreateTexture(Buffer &&buffer) const;
 
+  void Present() const { SDL_RenderPresent(m_renderer); }
+
   [[nodiscard]] ErrorOr<void> UpdateSurface() const {
     if (SDL_UpdateWindowSurface(m_window) == false) {
       return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
@@ -65,8 +67,8 @@ public:
     return {};
   }
 
-  std::array<int, 2> Position() const;
-  std::array<int, 2> Size() const;
+  [[nodiscard]] std::array<int, 2> Position() const;
+  [[nodiscard]] std::array<int, 2> Size() const;
 
   [[nodiscard]] ErrorOr<void> SetPosition(unsigned int x, unsigned int y) const;
   void SetRenderScale(float scale_x, float scale_y) const { SDL_SetRenderScale(m_renderer, scale_x, scale_y); }
