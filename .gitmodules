@@ -15,4 +15,4 @@
 	url = https://github.com/libsdl-org/SDL_ttf.git
 [submodule "vendor/docopt"]
 	path = vendor/docopt
-	url = https://github.com/docopt/docopt.cpp.git
+	url = git@github.com:valerioformato/docopt.cpp.git
