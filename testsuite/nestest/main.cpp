@@ -7,7 +7,7 @@
 #include "SDLBind/Init.h"
 #include "Tools/CPUDebugger.h"
 
-#include <docopt.h>
+#include <cxxopts.hpp>
 
 #include <algorithm>
 #include <concepts>
@@ -17,9 +17,9 @@
 #include <ranges>
 
 // Concept to check if a type has an AddrMode() method
-template <typename T> concept HasAddressingMode = requires {
-  { T::AddrMode() }
-  ->std::same_as<BNES::HW::AddressingMode>;
+template <typename T>
+concept HasAddressingMode = requires {
+  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
 };
 
 class NESTestCPU : public BNES::HW::CPU {
@@ -321,47 +321,58 @@ BNES::ErrorOr<int> nestest_main(Options options) {
   return 0;
 }
 
-static constexpr auto USAGE_STRING = R"(nestest, Run the NESTEST rom and dump CPU status
-
-Usage:
-  nestest [-v | -vv] [options]
-  nestest --version
-
-Options:
-    -b, --batch                Run in batch mode, starting at 0xC000
-    -s, --stepping             Start with single stepping enabled
-    -v...                      Verbosity level (once for Debug, twice for Trace)
-
-Controls:
-    s                          Toggle/step: Enable stepping mode, or step one instruction
-    c                          Continue: Disable stepping mode and resume execution
-    q/ESC                      Quit the program)";
-
 int main(int argc, char **argv) {
-  auto versionString = fmt::format("{} v{}.{}.{}", "nestest", 0, 0, 0);
-  std::map<std::string, docopt::value> arguments =
-      docopt::docopt(USAGE_STRING, {std::next(argv), std::next(argv, argc)},
-                     true,           // show help if requested
-                     versionString); // version string
+  cxxopts::Options options("nestest", "Run the NESTEST rom and dump CPU status");
+  
+  options.add_options()
+    ("b,batch", "Run in batch mode, starting at 0xC000")
+    ("s,stepping", "Start with single stepping enabled")
+    ("v,verbose", "Verbosity level (use -v for Debug, -vv for Trace)", cxxopts::value<int>()->default_value("0")->implicit_value("1"))
+    ("version", "Print version information")
+    ("h,help", "Print usage");
 
-  switch (arguments["-v"].asLong()) {
-  case 1:
-    spdlog::set_level(spdlog::level::debug);
-    break;
-  case 2:
-    spdlog::set_level(spdlog::level::trace);
-    break;
+  options.parse_positional({});
+  
+  try {
+    auto result = options.parse(argc, argv);
+    
+    if (result.count("help")) {
+      std::cout << options.help() << std::endl;
+      std::cout << "\nControls:" << std::endl;
+      std::cout << "  s         Toggle/step: Enable stepping mode, or step one instruction" << std::endl;
+      std::cout << "  c         Continue: Disable stepping mode and resume execution" << std::endl;
+      std::cout << "  q/ESC     Quit the program" << std::endl;
+      return 0;
+    }
+    
+    if (result.count("version")) {
+      std::cout << "nestest v0.0.0" << std::endl;
+      return 0;
+    }
+    
+    int verbosity = result["verbose"].count();
+    switch (verbosity) {
+    case 1:
+      spdlog::set_level(spdlog::level::debug);
+      break;
+    case 2:
+      spdlog::set_level(spdlog::level::trace);
+      break;
+    }
+
+    auto main_result = nestest_main({
+        .batch = result["batch"].as<bool>(),
+        .stepping = result["stepping"].as<bool>(),
+    });
+
+    if (!main_result) {
+      spdlog::error("Error: {}", main_result.error().Message());
+      return main_result.error().Code().value();
+    }
+
+    return 0;
+  } catch (const cxxopts::exceptions::exception& e) {
+    std::cerr << "Error parsing options: " << e.what() << std::endl;
+    return 1;
   }
-
-  auto result = nestest_main({
-      .batch = arguments["--batch"].asBool(),
-      .stepping = arguments["--stepping"].asBool(),
-  });
-
-  if (!result) {
-    spdlog::error("Error: {}", result.error().Message());
-    return result.error().Code().value();
-  }
-
-  return 0;
 }

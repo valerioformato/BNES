@@ -13,6 +13,6 @@
 [submodule "vendor/SDL_ttf"]
 	path = vendor/SDL_ttf
 	url = https://github.com/libsdl-org/SDL_ttf.git
-[submodule "vendor/docopt"]
-	path = vendor/docopt
-	url = git@github.com:valerioformato/docopt.cpp.git
+[submodule "vendor/cxxopts"]
+	path = vendor/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git

@@ -45,7 +45,7 @@ set(SPDLOG_FMT_EXTERNAL
 )
 add_subdirectory(vendor/spdlog)
 
-add_subdirectory(vendor/docopt)
+add_subdirectory(vendor/cxxopts)
 
 message(STATUS "${SPDLOG_USE_STD_FORMAT}")
 message(STATUS "${SPDLOG_FMT_EXTERNAL}")
