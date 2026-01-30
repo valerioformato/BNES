@@ -5,13 +5,13 @@
 #include "Tools/PPUDebugger.h"
 #include "SDLBind/Graphics/Texture.h"
 #include "Tools/PPUPalette.h"
+#include "common/ranges_compat.h"
 
 #include <spdlog/fmt/ranges.h>
 
 #include <algorithm>
 #include <bitset>
 #include <numeric>
-#include <ranges>
 
 namespace BNES::Tools {
 
@@ -27,8 +27,6 @@ ErrorOr<void> PPUDebugger::Update() {
 }
 
 ErrorOr<void> PPUDebugger::UpdateChrRomTexture() {
-  namespace rv = std::ranges::views;
-
   SDL::Buffer &chr_rom_buffer = m_chr_rom_texture.Buffer();
 
   static constexpr unsigned int tile_memory_size = 16;

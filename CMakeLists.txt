@@ -47,6 +47,8 @@ add_subdirectory(vendor/spdlog)
 
 add_subdirectory(vendor/cxxopts)
 
+add_subdirectory(vendor/range-v3)
+
 message(STATUS "${SPDLOG_USE_STD_FORMAT}")
 message(STATUS "${SPDLOG_FMT_EXTERNAL}")
 
