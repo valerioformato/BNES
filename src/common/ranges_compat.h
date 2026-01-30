@@ -7,7 +7,8 @@
 #ifndef BNES_RANGES_COMPAT_H
 #define BNES_RANGES_COMPAT_H
 
-#include <version>
+// Always try to include <ranges> first to get feature test macros
+#include <ranges>
 
 namespace BNES {
 
@@ -15,7 +16,6 @@ namespace BNES {
 #if defined(__cpp_lib_ranges_chunk) && defined(__cpp_lib_ranges_enumerate)
 // Use standard library ranges
 #define BNES_USE_STD_RANGES
-#include <ranges>
 namespace rg = std::ranges;
 namespace rv = std::ranges::views;
 #else
