@@ -1,20 +1,25 @@
 #ifndef BNES_HW_CPU_H
 #define BNES_HW_CPU_H
 
-#include "../common/Types/EnumArray.h"
 #include "HW/Bus.h"
 #include "HW/OpCodes.h"
+#include "common/Types/EnumArray.h"
 #include "common/Types/non_owning_ptr.h"
-#include "common/Utils.h"
+
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <bitset>
 #include <cstdint>
 #include <span>
 #include <variant>
 
+namespace BNES::Tools {
+class CPUDebugger;
+}
+
 namespace BNES::HW {
 class CPU {
-  friend class CPUDebugger;
+  friend class ::BNES::Tools::CPUDebugger;
   friend class Bus;
 
 public:
@@ -44,7 +49,7 @@ public:
   void Init() {
     m_program_counter =
         ReadFromMemory(ProgramStartAddressPointer) | (ReadFromMemory(ProgramStartAddressPointer + 1) << 8);
-    spdlog::debug("Init PC: 0x{:04X}", m_program_counter);
+    m_logger->debug("Init PC: 0x{:04X}", m_program_counter);
   }
 
 private:
@@ -57,6 +62,8 @@ private:
   uint8_t m_stack_pointer{0xFD};              // Stack pointer initialized to 0xFF
   Addr m_program_counter{ProgramBaseAddress}; // Program counter
   non_owning_ptr<Bus *> m_bus;                // Memory bus
+
+  std::shared_ptr<spdlog::logger> m_logger{spdlog::stdout_color_st("CPU")}; // Logger for this class
 
 protected:
   void ProcessNMI();

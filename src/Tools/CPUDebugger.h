@@ -13,26 +13,26 @@ namespace BNES::Tools {
 
 class CPUDebugger {
 public:
-  struct Window {
-    explicit Window(SDL::Buffer &&buffer);
-
-    ErrorOr<void> Update(SDL::TextSpec text_content);
-
-    SDL::Window m_window;
-    SDL::Font m_font;
-  };
-
   CPUDebugger() = delete;
-  explicit CPUDebugger(const HW::CPU &cpu) : m_cpu(&cpu), m_window(SDL::Buffer::FromSize(800, 600).value()) {}
+  explicit CPUDebugger(const HW::CPU &cpu)
+      : m_cpu(&cpu), m_window(SDL::Window::FromSpec(SDL::WindowSpec{
+                                                        .width = 800,
+                                                        .height = 600,
+                                                        .title = "CPU Debugger",
+                                                        .flags = SDL::WindowFlag::None,
+                                                    })
+                                  .value()),
+        m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}
 
-  [[nodiscard]] SDL::Window &GetWindow() { return m_window.m_window; }
+  [[nodiscard]] SDL::Window &GetWindow() { return m_window; }
 
   ErrorOr<void> Update();
 
 private:
   non_owning_ptr<const HW::CPU *> m_cpu;
 
-  Window m_window;
+  SDL::Window m_window;
+  SDL::Font m_font;
 };
 
 } // namespace BNES::Tools

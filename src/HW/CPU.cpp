@@ -457,7 +457,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::RRA_IndirectY:
     return RotateRightAndAdd<AddressingMode::IndirectY>{bytes[1]};
   default:
-    spdlog::error("Unknown opcode: 0x{:02X}", bytes[0]);
+    m_logger->error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }
 
@@ -482,6 +482,8 @@ void CPU::RunInstruction(Instruction &&instr) {
           // We avoid this for jump instructions, since they directly modify the program counter
           m_program_counter += instruction.size;
         }
+
+        m_bus->Tick(instruction.cycles);
       },
       instr);
 }

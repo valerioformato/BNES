@@ -13,29 +13,29 @@ namespace BNES::Tools {
 
 class PPUDebugger {
 public:
-  struct Window {
-    explicit Window(SDL::Buffer &&buffer);
-
-    ErrorOr<void> Update(SDL::Texture &chr_rom_tex);
-
-    SDL::Window m_window;
-  };
-
   PPUDebugger() = delete;
   explicit PPUDebugger(const HW::PPU &ppu)
-      : m_ppu(&ppu), m_window(SDL::Buffer::FromSize(800, 600).value()),
+      : m_ppu(&ppu), m_window(SDL::Window::FromSpec(SDL::WindowSpec{
+                                                        .width = 800,
+                                                        .height = 600,
+                                                        .title = "CPU Debugger",
+                                                        .flags = SDL::WindowFlag::None,
+                                                    })
+                                  .value()),
         m_chr_rom_texture(
-            SDL::Texture::FromBuffer(m_window.m_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()).value()) {}
+            SDL::Texture::FromBuffer(m_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()).value()) {}
 
-  [[nodiscard]] SDL::Window &GetWindow() { return m_window.m_window; }
+  [[nodiscard]] SDL::Window &GetWindow() { return m_window; }
 
   ErrorOr<void> Update();
 
 private:
   non_owning_ptr<const HW::PPU *> m_ppu;
 
-  Window m_window;
+  SDL::Window m_window;
+
   SDL::Texture m_chr_rom_texture;
+  ErrorOr<void> UpdateChrRomTexture();
 };
 
 } // namespace BNES::Tools

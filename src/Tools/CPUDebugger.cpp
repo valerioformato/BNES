@@ -11,27 +11,6 @@
 
 namespace BNES::Tools {
 
-CPUDebugger::Window::Window(SDL::Buffer &&buffer)
-    : m_window(SDL::Window::FromSpec(SDL::WindowSpec{
-                                         .width = buffer.Width(),
-                                         .height = buffer.Height(),
-                                         .title = "CPU Debugger",
-                                         .flags = SDL::WindowFlag::None,
-                                     })
-                   .value()),
-      m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}
-
-ErrorOr<void> CPUDebugger::Window::Update(SDL::TextSpec text_content) {
-  SDL_RenderClear(m_window.Renderer());
-
-  auto texture = TRY(SDL::Texture::FromText(m_window.Renderer(), text_content));
-  TRY(texture.Render(m_window.Renderer()));
-
-  SDL_RenderPresent(m_window.Renderer());
-
-  return {};
-}
-
 ErrorOr<void> CPUDebugger::Update() {
   using CPU = HW::CPU;
 
@@ -51,13 +30,20 @@ ErrorOr<void> CPUDebugger::Update() {
 
   SDL::TextSpec text_content{
       .content = content,
-      .font = m_window.m_font,
+      .font = m_font,
       .color = SDL::Color{255, 255, 255, 255},
       .wrapping = SDL::TextWrapping::Wrapped,
-      .wrap_size = static_cast<unsigned int>(m_window.m_window.Size()[1]),
+      .wrap_size = static_cast<unsigned int>(m_window.Size()[1]),
   };
 
-  return m_window.Update(text_content);
+  SDL_RenderClear(m_window.Renderer());
+
+  auto texture = TRY(SDL::Texture::FromText(m_window.Renderer(), text_content));
+  TRY(texture.Render(m_window.Renderer()));
+
+  SDL_RenderPresent(m_window.Renderer());
+
+  return {};
 }
 
 } // namespace BNES::Tools

@@ -8,15 +8,21 @@
 #include "HW/Bus.h"
 #include "common/Types/EnumArray.h"
 
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 #include <array>
-#include <bitset>
 #include <cstdint>
 #include <span>
+
+namespace BNES::Tools {
+class PPUDebugger;
+}
 
 namespace BNES::HW {
 
 class PPU {
 public:
+  friend class ::BNES::Tools::PPUDebugger;
   friend class Bus;
 
   static constexpr uint16_t MAX_ADDRESSABLE_CHR_ROM_ADDRESS = 0x1FFF;
@@ -96,6 +102,8 @@ private:
 
   Addr m_vram_address_increment{1};
   uint8_t m_read_buffer{0};
+
+  std::shared_ptr<spdlog::logger> m_logger{spdlog::stdout_color_st("PPU")}; // Logger for this class
 
   Addr MirrorVRAMAddress(Addr address);
 };

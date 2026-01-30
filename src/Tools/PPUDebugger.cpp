@@ -9,31 +9,24 @@
 #include <spdlog/fmt/ranges.h>
 
 #include <algorithm>
+#include <bitset>
 #include <numeric>
 #include <ranges>
 
 namespace BNES::Tools {
 
-PPUDebugger::Window::Window(SDL::Buffer &&buffer)
-    : m_window(SDL::Window::FromSpec(SDL::WindowSpec{
-                                         .width = buffer.Width(),
-                                         .height = buffer.Height(),
-                                         .title = "PPU Debugger",
-                                         .flags = SDL::WindowFlag::None,
-                                     })
-                   .value()) {}
-
-ErrorOr<void> PPUDebugger::Window::Update(SDL::Texture &chr_rom_tex) {
+ErrorOr<void> PPUDebugger::Update() {
   SDL_RenderClear(m_window.Renderer());
 
-  TRY(chr_rom_tex.Render(m_window.Renderer()));
+  TRY(UpdateChrRomTexture());
+  TRY(m_chr_rom_texture.Render(m_window.Renderer()));
 
   SDL_RenderPresent(m_window.Renderer());
 
   return {};
 }
 
-ErrorOr<void> PPUDebugger::Update() {
+ErrorOr<void> PPUDebugger::UpdateChrRomTexture() {
   namespace rv = std::ranges::views;
 
   SDL::Buffer &chr_rom_buffer = m_chr_rom_texture.Buffer();
@@ -97,7 +90,7 @@ ErrorOr<void> PPUDebugger::Update() {
   m_chr_rom_texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST);
   TRY(m_chr_rom_texture.Update());
 
-  return m_window.Update(m_chr_rom_texture);
+  return {};
 }
 
 } // namespace BNES::Tools

@@ -55,7 +55,6 @@ ErrorOr<void> Texture::Update() {
 }
 
 ErrorOr<Texture> Texture::FromBuffer(SDL_Renderer *renderer, ::BNES::SDL::Buffer &&buffer) {
-  // Try creating texture with STREAMING access first (more compatible)
   SDL_Texture *texture =
       SDL_CreateTexture(renderer, Pixel::FORMAT, SDL_TEXTUREACCESS_STATIC, buffer.Width(), buffer.Height());
 
