@@ -10,14 +10,10 @@
 // Always try to include <ranges> first to get feature test macros
 #include <ranges>
 
-namespace BNES {
-
 // Check if C++23 ranges features are available
 #if defined(__cpp_lib_ranges_chunk) && defined(__cpp_lib_ranges_enumerate)
 // Use standard library ranges
 #define BNES_USE_STD_RANGES
-namespace rg = std::ranges;
-namespace rv = std::ranges::views;
 #else
 // Fall back to range-v3
 #define BNES_USE_RANGES_V3
@@ -37,7 +33,14 @@ namespace rv = std::ranges::views;
 #if defined(_MSC_VER)
   #pragma warning(pop)
 #endif
+#endif
 
+namespace BNES {
+
+#ifdef BNES_USE_STD_RANGES
+namespace rg = std::ranges;
+namespace rv = std::ranges::views;
+#else
 namespace rg = ranges;
 namespace rv = ranges::views;
 #endif
