@@ -3,23 +3,38 @@
 //
 
 #include "PPU.h"
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace BNES::HW {
+
+std::shared_ptr<spdlog::logger> PPU::s_logger = []() {
+  auto logger = spdlog::get("PPU");
+  if (!logger) {
+    try {
+      logger = spdlog::stdout_color_st("PPU");
+    } catch (const spdlog::spdlog_ex &) {
+      // Logger already exists, retrieve it
+      logger = spdlog::get("PPU");
+    }
+  }
+  return logger;
+}();
+
 
 void PPU::Tick(unsigned int cycles) {
   m_cycles += cycles;
 
-  m_logger->trace("Ticked {} cycles", cycles);
+  s_logger->trace("Ticked {} cycles", cycles);
 
   while (m_cycles >= 341) {
     m_cycles -= 341;
     m_current_scanline += 1;
 
     if (m_current_scanline == 241) {
-      m_logger->trace("VBLANK triggered");
+      s_logger->trace("VBLANK triggered");
       m_status_register |= 0b10000000;
       if (VblankNMIEnabled()) {
-        m_logger->trace("VBLANK NMI triggered");
+        s_logger->trace("VBLANK NMI triggered");
         m_bus->PropagateNMI();
       }
     }

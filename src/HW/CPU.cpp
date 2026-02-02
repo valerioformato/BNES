@@ -1,7 +1,22 @@
 #include "HW/CPU.h"
 #include "common/Types/overloaded.h"
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace BNES::HW {
+
+std::shared_ptr<spdlog::logger> CPU::s_logger = []() {
+  auto logger = spdlog::get("CPU");
+  if (!logger) {
+    try {
+      logger = spdlog::stdout_color_st("CPU");
+    } catch (const spdlog::spdlog_ex &) {
+      // Logger already exists, retrieve it
+      logger = spdlog::get("CPU");
+    }
+  }
+  return logger;
+}();
+
 CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   assert(!bytes.empty());
 
@@ -457,7 +472,7 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   case OpCode::RRA_IndirectY:
     return RotateRightAndAdd<AddressingMode::IndirectY>{bytes[1]};
   default:
-    m_logger->error("Unknown opcode: 0x{:02X}", bytes[0]);
+    s_logger->error("Unknown opcode: 0x{:02X}", bytes[0]);
     TODO(std::format("Implement decoding for opcode: 0x{:02X}", bytes[0]));
   }
 
