@@ -3,6 +3,7 @@
 //
 
 #include "HW/CPU.h"
+#include "HW/PPU.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -25,18 +26,20 @@ public:
 SCENARIO("6502 instruction execution tests (all the rest)", "[Execute]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
+    // Create a minimal ROM that includes the IRQ vector at 0xFFFE/0xFFFF
+    // Program ROM starts at 0x8000, so 0xFFFE is at offset 0x7FFE
+    std::vector<uint8_t> rom(0x8000, 0x00);
+    rom[0x7FFE] = 0x34; // IRQ vector low byte -> 0x1234
+    rom[0x7FFF] = 0x12; // IRQ vector high byte
+    auto load_result = bus.LoadIntoProgramRom(rom);
+    REQUIRE(load_result.has_value());
+    
+    PPU ppu{bus}; // Attach PPU after loading ROM
     CPUMock cpu{bus};
     auto original_program_counter = cpu.ProgramCounter();
 
     WHEN("We execute a BRK instruction") {
       THEN("It should set the InterruptDisable flag and jump to the IRQ vector") {
-        // Create a minimal ROM that includes the IRQ vector at 0xFFFE/0xFFFF
-        // Program ROM starts at 0x8000, so 0xFFFE is at offset 0x7FFE
-        std::vector<uint8_t> rom(0x8000, 0x00);
-        rom[0x7FFE] = 0x34; // IRQ vector low byte -> 0x1234
-        rom[0x7FFF] = 0x12; // IRQ vector high byte
-        auto load_result = bus.LoadIntoProgramRom(rom);
-        REQUIRE(load_result.has_value());
 
         // Verify we can read the IRQ vector
         REQUIRE(cpu.ReadFromMemory(0xFFFE) == 0x34);

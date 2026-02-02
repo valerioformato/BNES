@@ -3,6 +3,7 @@
 //
 
 #include "HW/CPU.h"
+#include "HW/PPU.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -23,6 +24,12 @@ public:
 SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
+    // Load a minimal ROM to satisfy PPU requirements
+    std::vector<uint8_t> rom(0x4000, 0x00);
+    auto load_result = bus.LoadIntoProgramRom(rom);
+    REQUIRE(load_result.has_value());
+    
+    PPU ppu{bus};
     CPUMock cpu{bus};
     auto original_program_counter = cpu.ProgramCounter();
 
@@ -811,6 +818,12 @@ SCENARIO("6502 instruction execution tests (loads)", "[CPU][Loads]") {
 SCENARIO("6502 instruction execution tests (stores)", "[CPU][Stores]") {
   GIVEN("A freshly initialized cpu") {
     Bus bus;
+    // Load a minimal ROM to satisfy PPU requirements
+    std::vector<uint8_t> rom(0x4000, 0x00);
+    auto load_result = bus.LoadIntoProgramRom(rom);
+    REQUIRE(load_result.has_value());
+    
+    PPU ppu{bus};
     CPUMock cpu{bus};
     auto original_program_counter = cpu.ProgramCounter();
 

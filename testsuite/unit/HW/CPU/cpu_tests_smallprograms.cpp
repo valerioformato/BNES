@@ -1,4 +1,5 @@
 #include "HW/CPU.h"
+#include "HW/PPU.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -163,12 +164,14 @@ std::array programs = {
 SCENARIO("6502 code execution (small test programs)") {
   GIVEN("a new CPU instance") {
     BNES::HW::Bus bus;
+    // The LoadProgramWithPadding function will load ROM, so we need to initialize PPU after that
+    auto program = GENERATE(from_range(programs));
+    REQUIRE(LoadProgramWithPadding(bus, program.code).has_value());
+    
+    PPU ppu{bus};
     CPUMock cpu{bus};
 
     WHEN("We run a test program") {
-      auto program = GENERATE(from_range(programs));
-
-      REQUIRE(LoadProgramWithPadding(bus, program.code).has_value());
       cpu.SetProgramStartAddress(0x8000);
 
       REQUIRE_NOTHROW(SimpleRun(cpu));
