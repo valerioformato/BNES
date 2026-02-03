@@ -49,7 +49,7 @@ public:
   void Init() {
     m_program_counter =
         ReadFromMemory(ProgramStartAddressPointer) | (ReadFromMemory(ProgramStartAddressPointer + 1) << 8);
-    m_logger->debug("Init PC: 0x{:04X}", m_program_counter);
+    s_logger->debug("Init PC: 0x{:04X}", m_program_counter);
   }
 
 private:
@@ -63,7 +63,7 @@ private:
   Addr m_program_counter{ProgramBaseAddress}; // Program counter
   non_owning_ptr<Bus *> m_bus;                // Memory bus
 
-  std::shared_ptr<spdlog::logger> m_logger{spdlog::stdout_color_st("CPU")}; // Logger for this class
+  static std::shared_ptr<spdlog::logger> s_logger;
 
 protected:
   void ProcessNMI();

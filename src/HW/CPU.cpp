@@ -1,21 +1,11 @@
 #include "HW/CPU.h"
 #include "common/Types/overloaded.h"
+
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace BNES::HW {
 
-std::shared_ptr<spdlog::logger> CPU::s_logger = []() {
-  auto logger = spdlog::get("CPU");
-  if (!logger) {
-    try {
-      logger = spdlog::stdout_color_st("CPU");
-    } catch (const spdlog::spdlog_ex &) {
-      // Logger already exists, retrieve it
-      logger = spdlog::get("CPU");
-    }
-  }
-  return logger;
-}();
+std::shared_ptr<spdlog::logger> CPU::s_logger = spdlog::stdout_color_st("CPU");
 
 CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
   assert(!bytes.empty());

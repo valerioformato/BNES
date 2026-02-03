@@ -103,7 +103,7 @@ private:
   Addr m_vram_address_increment{1};
   uint8_t m_read_buffer{0};
 
-  std::shared_ptr<spdlog::logger> m_logger{spdlog::stdout_color_st("PPU")}; // Logger for this class
+  static std::shared_ptr<spdlog::logger> s_logger;
 
   Addr MirrorVRAMAddress(Addr address);
 };
