@@ -14,12 +14,13 @@ namespace BNES::Tools {
 class PPUDebugger {
 public:
   PPUDebugger() = delete;
-  explicit PPUDebugger(const HW::PPU &ppu)
+  explicit PPUDebugger(const HW::PPU &ppu, bool should_focus = false)
       : m_ppu(&ppu), m_window(SDL::Window::FromSpec(SDL::WindowSpec{
                                                         .width = 800,
                                                         .height = 600,
-                                                        .title = "CPU Debugger",
+                                                        .title = "PPU Debugger",
                                                         .flags = SDL::WindowFlag::None,
+							.should_steal_focus = should_focus,
                                                     })
                                   .value()),
         m_chr_rom_texture(
@@ -40,4 +41,4 @@ private:
 
 } // namespace BNES::Tools
 
-#endif // CPUDEBUGGER_H
+#endif // PPUDEBUGGER_H

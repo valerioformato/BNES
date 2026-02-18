@@ -20,11 +20,10 @@ std::shared_ptr<spdlog::logger> PPU::s_logger = []() {
   return logger;
 }();
 
-
 void PPU::Tick(unsigned int cycles) {
   m_cycles += cycles;
 
-  s_logger->trace("Ticked {} cycles", cycles);
+  s_logger->trace("Ticked {} cycles (now at {}, scanline = {})", cycles, m_cycles, m_current_scanline);
 
   while (m_cycles >= 341) {
     m_cycles -= 341;

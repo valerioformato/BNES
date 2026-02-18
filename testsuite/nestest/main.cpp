@@ -8,6 +8,7 @@
 #include "Tools/CPUDebugger.h"
 #include "Tools/PPUDebugger.h"
 
+#include <chrono>
 #include <cxxopts.hpp>
 
 #include <algorithm>
@@ -231,7 +232,7 @@ BNES::ErrorOr<int> nestest_main(Options options) {
 
   BNES::HW::PPU ppu{bus};
 
-  BNES::Tools::CPUDebugger cpu_debugger(cpu);
+  BNES::Tools::CPUDebugger cpu_debugger(cpu, true);
   cpu_debugger.GetWindow().Present();
 
   BNES::Tools::PPUDebugger ppu_debugger(ppu);
@@ -254,6 +255,8 @@ BNES::ErrorOr<int> nestest_main(Options options) {
   }
 
   auto nestest_log_it = nestest_log.begin();
+
+  auto time_point = std::chrono::system_clock::now();
 
   unsigned int i_line = 0;
   while (true) {
@@ -304,28 +307,27 @@ BNES::ErrorOr<int> nestest_main(Options options) {
       break;
     }
 
-    try {
-      cpu.RunOneInstruction();
+    cpu.RunOneInstruction();
 
-      spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
+    spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
 
+    auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
+
+    if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
       TRY(cpu_debugger.Update());
       TRY(ppu_debugger.Update());
+      time_point = std::chrono::system_clock::now();
+    }
 
-      if (options.batch) {
-        if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
-          spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
-                        cpu.last_log_line, *nestest_log_it);
+    if (options.batch) {
+      if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
+        spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
+                      cpu.last_log_line, *nestest_log_it);
 
-          break;
-        }
-
-        ++nestest_log_it;
+        break;
       }
 
-    } catch (const std::exception &e) {
-      spdlog::error("Exception during instruction execution: {}", e.what());
-      break;
+      ++nestest_log_it;
     }
   }
 

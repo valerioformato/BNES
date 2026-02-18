@@ -14,12 +14,13 @@ namespace BNES::Tools {
 class CPUDebugger {
 public:
   CPUDebugger() = delete;
-  explicit CPUDebugger(const HW::CPU &cpu)
+  explicit CPUDebugger(const HW::CPU &cpu, bool should_focus = false)
       : m_cpu(&cpu), m_window(SDL::Window::FromSpec(SDL::WindowSpec{
                                                         .width = 800,
                                                         .height = 600,
                                                         .title = "CPU Debugger",
                                                         .flags = SDL::WindowFlag::None,
+							.should_steal_focus = should_focus,
                                                     })
                                   .value()),
         m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}

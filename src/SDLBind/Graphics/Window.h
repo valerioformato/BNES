@@ -29,6 +29,7 @@ struct WindowSpec {
   unsigned int height{DefaultHeight};
   std::string_view title{"BNES Emulator"};
   WindowFlag flags{WindowFlag::None};
+  bool should_steal_focus = false;
 };
 
 class Window {

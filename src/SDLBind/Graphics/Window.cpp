@@ -47,6 +47,19 @@ ErrorOr<Window> Window::FromSpec(WindowSpec spec) {
     return make_error(std::make_error_code(std::errc::io_error), SDL_GetError());
   }
 
+  if (spec.should_steal_focus) {
+    spdlog::debug("Window is stealing focus");
+// NOTE: this trick is needed on OSX to get the window to focus after creation
+#if __APPLE__
+    SDL_Event evt;
+    // Work around macos focus issue, possibly caused by iTerm
+    while (SDL_PollEvent(&evt)) {
+    }
+#endif
+
+    SDL_RaiseWindow(window_ptr);
+  }
+
   return Window{window_ptr, renderer_ptr};
 }
 } // namespace BNES::SDL
