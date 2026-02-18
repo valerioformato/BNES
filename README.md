@@ -8,18 +8,23 @@ codebase for learning and experimenting with NES emulation.
 
 This project is in active development. Currently implemented:
 - **6502 CPU**: Complete instruction set implementation with decode, execute, and disassembly support
+  - Modular instruction organization with explicit template instantiation
+  - Support for all official and undocumented opcodes
+- **PPU (Picture Processing Unit)**: Basic PPU implementation with internal registers and color palette
 - **Memory System**: Bus architecture with ROM loading capabilities
-- **Debugging Tools**: CPU debugger with instruction visualization
+- **Debugging Tools**: CPU and PPU debuggers with instruction visualization and CHR ROM viewing
 - **Test Suite**: Comprehensive unit tests and validation with nestest ROM
 
 ## Features
 
 - Written in C++23 with modern practices
-- Modular architecture (CPU, Bus, ROM loader, debugging tools)
+- Modular architecture (CPU, PPU, Bus, ROM loader, debugging tools)
 - Cross-platform support (Linux, macOS, Windows with Clang)
 - Uses [SDL3](https://www.libsdl.org/) for graphics and text rendering
 - Uses [magic_enum](https://github.com/Neargye/magic_enum) for type-safe enum utilities
 - Uses [spdlog](https://github.com/gabime/spdlog) for logging
+- Uses [cxxopts](https://github.com/jarro2783/cxxopts) for command-line argument parsing
+- Uses [range-v3](https://github.com/ericniebler/range-v3) for ranges utilities
 - Comprehensive unit testing with [Catch2](https://github.com/catchorg/Catch2)
 - CI/CD with GitHub Actions testing on GCC, Clang (Linux/macOS/Windows)
 - AddressSanitizer and ThreadSanitizer support
@@ -47,7 +52,7 @@ cmake --build BNES/build
 
 - `-DASAN=ON` — Enable AddressSanitizer
 - `-DTSAN=ON` — Enable ThreadSanitizer
-- `-DENABLE_BNES_TESTS=ON` — Build unit tests (enabled by default)
+- `-DENABLE_BNES_TESTS=ON` — Build unit tests (disabled by default)
 
 Example:
 
@@ -59,16 +64,17 @@ cmake --build BNES/build
 ## Project Structure
 
 - `src/` — Main emulator source code
-    - `HW/` — NES hardware emulation (CPU, Bus, ROM loader)
+    - `HW/` — NES hardware emulation (CPU, PPU, Bus, ROM loader)
+        - `Instructions/` — Modular CPU instruction implementations
     - `SDLBind/` — SDL3-based rendering, text, and window management
-    - `Tools/` — Development tools (CPU debugger)
+    - `Tools/` — Development tools (CPU debugger, PPU debugger)
     - `common/` — Shared utilities and type helpers
 - `testsuite/` — Test suites and validation
-    - `unit/` — Unit tests with Catch2
+    - `unit/` — Unit tests with Catch2 (CPU, PPU, Bus, ROM)
     - `nestest/` — nestest ROM validation
     - `snake/` — Snake game test ROM
     - `text-rendering/` — SDL text rendering tests
-- `vendor/` — Third-party dependencies (SDL3, SDL_ttf, magic_enum, Catch2, spdlog)
+- `vendor/` — Third-party dependencies (SDL3, SDL_ttf, magic_enum, Catch2, spdlog, cxxopts, range-v3)
 
 ## Running
 
