@@ -13,6 +13,8 @@ namespace BNES::Tools {
 
 class CPUDebugger {
 public:
+  // TODO: Make the window a popup window with the main emulator window as its parent. This should allow us to
+  // reposition it also if running under Wayland.
   CPUDebugger() = delete;
   explicit CPUDebugger(const HW::CPU &cpu, bool should_focus = false)
       : m_cpu(&cpu), m_window(SDL::Window::FromSpec(SDL::WindowSpec{
@@ -20,7 +22,7 @@ public:
                                                         .height = 600,
                                                         .title = "CPU Debugger",
                                                         .flags = SDL::WindowFlag::None,
-							.should_steal_focus = should_focus,
+                                                        .should_steal_focus = should_focus,
                                                     })
                                   .value()),
         m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}

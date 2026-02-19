@@ -19,9 +19,9 @@
 #include <ranges>
 
 // Concept to check if a type has an AddrMode() method
-template <typename T>
-concept HasAddressingMode = requires {
-  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
+template <typename T> concept HasAddressingMode = requires {
+  { T::AddrMode() }
+  ->std::same_as<BNES::HW::AddressingMode>;
 };
 
 class NESTestCPU : public BNES::HW::CPU {
@@ -159,7 +159,7 @@ public:
         instr);
   }
 
-  void RunOneInstruction() {
+  Instruction DecodeNextInstruction() {
     static constexpr auto cpu_freq = std::chrono::duration<double>(1.0f / 1790000.0f); // 1.79 MHz
 
     std::array<uint8_t, 3> bytes{};
@@ -190,7 +190,7 @@ public:
     auto tmp_width = last_log_line.size();
     last_log_line += fmt::format("{:<{}}{}", "", 48 - tmp_width, reg_values);
 
-    RunInstruction(std::move(instr));
+    return instr;
   }
 
   std::string last_log_line;
@@ -245,8 +245,8 @@ BNES::ErrorOr<int> nestest_main(Options options) {
   cpu_d_pos[0] -= cpu_debugger.GetWindow().Size()[0] / 2;
   ppu_d_pos[0] += cpu_debugger.GetWindow().Size()[0] / 2;
 
-  TRY(cpu_debugger.GetWindow().SetPosition(cpu_d_pos[0], cpu_d_pos[1]));
-  TRY(ppu_debugger.GetWindow().SetPosition(ppu_d_pos[0], ppu_d_pos[1]));
+  //  TRY(cpu_debugger.GetWindow().SetPosition(cpu_d_pos[0], cpu_d_pos[1]));
+  //  TRY(ppu_debugger.GetWindow().SetPosition(ppu_d_pos[0], ppu_d_pos[1]));
 
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU.
@@ -307,9 +307,10 @@ BNES::ErrorOr<int> nestest_main(Options options) {
       break;
     }
 
-    cpu.RunOneInstruction();
-
+    auto instr = cpu.DecodeNextInstruction();
     spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
+
+    cpu.RunInstruction(std::move(instr));
 
     auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
 
