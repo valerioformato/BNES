@@ -56,7 +56,7 @@ uint8_t Bus::Read(Addr address) {
     TODO(fmt::format("PPU read for address 0x{:04X} not implemented yet", address));
   }
 
-  spdlog::error("Bus read request for address {}: Address out of range", address);
+  spdlog::error("Bus read request for address 0x{:04X}: Address out of range", address);
   return 0;
 }
 
@@ -68,6 +68,7 @@ void Bus::Write(Addr address, uint8_t data) {
 
     return;
   }
+
   if (address == 0x2000) {
     m_ppu->WritePPUCTRL(data);
   } else if (address == 0x2001) {
@@ -90,9 +91,9 @@ void Bus::Write(Addr address, uint8_t data) {
   } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {
     spdlog::error("CANNOT WRITE TO ROM MEMORY!!!");
     throw std::runtime_error("Can't write to ROM memory");
+  } else {
+    spdlog::error("Bus write request for address 0x{:04X}: Address out of range", address);
   }
-
-  spdlog::error("Bus write request for address {}: Address out of range", address);
 }
 
 void Bus::Tick(unsigned int cycles) { m_ppu->Tick(cycles * PPU_FREQ_RATIO); }

@@ -34,7 +34,7 @@ public:
   NESTestCPU(BNES::HW::Bus &bus) : CPU(bus) {}
 
   // Helper to get memory value suffix for non-immediate addressing modes
-  std::string GetMemoryValueSuffix(const Instruction &instr) const {
+  [[nodiscard]] std::string GetMemoryValueSuffix(const Instruction &instr) const {
     return std::visit(
         [this](const auto &inst) -> std::string {
           using InstrType = std::decay_t<decltype(inst)>;
@@ -159,7 +159,7 @@ public:
         instr);
   }
 
-  Instruction DecodeNextInstruction() {
+  [[nodiscard]] Instruction DecodeNextInstruction(bool add_memory_suffix = true) {
     static constexpr auto cpu_freq = std::chrono::duration<double>(1.0f / 1790000.0f); // 1.79 MHz
 
     std::array<uint8_t, 3> bytes{};
@@ -182,7 +182,7 @@ public:
           return fmt::format("{}{}{}", partial, partial.size() > 0 ? " " : "", current);
         });
 
-    auto mem_suffix = GetMemoryValueSuffix(instr);
+    auto mem_suffix = add_memory_suffix ? GetMemoryValueSuffix(instr) : "";
     // Undocumented opcodes (starting with *) need one less space for alignment
     int opcode_width = instr_disass[0] == '*' ? 8 : 9;
     last_log_line =
@@ -307,7 +307,7 @@ BNES::ErrorOr<int> nestest_main(Options options) {
       break;
     }
 
-    auto instr = cpu.DecodeNextInstruction();
+    auto instr = cpu.DecodeNextInstruction(options.batch);
     spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
 
     cpu.RunInstruction(std::move(instr));
