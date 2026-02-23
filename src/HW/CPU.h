@@ -669,6 +669,7 @@ public:
   Instruction m_current_instruction{NoOperation{}};
 
   [[nodiscard]] Instruction DecodeInstruction(std::span<const uint8_t> bytes) const;
+  [[nodiscard]] Instruction DecodeNextInstruction() const;
   void RunInstruction(Instruction &&instr);
   [[nodiscard]] std::string DisassembleInstruction(const Instruction &instr) const;
   [[nodiscard]] Instruction CurrentInstruction() const { return m_current_instruction; }

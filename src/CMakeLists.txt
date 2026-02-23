@@ -5,4 +5,4 @@ add_subdirectory(SDLBind)
 add_subdirectory(Tools)
 
 add_executable(BNES main.cpp)
-target_link_libraries(BNES PUBLIC SDLBind NESHW)
+target_link_libraries(BNES PUBLIC SDLBind NESHW NESTools cxxopts::cxxopts)

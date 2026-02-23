@@ -1,6 +1,7 @@
 #include "HW/CPU.h"
 #include "common/Types/overloaded.h"
 
+#include <algorithm>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace BNES::HW {
@@ -468,6 +469,13 @@ CPU::Instruction CPU::DecodeInstruction(std::span<const uint8_t> bytes) const {
 
   // We should never get here
   std::unreachable();
+}
+
+CPU::Instruction CPU::DecodeNextInstruction() const {
+  std::array<uint8_t, 3> bytes;
+  std::ranges::generate(bytes, [this, i = 0]() mutable { return ReadFromMemory(ProgramCounter() + i++); });
+
+  return DecodeInstruction(bytes);
 }
 
 void CPU::RunInstruction(Instruction &&instr) {
