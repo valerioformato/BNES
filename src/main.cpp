@@ -1,6 +1,13 @@
+#include "HW/Bus.h"
+#include "HW/CPU.h"
+#include "HW/PPU.h"
 #include "SDLBind/Graphics/Buffer.h"
 #include "SDLBind/Graphics/Window.h"
 #include "SDLBind/Init.h"
+#include "Tools/CPUDebugger.h"
+#include "Tools/PPUDebugger.h"
+
+#include <cxxopts.hpp>
 
 #include <string>
 
@@ -12,69 +19,108 @@ void close() {
 
 namespace fs = std::filesystem;
 
-BNES::ErrorOr<int> nes_main(int argc, char **argv) { // Final exit code
+struct Options {
+  std::string rom_path{};
+  bool batch{false};
+  bool stepping{false};
+};
 
-  auto clock = std::chrono::high_resolution_clock{};
-  auto frame_duration = std::chrono::duration<double>(1.0f / 60.0f);
-
+BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
   // Initialize SDL
   if (auto result = BNES::SDL::Init(); !result) {
     spdlog::error("Unable to initialize program!");
     return 1;
   }
 
-  auto window_handle = TRY(BNES::SDL::Window::CreateDefault());
-  auto screen_surface = window_handle.Surface();
+  BNES::HW::Bus bus;
+  TRY(bus.LoadRom(options.rom_path));
 
-  auto buffer = TRY(BNES::SDL::Buffer::FromSize(screen_surface.Width(), screen_surface.Height()));
-  auto maybe_texture = window_handle.CreateTexture(std::move(buffer));
-  if (!maybe_texture) {
-    spdlog::error("Unable to create texture: {}", maybe_texture.error().Message());
-    return 1;
-  }
-  auto &texture = maybe_texture.value();
+  BNES::HW::CPU cpu{bus};
+  cpu.Init();
 
-  // The quit flag
-  bool quit{false};
+  BNES::HW::PPU ppu{bus};
 
-  // The event data
-  SDL_Event e;
-  SDL_zero(e);
+  // Create the main screen window
+  BNES::SDL::Window main_window = TRY(BNES::SDL::Window::CreateDefault());
+  main_window.Present();
 
-  unsigned int x{0};
-  unsigned int y{0};
+  BNES::Tools::CPUDebugger cpu_debugger(cpu);
+  TRY(cpu_debugger.CreatePopupWindow({.width = 640, .height = 480, .title = "CPU Debugger"}, main_window));
+  cpu_debugger.GetWindow().Present();
 
-  // The main loop
-  while (quit == false) {
-    auto begin = clock.now();
+  // BNES::Tools::PPUDebugger ppu_debugger(ppu);
+  // ppu_debugger.GetWindow().SetRenderScale(2, 2);
+  // ppu_debugger.GetWindow().Present();
 
-    // Get event data
-    while (SDL_PollEvent(&e) == true) {
-      // If event is quit type
-      if (e.type == SDL_EVENT_QUIT) {
-        // End the main loop
-        quit = true;
+  // auto cpu_d_pos = cpu_debugger.GetWindow().Position();
+  // auto ppu_d_pos = ppu_debugger.GetWindow().Position();
+  //
+  // cpu_d_pos[0] -= cpu_debugger.GetWindow().Size()[0] / 2;
+  // ppu_d_pos[0] += cpu_debugger.GetWindow().Size()[0] / 2;
+  //
+  // TRY(cpu_debugger.GetWindow().SetPosition(cpu_d_pos[0], cpu_d_pos[1]));
+  // TRY(ppu_debugger.GetWindow().SetPosition(ppu_d_pos[0], ppu_d_pos[1]));
+
+  // Main event loop
+  auto time_point = std::chrono::system_clock::now();
+
+  while (true) {
+    bool proceed = false;
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      case SDL_EVENT_KEY_DOWN:
+        switch (event.key.key) {
+        case SDLK_S:
+          if (!options.stepping) {
+            options.stepping = true;
+            spdlog::info("Single stepping enabled. Press 's' to step through instructions.");
+          } else {
+            proceed = true;
+          }
+          break;
+        case SDLK_C:
+          if (options.stepping) {
+            options.stepping = false;
+            spdlog::info("Single stepping disabled. Execution continues.");
+          }
+          break;
+        case SDLK_Q:
+        case SDLK_ESCAPE:
+          spdlog::info("Quit requested");
+          BNES::SDL::Quit();
+          return 0;
+        }
+        break;
+      case SDL_EVENT_QUIT:
+        spdlog::info("Quit requested");
+        BNES::SDL::Quit();
+        return 0;
       }
     }
 
-    texture.Buffer().WritePixel(x, y, BNES::SDL::Pixel{255, 0, 0, 255}); // Write a red pixel
-    ++x;
-    if (x >= texture.Buffer().Width()) {
-      x = 0;
-      ++y;
+    // If stepping is enabled and we haven't received a proceed signal, wait for events
+    if (options.stepping && !proceed) {
+      SDL_Delay(10); // Small delay to avoid busy-waiting
+      continue;
     }
-    TRY(texture.Update());
 
-    // Set a blue background to distinguish from black texture
-    SDL_SetRenderDrawColor(window_handle.Renderer(), 0, 0, 255, 255);
-    SDL_RenderClear(window_handle.Renderer());
+    // Check if we hit a BRK instruction (opcode 0x00) - stop execution
+    uint8_t opcode = bus.Read(cpu.ProgramCounter());
+    if (opcode == 0x00) {
+      break;
+    }
 
-    texture.Render(window_handle.Renderer());
+    cpu.RunInstruction(cpu.DecodeNextInstruction());
 
-    SDL_RenderPresent(window_handle.Renderer());
+    auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
 
-    // lock 60 fps for now
-    std::this_thread::sleep_for(frame_duration - (clock.now() - begin));
+    if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
+      TRY(cpu_debugger.Update());
+      // TRY(ppu_debugger.Update());
+      time_point = std::chrono::system_clock::now();
+    }
   }
 
   // Clean up
@@ -84,11 +130,58 @@ BNES::ErrorOr<int> nes_main(int argc, char **argv) { // Final exit code
 }
 
 int main(int argc, char **argv) {
-  auto result = nes_main(argc, argv);
-  if (!result) {
-    spdlog::error("Error: {}", result.error().Message());
-    return result.error().Code().value();
-  }
+  cxxopts::Options options("nestest", "Run the NESTEST rom and dump CPU status");
 
-  return 0;
+  // clang-format off
+  options.add_options()
+    ("s,stepping", "Start with single stepping enabled")
+    ("v,verbose", "Verbosity level (use -v for Debug, -vv for Trace)", cxxopts::value<int>()->default_value("0")->implicit_value("1"))
+    ("romfile", "ROM to load", cxxopts::value<std::string>())
+    ("version", "Print version information")
+    ("h,help", "Print usage");
+  // clang-format on
+
+  options.parse_positional({"romfile"});
+
+  try {
+    auto result = options.parse(argc, argv);
+    if (result.count("help")) {
+      fmt::println("{}", options.help());
+      fmt::println("\nControls:");
+      fmt::println("  s         Toggle/step: Enable stepping mode, or step one instruction");
+      fmt::println("  c         Continue: Disable stepping mode and resume execution");
+      fmt::println("  q/ESC     Quit the program");
+      return 0;
+    }
+
+    if (result.count("version")) {
+      fmt::println("nestest v0.0.0");
+      return 0;
+    }
+
+    int verbosity = result["verbose"].count();
+    switch (verbosity) {
+    case 1:
+      spdlog::set_level(spdlog::level::debug);
+      break;
+    case 2:
+      spdlog::set_level(spdlog::level::trace);
+      break;
+    }
+
+    auto main_result = nes_main({
+        .rom_path = result["romfile"].as<std::string>(),
+        .stepping = result["stepping"].as<bool>(),
+    });
+
+    if (!main_result) {
+      spdlog::error("Error: {}", main_result.error().Message());
+      return main_result.error().Code().value();
+    }
+
+    return 0;
+  } catch (const cxxopts::exceptions::exception &e) {
+    fmt::println("Error parsing options: {}", e.what());
+    return 1;
+  }
 }
