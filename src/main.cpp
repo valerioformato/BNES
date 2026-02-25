@@ -25,6 +25,9 @@ struct Options {
   bool stepping{false};
 };
 
+constexpr unsigned int NES_WINDOW_W = 256;
+constexpr unsigned int NES_WINDOW_H = 240;
+
 BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
   // Initialize SDL
   if (auto result = BNES::SDL::Init(); !result) {
@@ -40,13 +43,19 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
 
   BNES::HW::PPU ppu{bus};
 
+  constexpr unsigned int MAIN_WINDOW_W = NES_WINDOW_W * 5;
+  constexpr unsigned int MAIN_WINDOW_H = NES_WINDOW_H * 4;
+
   // Create the main screen window
-  BNES::SDL::Window main_window = TRY(BNES::SDL::Window::CreateDefault());
+  BNES::SDL::Window main_window = TRY(BNES::SDL::Window::FromSpec({
+      .width = MAIN_WINDOW_W,
+      .height = MAIN_WINDOW_H,
+      .title = "BNES",
+      .should_steal_focus = true,
+  }));
   main_window.Present();
 
   BNES::Tools::CPUDebugger cpu_debugger(cpu);
-  TRY(cpu_debugger.CreatePopupWindow({.width = 640, .height = 480, .title = "CPU Debugger"}, main_window));
-  cpu_debugger.GetWindow().Present();
 
   // BNES::Tools::PPUDebugger ppu_debugger(ppu);
   // ppu_debugger.GetWindow().SetRenderScale(2, 2);
@@ -117,8 +126,10 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
     auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
 
     if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
-      TRY(cpu_debugger.Update());
-      // TRY(ppu_debugger.Update());
+      TRY(cpu_debugger.BuildTexture(main_window).and_then([&](auto &&tex) {
+        return tex.RenderAtPosition(main_window.Renderer(), {NES_WINDOW_W * 4, 0});
+      }));
+      main_window.Present();
       time_point = std::chrono::system_clock::now();
     }
   }

@@ -87,7 +87,7 @@ void Bus::Write(Addr address, uint8_t data) {
     Addr mirror_down_addr = address & 0b0010000000000111;
     Write(mirror_down_addr, data);
   } else if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
-    TODO(fmt::format("PPU read for address 0x{:04X} not implemented yet", address));
+    TODO(fmt::format("PPU write for address 0x{:04X} not implemented yet", address));
   } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {
     spdlog::error("CANNOT WRITE TO ROM MEMORY!!!");
     throw std::runtime_error("Can't write to ROM memory");

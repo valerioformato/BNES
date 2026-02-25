@@ -5,13 +5,11 @@
 #include "Tools/CPUDebugger.h"
 #include "SDLBind/Text/TextSpec.h"
 
-#include <algorithm>
 #include <numeric>
-#include <ranges>
 
 namespace BNES::Tools {
 
-ErrorOr<void> CPUDebugger::Update() {
+ErrorOr<SDL::Texture> CPUDebugger::BuildTexture(const SDL::Window &main_window) {
   using CPU = HW::CPU;
 
   std::vector<std::string> lines;
@@ -33,17 +31,10 @@ ErrorOr<void> CPUDebugger::Update() {
       .font = m_font,
       .color = SDL::Color{255, 255, 255, 255},
       .wrapping = SDL::TextWrapping::Wrapped,
-      .wrap_size = static_cast<unsigned int>(m_window.Size()[1]),
+      .wrap_size = static_cast<unsigned int>(main_window.Size()[1] / 2),
   };
 
-  SDL_RenderClear(m_window.Renderer());
-
-  auto texture = TRY(SDL::Texture::FromText(m_window.Renderer(), text_content));
-  TRY(texture.Render(m_window.Renderer()));
-
-  SDL_RenderPresent(m_window.Renderer());
-
-  return {};
+  return SDL::Texture::FromText(main_window.Renderer(), text_content);
 }
 
 } // namespace BNES::Tools

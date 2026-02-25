@@ -1,4 +1,5 @@
 #include "SDLBind/Graphics/Window.h"
+#include "SDL3/SDL_render.h"
 
 #include <spdlog/spdlog.h>
 
