@@ -6,6 +6,7 @@
 #define PPUDEBUGGER_H
 
 #include "HW/PPU.h"
+#include "SDLBind/Graphics/Texture.h"
 #include "SDLBind/Graphics/Window.h"
 #include "common/Types/non_owning_ptr.h"
 
@@ -14,29 +15,14 @@ namespace BNES::Tools {
 class PPUDebugger {
 public:
   PPUDebugger() = delete;
-  explicit PPUDebugger(const HW::PPU &ppu, bool should_focus = false)
-      : m_ppu(&ppu), m_window(SDL::Window::FromSpec(SDL::WindowSpec{
-                                                        .width = 800,
-                                                        .height = 600,
-                                                        .title = "PPU Debugger",
-                                                        .flags = SDL::WindowFlag::None,
-							.should_steal_focus = should_focus,
-                                                    })
-                                  .value()),
-        m_chr_rom_texture(
-            SDL::Texture::FromBuffer(m_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()).value()) {}
-
-  [[nodiscard]] SDL::Window &GetWindow() { return m_window; }
+  explicit PPUDebugger(const HW::PPU &ppu) : m_ppu(&ppu) {}
 
   ErrorOr<void> Update();
 
+  ErrorOr<SDL::Texture> BuildChrRomTexture(const SDL::Window &main_window);
+
 private:
   non_owning_ptr<const HW::PPU *> m_ppu;
-
-  SDL::Window m_window;
-
-  SDL::Texture m_chr_rom_texture;
-  ErrorOr<void> UpdateChrRomTexture();
 };
 
 } // namespace BNES::Tools

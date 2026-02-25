@@ -37,8 +37,12 @@ public:
 
   void SetScaleMode(SDL_ScaleMode scale_mode) const { SDL_SetTextureScaleMode(m_texture, scale_mode); }
 
-  [[nodiscard]] ErrorOr<void> Render(SDL_Renderer *renderer);
-  [[nodiscard]] ErrorOr<void> RenderAtPosition(SDL_Renderer *renderer, std::array<int, 2> position);
+  [[nodiscard]] ErrorOr<void> Render(SDL_Renderer *renderer) { return RenderAtPosition(renderer, {0, 0}); }
+  [[nodiscard]] ErrorOr<void> RenderAtPosition(SDL_Renderer *renderer, std::array<int, 2> position) {
+    return RenderAtPositionAndScale(renderer, position, 1.0f);
+  }
+  [[nodiscard]] ErrorOr<void> RenderAtPositionAndScale(SDL_Renderer *renderer, std::array<int, 2> position,
+                                                       float scale_factor);
 
   [[nodiscard]] uint32_t Width() const { return m_buffer.Width(); }
   [[nodiscard]] uint32_t Height() const { return m_buffer.Height(); }

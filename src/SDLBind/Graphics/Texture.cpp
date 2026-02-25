@@ -9,31 +9,17 @@
 namespace BNES::SDL {
 Texture::~Texture() { SDL_DestroyTexture(m_texture); }
 
-ErrorOr<void> Texture::Render(SDL_Renderer *renderer) {
-  // Check if texture is valid before rendering
-  if (!m_texture) {
-    return make_error(std::errc::invalid_argument, "Attempting to render null texture");
-  }
-
-  SDL_FRect dstRect = {0.0f, 0.0f, static_cast<float>(m_buffer.Width()), static_cast<float>(m_buffer.Height())};
-
-  // Render texture
-  if (SDL_RenderTexture(renderer, m_texture, nullptr, &dstRect) == false) {
-    return make_error(std::errc::invalid_argument, fmt::format("Failed to render texture: {}", SDL_GetError()));
-  }
-
-  return {};
-}
-
-ErrorOr<void> Texture::RenderAtPosition(SDL_Renderer *renderer, std::array<int, 2> position) {
+ErrorOr<void> Texture::RenderAtPositionAndScale(SDL_Renderer *renderer, std::array<int, 2> position,
+                                                float scale_factor) {
   // Check if texture is valid before rendering
   if (!m_texture) {
     return make_error(std::errc::invalid_argument, "Attempting to render null texture");
   }
 
   auto [x, y] = position;
-  SDL_FRect dstRect = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(m_buffer.Width()),
-                       static_cast<float>(m_buffer.Height())};
+  SDL_FRect dstRect = {static_cast<float>(x), static_cast<float>(y),
+                       static_cast<float>(m_buffer.Width()) * scale_factor,
+                       static_cast<float>(m_buffer.Height()) * scale_factor};
 
   // Render texture
   if (SDL_RenderTexture(renderer, m_texture, nullptr, &dstRect) == false) {

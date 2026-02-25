@@ -56,19 +56,7 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
   main_window.Present();
 
   BNES::Tools::CPUDebugger cpu_debugger(cpu);
-
-  // BNES::Tools::PPUDebugger ppu_debugger(ppu);
-  // ppu_debugger.GetWindow().SetRenderScale(2, 2);
-  // ppu_debugger.GetWindow().Present();
-
-  // auto cpu_d_pos = cpu_debugger.GetWindow().Position();
-  // auto ppu_d_pos = ppu_debugger.GetWindow().Position();
-  //
-  // cpu_d_pos[0] -= cpu_debugger.GetWindow().Size()[0] / 2;
-  // ppu_d_pos[0] += cpu_debugger.GetWindow().Size()[0] / 2;
-  //
-  // TRY(cpu_debugger.GetWindow().SetPosition(cpu_d_pos[0], cpu_d_pos[1]));
-  // TRY(ppu_debugger.GetWindow().SetPosition(ppu_d_pos[0], ppu_d_pos[1]));
+  BNES::Tools::PPUDebugger ppu_debugger(ppu);
 
   // Main event loop
   auto time_point = std::chrono::system_clock::now();
@@ -128,6 +116,10 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
     if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
       TRY(cpu_debugger.BuildTexture(main_window).and_then([&](auto &&tex) {
         return tex.RenderAtPosition(main_window.Renderer(), {NES_WINDOW_W * 4, 0});
+      }));
+
+      TRY(ppu_debugger.BuildChrRomTexture(main_window).and_then([&](auto &&tex) {
+        return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_WINDOW_W * 4, NES_WINDOW_H * 2}, 2.0f);
       }));
       main_window.Present();
       time_point = std::chrono::system_clock::now();

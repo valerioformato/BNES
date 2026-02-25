@@ -3,6 +3,7 @@
 //
 
 #include "Tools/PPUDebugger.h"
+#include "SDLBind/Graphics/Buffer.h"
 #include "SDLBind/Graphics/Texture.h"
 #include "Tools/PPUPalette.h"
 #include "common/ranges_compat.h"
@@ -15,19 +16,9 @@
 
 namespace BNES::Tools {
 
-ErrorOr<void> PPUDebugger::Update() {
-  SDL_RenderClear(m_window.Renderer());
-
-  TRY(UpdateChrRomTexture());
-  TRY(m_chr_rom_texture.Render(m_window.Renderer()));
-
-  SDL_RenderPresent(m_window.Renderer());
-
-  return {};
-}
-
-ErrorOr<void> PPUDebugger::UpdateChrRomTexture() {
-  SDL::Buffer &chr_rom_buffer = m_chr_rom_texture.Buffer();
+ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_window) {
+  SDL::Texture texture = TRY(SDL::Texture::FromBuffer(main_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()));
+  SDL::Buffer &chr_rom_buffer = texture.Buffer();
 
   static constexpr unsigned int tile_memory_size = 16;
 
@@ -79,16 +70,16 @@ ErrorOr<void> PPUDebugger::UpdateChrRomTexture() {
     auto starting_pixel_y = (tile_index / (chr_rom_buffer.Width() / tile_width)) * tile_height;
 
     for (const auto [index, pixel] : rv::enumerate(tile_pixels)) {
-      auto pixel_x = index % tile_width + starting_pixel_x;
-      auto pixel_y = index / tile_width + starting_pixel_y;
+      auto pixel_x = (index % tile_width) + starting_pixel_x;
+      auto pixel_y = (index / tile_width) + starting_pixel_y;
       TRY(chr_rom_buffer.WritePixel(pixel_x, pixel_y, pixel));
     }
   }
 
-  m_chr_rom_texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST);
-  TRY(m_chr_rom_texture.Update());
+  texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST);
+  TRY(texture.Update());
 
-  return {};
+  return texture;
 }
 
 } // namespace BNES::Tools
