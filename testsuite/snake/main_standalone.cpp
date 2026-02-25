@@ -116,14 +116,6 @@ BNES::ErrorOr<int> snake_main() {
   auto [main_window_x, main_window_y] = window_handle.Position();
   auto [main_window_size_x, main_window_size_y] = window_handle.Size();
 
-  BNES::Tools::CPUDebugger debugger(cpu);
-  // This doesn't work on Wayland cause applications cannot request absolute window positioning
-  if (auto result = getenv("WAYLAND_DISPLAY"); result == nullptr) {
-    TRY(debugger.GetWindow().SetPosition(main_window_x + main_window_size_x, main_window_y));
-  } else {
-    spdlog::warn("Cannot set debugger window position on Wayland ({})", result);
-  }
-
   cpu.instruction_slowdown = 100.0;
 
   auto update_video_buffer = [&cpu](BNES::SDL::Buffer &target_buffer) {
@@ -226,8 +218,6 @@ BNES::ErrorOr<int> snake_main() {
       texture.Render(window_handle.Renderer());
 
       SDL_RenderPresent(window_handle.Renderer());
-
-      debugger.Update();
 
       last_frame_update_time = clock.now();
       // spdlog::debug("new frame!");

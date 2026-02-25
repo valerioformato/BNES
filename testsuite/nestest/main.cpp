@@ -5,8 +5,6 @@
 #include "HW/CPU.h"
 #include "HW/PPU.h"
 #include "SDLBind/Init.h"
-#include "Tools/CPUDebugger.h"
-#include "Tools/PPUDebugger.h"
 
 #include <chrono>
 #include <cxxopts.hpp>
@@ -19,9 +17,9 @@
 #include <ranges>
 
 // Concept to check if a type has an AddrMode() method
-template <typename T> concept HasAddressingMode = requires {
-  { T::AddrMode() }
-  ->std::same_as<BNES::HW::AddressingMode>;
+template <typename T>
+concept HasAddressingMode = requires {
+  { T::AddrMode() } -> std::same_as<BNES::HW::AddressingMode>;
 };
 
 class NESTestCPU : public BNES::HW::CPU {
@@ -197,7 +195,6 @@ public:
 };
 
 struct Options {
-  bool batch{false};
   bool stepping{false};
 };
 
@@ -232,27 +229,9 @@ BNES::ErrorOr<int> nestest_main(Options options) {
 
   BNES::HW::PPU ppu{bus};
 
-  BNES::Tools::CPUDebugger cpu_debugger(cpu, true);
-  cpu_debugger.GetWindow().Present();
-
-  BNES::Tools::PPUDebugger ppu_debugger(ppu);
-  ppu_debugger.GetWindow().SetRenderScale(2, 2);
-  ppu_debugger.GetWindow().Present();
-
-  auto cpu_d_pos = cpu_debugger.GetWindow().Position();
-  auto ppu_d_pos = ppu_debugger.GetWindow().Position();
-
-  cpu_d_pos[0] -= cpu_debugger.GetWindow().Size()[0] / 2;
-  ppu_d_pos[0] += cpu_debugger.GetWindow().Size()[0] / 2;
-
-  //  TRY(cpu_debugger.GetWindow().SetPosition(cpu_d_pos[0], cpu_d_pos[1]));
-  //  TRY(ppu_debugger.GetWindow().SetPosition(ppu_d_pos[0], ppu_d_pos[1]));
-
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU.
-  if (options.batch) {
-    cpu.SetProgramStartAddress(0xC000);
-  }
+  cpu.SetProgramStartAddress(0xC000);
 
   auto nestest_log_it = nestest_log.begin();
 
@@ -307,29 +286,21 @@ BNES::ErrorOr<int> nestest_main(Options options) {
       break;
     }
 
-    auto instr = cpu.DecodeNextInstruction(options.batch);
+    auto instr = cpu.DecodeNextInstruction(true);
     spdlog::debug("{} - {}", ++i_line, cpu.last_log_line);
 
     cpu.RunInstruction(std::move(instr));
 
     auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
 
-    if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
-      TRY(cpu_debugger.Update());
-      TRY(ppu_debugger.Update());
-      time_point = std::chrono::system_clock::now();
+    if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
+      spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
+                    cpu.last_log_line, *nestest_log_it);
+
+      break;
     }
 
-    if (options.batch) {
-      if (cpu.last_log_line != nestest_log_it->substr(0, cpu.last_log_line.size())) {
-        spdlog::error("Log mismatch at line {}:\n {} \n {}", std::distance(nestest_log.begin(), nestest_log_it),
-                      cpu.last_log_line, *nestest_log_it);
-
-        break;
-      }
-
-      ++nestest_log_it;
-    }
+    ++nestest_log_it;
   }
 
   // Clean up
@@ -379,7 +350,6 @@ int main(int argc, char **argv) {
     }
 
     auto main_result = nestest_main({
-        .batch = result["batch"].as<bool>(),
         .stepping = result["stepping"].as<bool>(),
     });
 
