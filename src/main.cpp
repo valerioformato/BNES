@@ -1,6 +1,7 @@
 #include "HW/Bus.h"
 #include "HW/CPU.h"
 #include "HW/PPU.h"
+#include "HW/Screen.h"
 #include "SDLBind/Graphics/Buffer.h"
 #include "SDLBind/Graphics/Window.h"
 #include "SDLBind/Init.h"
@@ -25,9 +26,6 @@ struct Options {
   bool stepping{false};
 };
 
-constexpr unsigned int NES_WINDOW_W = 256;
-constexpr unsigned int NES_WINDOW_H = 240;
-
 BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
   // Initialize SDL
   if (auto result = BNES::SDL::Init(); !result) {
@@ -43,8 +41,11 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
 
   BNES::HW::PPU ppu{bus};
 
-  constexpr unsigned int MAIN_WINDOW_W = NES_WINDOW_W * 6;
-  constexpr unsigned int MAIN_WINDOW_H = NES_WINDOW_H * 4;
+  constexpr auto NES_SCREEN_W = BNES::HW::Screen::NES_SCREEN_W;
+  constexpr auto NES_SCREEN_H = BNES::HW::Screen::NES_SCREEN_H;
+
+  constexpr unsigned int MAIN_WINDOW_W = NES_SCREEN_W * 6;
+  constexpr unsigned int MAIN_WINDOW_H = NES_SCREEN_H * 4;
 
   // Create the main screen window
   BNES::SDL::Window main_window = TRY(BNES::SDL::Window::FromSpec({
@@ -54,6 +55,9 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
       .should_steal_focus = true,
   }));
   main_window.Present();
+
+  BNES::HW::Screen screen{bus};
+  TRY(screen.Init(main_window));
 
   BNES::Tools::CPUDebugger cpu_debugger(cpu);
   BNES::Tools::PPUDebugger ppu_debugger(ppu);
@@ -116,17 +120,19 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
     if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
       main_window.Clear();
 
+      TRY(screen.DrawScreen(main_window, 4.0f));
+
       // Draw CPU debug info
       TRY(cpu_debugger.BuildTexture(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPosition(main_window.Renderer(), {NES_WINDOW_W * 4, 0});
+        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 4, 0});
       }));
 
       // Draw PPU debug info
       TRY(ppu_debugger.BuildChrRomTexture(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_WINDOW_W * 4, NES_WINDOW_H * 2}, 2.0f);
+        return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 2}, 2.0f);
       }));
       TRY(ppu_debugger.BuildPPURegisterText(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPosition(main_window.Renderer(), {NES_WINDOW_W * 5, NES_WINDOW_H * 2});
+        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 5, NES_SCREEN_H * 2});
       }));
 
       main_window.Present();

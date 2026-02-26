@@ -17,34 +17,24 @@
 namespace BNES::Tools {
 
 ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_window) {
+  using HW::PPU;
+
   SDL::Texture texture = TRY(SDL::Texture::FromBuffer(main_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()));
   SDL::Buffer &chr_rom_buffer = texture.Buffer();
 
-  static constexpr unsigned int tile_memory_size = 16;
+  static constexpr auto tile_memory_size = PPU::TILE_MEMORY_SIZE;
 
   const auto &chr_rom = m_ppu->m_bus->Rom().character_rom;
   auto tiles = chr_rom | rv::chunk(tile_memory_size);
 
-  static constexpr unsigned int tile_width = 8;
-  static constexpr unsigned int tile_height = 8;
+  static constexpr auto tile_width = PPU::TILE_WIDTH;
+  static constexpr auto tile_height = PPU::TILE_HEIGHT;
 
-  using TilePixelValues = std::array<uint8_t, tile_width * tile_height>;
+  using TilePixelData = std::array<SDL::Pixel, tile_width * tile_height>;
 
   for (const auto &[tile_index, tile] : rv::enumerate(tiles)) {
-    TilePixelValues tile_pixels_v{0};
-    for (const auto [index, byte] : rv::enumerate(tile)) {
-      auto row_index = index % tile_width;
-      auto bit_pos = index / tile_width;
-
-      for (size_t x = 0; x < tile_width; ++x) {
-        bool value = std::bitset<8>(byte)[tile_width - x - 1];
-        tile_pixels_v[row_index * tile_width + x] |= (value << bit_pos);
-      }
-    }
-
-    using TilePixelData = std::array<SDL::Pixel, tile_width * tile_height>;
     TilePixelData tile_pixels;
-    std::ranges::copy(tile_pixels_v | rv::transform([](uint8_t value) {
+    std::ranges::copy(PPU::DecodeTile(tile) | rv::transform([](uint8_t value) {
                         // FIXME: we should actually look into the palette data and choose the right color. For now
                         //        let's make it bright enough to be seen on screen...
                         uint8_t idx{0};

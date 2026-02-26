@@ -21,6 +21,7 @@ public:
   static ErrorOr<Texture> FromText(SDL_Renderer *renderer, TextSpec text);
 #endif
 
+  Texture() = default;
   ~Texture();
 
   Texture(const Texture &) = delete;
@@ -51,7 +52,6 @@ public:
   [[nodiscard]] ErrorOr<void> Update();
 
 private:
-  Texture() = default;
   [[nodiscard]] SDL_Texture *SDLType() const { return m_texture; }
 
   SDL_Texture *m_texture{nullptr};

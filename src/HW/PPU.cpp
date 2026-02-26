@@ -2,7 +2,10 @@
 // Created by Valerio Formato on 23-Jan-26.
 //
 
-#include "PPU.h"
+#include "HW/PPU.h"
+#include "common/ranges_compat.h"
+
+#include <bitset>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace BNES::HW {
@@ -19,6 +22,28 @@ std::shared_ptr<spdlog::logger> PPU::s_logger = []() {
   }
   return logger;
 }();
+
+std::span<const uint8_t> PPU::ActiveNametable() const {
+  uint8_t nametable_index = m_control_register & 0x3;
+  uint8_t base_nametable_address = BaseNametableAddress();
+  return m_character_rom.subspan(base_nametable_address + nametable_index * 0x400, 0x400);
+}
+
+PPU::TilePixelValues PPU::DecodeTile(std::span<const uint8_t> tile_chr_data) {
+  TilePixelValues tile_pixels_v{0};
+
+  for (const auto [index, byte] : rv::enumerate(tile_chr_data)) {
+    auto row_index = index % TILE_WIDTH;
+    auto bit_pos = index / TILE_WIDTH;
+
+    for (size_t x = 0; x < TILE_WIDTH; ++x) {
+      bool value = std::bitset<8>(byte)[TILE_WIDTH - x - 1];
+      tile_pixels_v[row_index * TILE_WIDTH + x] |= (value << bit_pos);
+    }
+  }
+
+  return tile_pixels_v;
+}
 
 void PPU::Tick(unsigned int cycles) {
   m_cycles += cycles;
@@ -110,7 +135,7 @@ PPU::Addr PPU::MirrorVRAMAddress(Addr address) {
   }
 
   return vram_index;
-};
+}
 
 void PPU::WritePPUDATA(uint8_t value) {
   if (m_address_register < VRAM_START_ADDRESS) {

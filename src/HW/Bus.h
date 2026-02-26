@@ -18,6 +18,7 @@ namespace BNES::HW {
 // Forward declarations - Bus only needs pointers, not complete definitions
 class CPU;
 class PPU;
+class Screen;
 
 class Bus {
 public:
@@ -39,6 +40,7 @@ public:
 
   void AttachCPU(CPU *cpu);
   void AttachPPU(PPU *ppu);
+  void AttachScreen(Screen *screen);
 
   void PropagateNMI();
 
@@ -58,6 +60,7 @@ private:
 
   CPU *m_cpu{nullptr};
   PPU *m_ppu{nullptr};
+  Screen *m_screen{nullptr};
 };
 } // namespace BNES::HW
 

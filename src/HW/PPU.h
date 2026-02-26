@@ -19,11 +19,14 @@ class PPUDebugger;
 }
 
 namespace BNES::HW {
-
 class PPU {
 public:
   friend class ::BNES::Tools::PPUDebugger;
   friend class Bus;
+
+  static constexpr unsigned int TILE_MEMORY_SIZE = 16;
+  static constexpr unsigned int TILE_WIDTH = 8;
+  static constexpr unsigned int TILE_HEIGHT = 8;
 
   static constexpr uint16_t MAX_ADDRESSABLE_CHR_ROM_ADDRESS = 0x1FFF;
   static constexpr uint16_t VRAM_START_ADDRESS = 0x2000;
@@ -44,6 +47,12 @@ public:
 
   [[nodiscard]] uint16_t CurrentScanline() const { return m_current_scanline; }
   [[nodiscard]] size_t Cycles() const { return m_cycles; }
+
+  [[nodiscard]] std::span<const uint8_t> CharacterRom() const { return m_character_rom; }
+  [[nodiscard]] std::span<const uint8_t> ActiveNametable() const;
+
+  using TilePixelValues = std::array<uint8_t, TILE_WIDTH * TILE_HEIGHT>;
+  static TilePixelValues DecodeTile(std::span<const uint8_t> tile_chr_data);
 
 protected:
   void Tick(unsigned int cycles);
@@ -78,6 +87,7 @@ protected:
   // Protected members for testing
   std::array<uint8_t, 32> m_palette_table{0};
   std::array<uint8_t, 0x800> m_vram{0};
+  std::array<uint8_t, 256 * 240> m_screen_data{0};
 
 private:
   size_t m_cycles{0};
