@@ -47,6 +47,7 @@ public:
 
   [[nodiscard]] uint16_t CurrentScanline() const { return m_current_scanline; }
   [[nodiscard]] size_t Cycles() const { return m_cycles; }
+  [[nodiscard]] uint8_t BankIndex() const { return (m_control_register & 0b00001000) != 0; }
 
   [[nodiscard]] std::span<const uint8_t> CharacterRom() const { return m_character_rom; }
   [[nodiscard]] std::span<const uint8_t> ActiveNametable() const;
@@ -113,9 +114,11 @@ private:
   Addr m_vram_address_increment{1};
   uint8_t m_read_buffer{0};
 
+  std::chrono::duration<double> m_last_frame_time{0.0};
+
   static std::shared_ptr<spdlog::logger> s_logger;
 
-  Addr MirrorVRAMAddress(Addr address);
+  Addr MirrorVRAMAddress(Addr address) const;
 };
 
 } // namespace BNES::HW

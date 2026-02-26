@@ -75,12 +75,21 @@ ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_wi
 ErrorOr<SDL::Texture> PPUDebugger::BuildPPURegisterText(const SDL::Window &main_window) {
   using PPU = HW::PPU;
 
+  using time_resolution = std::chrono::microseconds;
+  float fps = 0.0f;
+  auto numerator = std::chrono::duration_cast<time_resolution>(std::chrono::seconds(1)).count();
+  if (auto denominator = std::chrono::duration_cast<time_resolution>(m_ppu->m_last_frame_time).count();
+      denominator > 0) {
+    fps = static_cast<decltype(fps)>(numerator) / denominator;
+  }
+
   std::vector<std::string> lines;
+  lines.push_back(fmt::format("{:4.2f} PPU FPS", fps));
   lines.push_back(fmt::format("Scanline: {}", m_ppu->m_current_scanline));
   lines.push_back(fmt::format("PPUSTATUS: {:08b}", m_ppu->m_status_register));
   lines.push_back(fmt::format("PPUCTRL:   {:08b}", m_ppu->m_control_register));
+  lines.push_back(fmt::format("PPUMASK:   {:08b}", m_ppu->m_mask_register));
   lines.push_back(fmt::format("PPUADDR:   0x{:04X}", m_ppu->m_address_register));
-  lines.push_back(fmt::format("PPUMASK:   0x{:02X}", m_ppu->m_mask_register));
 
   std::string content = std::ranges::fold_left(
       lines, std::string{}, [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });

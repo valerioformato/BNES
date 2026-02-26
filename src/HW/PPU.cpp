@@ -24,9 +24,12 @@ std::shared_ptr<spdlog::logger> PPU::s_logger = []() {
 }();
 
 std::span<const uint8_t> PPU::ActiveNametable() const {
-  uint8_t nametable_index = m_control_register & 0x3;
-  uint8_t base_nametable_address = BaseNametableAddress();
-  return m_character_rom.subspan(base_nametable_address + nametable_index * 0x400, 0x400);
+  uint8_t nametable_index = BaseNametableAddress();
+
+  // Compute the VRAM index for the selected nametable and return a span into m_vram.
+  Addr start_addr = VRAM_START_ADDRESS + static_cast<Addr>(nametable_index) * 0x400;
+  Addr vram_index = MirrorVRAMAddress(start_addr);
+  return std::span<const uint8_t>(m_vram).subspan(vram_index, 0x400);
 }
 
 PPU::TilePixelValues PPU::DecodeTile(std::span<const uint8_t> tile_chr_data) {
@@ -46,9 +49,9 @@ PPU::TilePixelValues PPU::DecodeTile(std::span<const uint8_t> tile_chr_data) {
 }
 
 void PPU::Tick(unsigned int cycles) {
-  m_cycles += cycles;
+  static std::chrono::time_point<std::chrono::steady_clock> last_time = std::chrono::steady_clock::now();
 
-  s_logger->trace("Ticked {} cycles (now at {}, scanline = {})", cycles, m_cycles, m_current_scanline);
+  m_cycles += cycles;
 
   while (m_cycles >= 341) {
     m_cycles -= 341;
@@ -58,7 +61,12 @@ void PPU::Tick(unsigned int cycles) {
       s_logger->trace("VBLANK triggered");
       m_status_register |= 0b10000000;
       if (VblankNMIEnabled()) {
-        s_logger->trace("VBLANK NMI triggered");
+        const auto now = std::chrono::steady_clock::now();
+        m_last_frame_time = now - last_time;
+        last_time = now;
+
+        s_logger->trace("VBLANK NMI triggered (frame time: {} ms)",
+                        std::chrono::duration_cast<std::chrono::milliseconds>(m_last_frame_time).count());
         m_bus->PropagateNMI();
       }
     }
@@ -117,7 +125,7 @@ void PPU::WritePPUCTRL(uint8_t value) {
   }
 }
 
-PPU::Addr PPU::MirrorVRAMAddress(Addr address) {
+PPU::Addr PPU::MirrorVRAMAddress(Addr address) const {
   Addr mirrored_vram = address & 0b10111111111111;
   Addr vram_index = mirrored_vram - VRAM_START_ADDRESS;
   uint8_t name_table = vram_index / 0x400;

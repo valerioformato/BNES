@@ -3,10 +3,11 @@
 //
 
 #include "HW/Screen.h"
-#include "common/ranges_compat.h"
-
 #include "HW/PPU.h"
 #include "Tools/PPUPalette.h"
+#include "common/ranges_compat.h"
+
+#include <spdlog/fmt/ranges.h>
 
 namespace BNES {
 namespace HW {
@@ -28,9 +29,13 @@ ErrorOr<void> Screen::FillFromPPU(const PPU &ppu) {
 
   using TilePixelData = std::array<SDL::Pixel, tile_width * tile_height>;
 
-  for (const auto [tile_position_idx, tile] :
-       rv::enumerate(ppu.ActiveNametable().subspan(0, 960) |
-                     rv::transform([&](uint8_t tile_idx) { return chr_tiles[tile_idx]; }))) {
+  const auto bank_idx = ppu.BankIndex();
+
+  const auto nametable = ppu.ActiveNametable().subspan(0, 960);
+  spdlog::trace("vram content: {}", nametable);
+
+  for (const auto &[tile_position_idx, tile] : rv::enumerate(
+           nametable | rv::transform([&](uint8_t tile_idx) { return chr_tiles[256 * bank_idx + tile_idx]; }))) {
 
     TilePixelData tile_pixels;
     std::ranges::copy(PPU::DecodeTile(tile) | rv::transform([](uint8_t value) {
