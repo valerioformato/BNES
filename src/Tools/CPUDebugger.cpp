@@ -23,8 +23,8 @@ ErrorOr<SDL::Texture> CPUDebugger::BuildTexture(const SDL::Window &main_window) 
   lines.push_back("              NV1BDIZC");
   lines.push_back(fmt::format("Status Flags: {}", m_cpu->StatusFlags().to_string()));
 
-  std::string content = std::reduce(begin(lines), end(lines), std::string{},
-                                    [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });
+  std::string content = std::ranges::fold_left(
+      lines, std::string{}, [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });
 
   SDL::TextSpec text_content{
       .content = content,

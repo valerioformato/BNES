@@ -82,4 +82,28 @@ ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_wi
   return texture;
 }
 
+ErrorOr<SDL::Texture> PPUDebugger::BuildPPURegisterText(const SDL::Window &main_window) {
+  using PPU = HW::PPU;
+
+  std::vector<std::string> lines;
+  lines.push_back(fmt::format("Scanline: {}", m_ppu->m_current_scanline));
+  lines.push_back(fmt::format("PPUSTATUS: {:08b}", m_ppu->m_status_register));
+  lines.push_back(fmt::format("PPUCTRL:   {:08b}", m_ppu->m_control_register));
+  lines.push_back(fmt::format("PPUADDR:   0x{:04X}", m_ppu->m_address_register));
+  lines.push_back(fmt::format("PPUMASK:   0x{:02X}", m_ppu->m_mask_register));
+
+  std::string content = std::ranges::fold_left(
+      lines, std::string{}, [](auto &&current, auto &&text) { return fmt::format("{}{}\n", current, text); });
+
+  SDL::TextSpec text_content{
+      .content = content,
+      .font = m_font,
+      .color = SDL::Color{255, 255, 255, 255},
+      .wrapping = SDL::TextWrapping::Wrapped,
+      .wrap_size = static_cast<unsigned int>(main_window.Size()[1] / 2),
+  };
+
+  return SDL::Texture::FromText(main_window.Renderer(), text_content);
+}
+
 } // namespace BNES::Tools

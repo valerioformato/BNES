@@ -15,14 +15,18 @@ namespace BNES::Tools {
 class PPUDebugger {
 public:
   PPUDebugger() = delete;
-  explicit PPUDebugger(const HW::PPU &ppu) : m_ppu(&ppu) {}
+  explicit PPUDebugger(const HW::PPU &ppu)
+      : m_ppu(&ppu), m_font(SDL::Font::Get("SpaceMono", SDL::FontVariant::Regular).value()) {}
 
   ErrorOr<void> Update();
 
   ErrorOr<SDL::Texture> BuildChrRomTexture(const SDL::Window &main_window);
+  ErrorOr<SDL::Texture> BuildPPURegisterText(const SDL::Window &main_window);
 
 private:
   non_owning_ptr<const HW::PPU *> m_ppu;
+
+  SDL::Font m_font;
 };
 
 } // namespace BNES::Tools

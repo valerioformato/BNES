@@ -43,7 +43,7 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
 
   BNES::HW::PPU ppu{bus};
 
-  constexpr unsigned int MAIN_WINDOW_W = NES_WINDOW_W * 5;
+  constexpr unsigned int MAIN_WINDOW_W = NES_WINDOW_W * 6;
   constexpr unsigned int MAIN_WINDOW_H = NES_WINDOW_H * 4;
 
   // Create the main screen window
@@ -114,13 +114,21 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
     auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
 
     if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
+      main_window.Clear();
+
+      // Draw CPU debug info
       TRY(cpu_debugger.BuildTexture(main_window).and_then([&](auto &&tex) {
         return tex.RenderAtPosition(main_window.Renderer(), {NES_WINDOW_W * 4, 0});
       }));
 
+      // Draw PPU debug info
       TRY(ppu_debugger.BuildChrRomTexture(main_window).and_then([&](auto &&tex) {
         return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_WINDOW_W * 4, NES_WINDOW_H * 2}, 2.0f);
       }));
+      TRY(ppu_debugger.BuildPPURegisterText(main_window).and_then([&](auto &&tex) {
+        return tex.RenderAtPosition(main_window.Renderer(), {NES_WINDOW_W * 5, NES_WINDOW_H * 2});
+      }));
+
       main_window.Present();
       time_point = std::chrono::system_clock::now();
     }

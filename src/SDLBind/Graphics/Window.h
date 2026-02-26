@@ -58,6 +58,7 @@ public:
   [[nodiscard]] ::BNES::SDL::Surface Surface() const { return ::BNES::SDL::Surface{SDL_GetWindowSurface(m_window)}; }
   [[nodiscard]] ErrorOr<Texture> CreateTexture(Buffer &&buffer) const;
 
+  void Clear() const { SDL_RenderClear(m_renderer); }
   void Present() const { SDL_RenderPresent(m_renderer); }
 
   [[nodiscard]] ErrorOr<void> UpdateSurface() const {
