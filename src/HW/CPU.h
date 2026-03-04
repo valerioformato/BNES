@@ -45,6 +45,7 @@ public:
   [[nodiscard]] Addr ProgramCounter() const { return m_program_counter; }
   [[nodiscard]] std::bitset<8> StatusFlags() const { return m_status; }
   [[nodiscard]] bool TestStatusFlag(StatusFlag flag) const { return m_status.test(static_cast<size_t>(flag)); }
+  [[nodiscard]] size_t Cycles() const { return m_cycles; }
 
   void Init() {
     m_program_counter =
@@ -61,6 +62,7 @@ private:
   std::bitset<8> m_status{0x24};              // Status register (flags)
   uint8_t m_stack_pointer{0xFD};              // Stack pointer initialized to 0xFF
   Addr m_program_counter{ProgramBaseAddress}; // Program counter
+  size_t m_cycles{0};                         // Cycle counter
   non_owning_ptr<Bus *> m_bus;                // Memory bus
 
   static std::shared_ptr<spdlog::logger> s_logger;

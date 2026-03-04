@@ -68,6 +68,7 @@ void PPU::Tick(unsigned int cycles) {
         s_logger->trace("VBLANK NMI triggered (frame time: {} ms)",
                         std::chrono::duration_cast<std::chrono::milliseconds>(m_last_frame_time).count());
         m_bus->PropagateNMI();
+        m_cycles += 2 * 3; // NMI takes 2 CPU cycles to process
       }
     }
 

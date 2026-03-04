@@ -724,7 +724,7 @@ void CPU::ProcessNMI() {
 
   SetStatusFlagValue(StatusFlag::InterruptDisable, true);
 
-  m_bus->Tick(2);
+  m_cycles += 2;
 
   uint8_t low_byte = ReadFromMemory(0xFFFA);
   uint8_t hi_byte = ReadFromMemory(0xFFFB);

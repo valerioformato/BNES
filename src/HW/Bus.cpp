@@ -19,12 +19,10 @@ void Bus::AttachScreen(Screen *screen) { m_screen = screen; }
 void Bus::PropagateNMI() {
   m_cpu->ProcessNMI();
 
-  // TODO: For now we fill the screen in one step after NMI.
-  //       Ideally we should do it every scanline, since:
-  //       "More advanced games used a lot of tricks to enrich the gaming experience. For example, changing scroll in
-  //       the middle of the frame (split scroll) or changing palette colors."
-  //       (https://bugzmanov.github.io/nes_ebook/chapter_6_4.html)
-  m_screen->FillFromPPU(*m_ppu);
+  // Only fill screen if a screen is attached.
+  if (m_screen) {
+    m_screen->FillFromPPU(*m_ppu);
+  }
 }
 
 uint8_t Bus::Read(Addr address) {
