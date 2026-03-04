@@ -19,4 +19,42 @@ SCENARIO("ROM unit tests") {
       THEN("It is loaded correctly") { REQUIRE(maybe_rom.has_value()); };
     }
   }
+
+  GIVEN("A NES 2.0 rom") {
+    auto test_rom_path = fmt::format("{}/assets/roms/pacman-europe.nes", localization::PROJECT_SOURCE_DIR);
+
+    WHEN("We load the Rom") {
+      auto maybe_rom = Rom::FromFile(test_rom_path);
+      THEN("It is loaded correctly") {
+        REQUIRE(maybe_rom.has_value());
+        auto& rom = maybe_rom.value();
+        REQUIRE(rom.is_nes_v2 == true);
+        REQUIRE(rom.mapper == 0);
+        REQUIRE(rom.submapper == 0);
+        REQUIRE(rom.program_rom.size() == 0x4000);
+        REQUIRE(rom.character_rom.size() == 0x2000);
+        REQUIRE(rom.timing == Rom::TimingMode::PAL);
+        REQUIRE(rom.console_type == Rom::ConsoleType::NES);
+      };
+    }
+  }
+
+  GIVEN("Another NES 2.0 rom (smb-world)") {
+    auto test_rom_path = fmt::format("{}/assets/roms/smb-world.nes", localization::PROJECT_SOURCE_DIR);
+
+    WHEN("We load the Rom") {
+      auto maybe_rom = Rom::FromFile(test_rom_path);
+      THEN("It is loaded correctly") {
+        REQUIRE(maybe_rom.has_value());
+        auto& rom = maybe_rom.value();
+        REQUIRE(rom.is_nes_v2 == true);
+        REQUIRE(rom.mapper == 0);
+        REQUIRE(rom.submapper == 0);
+        REQUIRE(rom.program_rom.size() == 0x8000);
+        REQUIRE(rom.character_rom.size() == 0x2000);
+        REQUIRE(rom.timing == Rom::TimingMode::MultiRegion);
+        REQUIRE(rom.console_type == Rom::ConsoleType::NES);
+      };
+    }
+  }
 }

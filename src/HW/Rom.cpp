@@ -12,6 +12,25 @@
 #include <fstream>
 
 namespace BNES::HW {
+
+static size_t CalculateRomSize(uint8_t lsb, uint8_t msb_nibble, bool is_chr) {
+  size_t base_unit = is_chr ? 0x2000 : 0x4000;
+  if (msb_nibble < 0xF) {
+    return (static_cast<size_t>(msb_nibble) << 8 | lsb) * base_unit;
+  }
+
+  uint8_t exponent = lsb & 0x3F;
+  uint8_t multiplier = ((lsb >> 6) & 0x3) * 2 + 1;
+  return (1ULL << exponent) * multiplier;
+}
+
+static size_t CalculateRamSize(uint8_t shift_count) {
+  if (shift_count == 0) {
+    return 0;
+  }
+  return 64ULL << shift_count;
+}
+
 ErrorOr<Rom> Rom::FromFile(std::string_view path) {
   static auto logger = spdlog::stdout_color_st("Rom::FromFile");
 
@@ -25,7 +44,6 @@ ErrorOr<Rom> Rom::FromFile(std::string_view path) {
     return make_error(std::errc::io_error, fmt::format("Failed to open file {}", path));
   }
 
-  // read first 4 bytes and check against the standard NES ROM header
   static constexpr std::array<uint8_t, 4> NES_TAG{0x4E, 0x45, 0x53, 0x1A};
   std::vector<uint8_t> header(NES_TAG.size());
   Utils::Raw::ReadNFromBinary(header, NES_TAG.size(), input_file);
@@ -45,19 +63,70 @@ ErrorOr<Rom> Rom::FromFile(std::string_view path) {
   logger->debug("NES ROM banks: {}", n_prg_rom_banks);
   logger->debug("NES CHR banks: {}", n_chr_rom_banks);
 
-  uint8_t cbyte1, cbyte2;
+  uint8_t cbyte1 = 0, cbyte2 = 0;
   Utils::Raw::ReadFromBinary(cbyte1, input_file);
   Utils::Raw::ReadFromBinary(cbyte2, input_file);
 
-  uint8_t mapper = (cbyte2 & 0xF0) | (cbyte1 >> 4);
-  logger->debug("Mapper: {}", mapper);
+  uint8_t mapper_upper = (cbyte2 & 0xF0);
+  uint8_t mapper_lower = (cbyte1 >> 4);
 
-  uint8_t is_nes_v2 = (cbyte2 >> 2) & 0b11;
-  if (is_nes_v2 != 0) {
-    return make_error(std::errc::not_supported, "iNES v2.0 not supported");
+  uint8_t byte8 = 0, byte9 = 0, byte10 = 0, byte11 = 0, byte12 = 0, byte13 = 0, byte14 = 0, byte15 = 0;
+  Utils::Raw::ReadFromBinary(byte8, input_file);
+  Utils::Raw::ReadFromBinary(byte9, input_file);
+  Utils::Raw::ReadFromBinary(byte10, input_file);
+  Utils::Raw::ReadFromBinary(byte11, input_file);
+  Utils::Raw::ReadFromBinary(byte12, input_file);
+  Utils::Raw::ReadFromBinary(byte13, input_file);
+  Utils::Raw::ReadFromBinary(byte14, input_file);
+  Utils::Raw::ReadFromBinary(byte15, input_file);
+
+  uint8_t is_nes_v2_check = (cbyte2 & 0x0C);
+  bool is_nes_v2 = (is_nes_v2_check == 0x08);
+
+  logger->debug("NES 2.0: {}", is_nes_v2);
+
+  Rom rom{.is_nes_v2 = is_nes_v2};
+
+  if (is_nes_v2) {
+    rom.mapper = mapper_upper | mapper_lower | ((byte8 & 0x0F) << 8);
+    rom.submapper = (byte8 >> 4);
+    logger->debug("Mapper: {} (submapper: {})", rom.mapper, rom.submapper);
+
+    uint8_t prg_msb = byte9 & 0x0F;
+    uint8_t chr_msb = (byte9 >> 4) & 0x0F;
+
+    rom.prg_ram_size = CalculateRamSize(byte10 & 0x0F);
+    rom.prg_nvram_size = CalculateRamSize((byte10 >> 4) & 0x0F);
+    rom.chr_ram_size = CalculateRamSize(byte11 & 0x0F);
+    rom.chr_nvram_size = CalculateRamSize((byte11 >> 4) & 0x0F);
+
+    rom.timing = static_cast<TimingMode>(byte12 & 0x03);
+    logger->debug("Timing mode: {}", static_cast<int>(rom.timing));
+
+    uint8_t console_bits = cbyte2 & 0x03;
+    rom.console_type = static_cast<ConsoleType>(console_bits);
+    logger->debug("Console type: {}", static_cast<int>(rom.console_type));
+
+    if (rom.console_type == ConsoleType::VsSystem) {
+      rom.vs_system_type = byte13;
+      logger->debug("Vs. System type: {}", rom.vs_system_type);
+    } else if (rom.console_type == ConsoleType::Extended) {
+      rom.extended_console_type = byte13 & 0x0F;
+      logger->debug("Extended console type: {}", rom.extended_console_type);
+    }
+
+    rom.misc_rom_count = byte14 & 0x03;
+    rom.expansion_device = byte15 & 0x3F;
+
+    rom.program_rom.resize(CalculateRomSize(n_prg_rom_banks, prg_msb, false));
+    rom.character_rom.resize(CalculateRomSize(n_chr_rom_banks, chr_msb, true));
+  } else {
+    rom.mapper = mapper_upper | mapper_lower;
+    logger->debug("Mapper: {}", rom.mapper);
+
+    rom.program_rom.resize(n_prg_rom_banks * 0x4000);
+    rom.character_rom.resize(n_chr_rom_banks * 0x2000);
   }
-
-  Rom rom{.mapper = mapper};
 
   bool is_four_screen = (cbyte1 & 0b1000) != 0;
   bool is_vertical_mirroring = (cbyte1 & 0b1) != 0;
@@ -70,28 +139,14 @@ ErrorOr<Rom> Rom::FromFile(std::string_view path) {
     rom.mirroring = Mirroring::Horizontal;
   }
 
-  static constexpr size_t PRG_ROM_BANK_SIZE = 0x4000;
-  static constexpr size_t CHR_ROM_BANK_SIZE = 0x2000;
-
-  size_t prg_rom_size = n_prg_rom_banks * PRG_ROM_BANK_SIZE;
-  size_t chr_rom_size = n_chr_rom_banks * CHR_ROM_BANK_SIZE;
-
   bool skip_trainer = (cbyte1 & 0b100) != 0;
 
   size_t prg_rom_start = 16 + (skip_trainer ? 512 : 0);
-  size_t chr_rom_start = prg_rom_start + prg_rom_size;
 
-  logger->debug("PRG ROM size: {}", prg_rom_size);
-  logger->debug("CHR ROM size: {}", chr_rom_size);
+  Utils::Raw::SkipBytes(prg_rom_start - input_file.tellg(), input_file);
 
-  auto dst = prg_rom_start - input_file.tellg();
-  Utils::Raw::SkipBytes(dst, input_file);
-
-  rom.program_rom.resize(prg_rom_size);
-  Utils::Raw::ReadNFromBinary(rom.program_rom, prg_rom_size, input_file);
-
-  rom.character_rom.resize(chr_rom_size);
-  Utils::Raw::ReadNFromBinary(rom.character_rom, chr_rom_size, input_file);
+  Utils::Raw::ReadNFromBinary(rom.program_rom, rom.program_rom.size(), input_file);
+  Utils::Raw::ReadNFromBinary(rom.character_rom, rom.character_rom.size(), input_file);
 
   return rom;
 }

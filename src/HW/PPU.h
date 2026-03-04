@@ -47,7 +47,7 @@ public:
 
   [[nodiscard]] uint16_t CurrentScanline() const { return m_current_scanline; }
   [[nodiscard]] size_t Cycles() const { return m_cycles; }
-  [[nodiscard]] uint8_t BankIndex() const { return (m_control_register & 0b00001000) != 0; }
+  [[nodiscard]] uint8_t BankIndex() const { return (m_control_register & 0b00010000) != 0; }
 
   [[nodiscard]] std::span<const uint8_t> CharacterRom() const { return m_character_rom; }
   [[nodiscard]] std::span<const uint8_t> ActiveNametable() const;
