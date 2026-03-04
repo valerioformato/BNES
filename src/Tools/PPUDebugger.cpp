@@ -34,7 +34,8 @@ ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_wi
 
   for (const auto &[tile_index, tile] : rv::enumerate(tiles)) {
     TilePixelData tile_pixels;
-    std::ranges::copy(PPU::DecodeTile(tile) | rv::transform([](uint8_t value) {
+    auto tile_data = PPU::DecodeTile(tile);
+    std::ranges::copy(tile_data | rv::transform([](uint8_t value) {
                         // FIXME: we should actually look into the palette data and choose the right color. For now
                         //        let's make it bright enough to be seen on screen...
                         uint8_t idx{0};

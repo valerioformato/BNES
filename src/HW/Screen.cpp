@@ -38,7 +38,9 @@ ErrorOr<void> Screen::FillFromPPU(const PPU &ppu) {
            nametable | rv::transform([&](uint8_t tile_idx) { return chr_tiles[256 * bank_idx + tile_idx]; }))) {
 
     TilePixelData tile_pixels;
-    std::ranges::copy(PPU::DecodeTile(tile) | rv::transform([](uint8_t value) {
+
+    auto tile_data = PPU::DecodeTile(tile);
+    std::ranges::copy(tile_data | rv::transform([](uint8_t value) {
                         // FIXME: we should actually look into the palette data and choose the right color. For now
                         //        let's make it bright enough to be seen on screen...
                         uint8_t idx{0};

@@ -1,2 +1,2 @@
 add_library(NESHW STATIC CPU.cpp PPU.cpp Bus.cpp Rom.cpp Screen.cpp Instructions/LoadStoreInstructions.cpp Instructions/ArithmeticInstructions.cpp Instructions/LogicalAndCompareInstructions.cpp Instructions/ShiftRotateInstructions.cpp Instructions/ControlFlowInstructions.cpp Instructions/UndocumentedInstructions.cpp Instructions/MiscellaneousInstructions.cpp)
-target_link_libraries(NESHW PUBLIC magic_enum::magic_enum spdlog::spdlog SDLBind)
+target_link_libraries(NESHW PUBLIC magic_enum::magic_enum spdlog::spdlog range-v3::range-v3 SDLBind)
