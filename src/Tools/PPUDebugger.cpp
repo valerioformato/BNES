@@ -4,6 +4,7 @@
 
 #include "Tools/PPUDebugger.h"
 #include "SDLBind/Graphics/Buffer.h"
+#include "SDLBind/Graphics/Color.h"
 #include "SDLBind/Graphics/Texture.h"
 #include "Tools/PPUPalette.h"
 #include "common/ranges_compat.h"
@@ -19,7 +20,15 @@ namespace BNES::Tools {
 ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_window) {
   using HW::PPU;
 
-  SDL::Texture texture = TRY(SDL::Texture::FromBuffer(main_window.Renderer(), SDL::Buffer::FromSize(128, 256).value()));
+  constexpr unsigned int padding = 4;
+  constexpr unsigned int TABLE_WIDTH = PPU::TILE_WIDTH * 16;
+  constexpr unsigned int BUFFER_WIDTH = TABLE_WIDTH * 2 + padding;
+  constexpr unsigned int BUFFER_HEIGHT = PPU::TILE_HEIGHT * 16;
+
+  constexpr unsigned int SECOND_TABLE_STARTING_X = TABLE_WIDTH + padding;
+
+  SDL::Texture texture =
+      TRY(SDL::Texture::FromBuffer(main_window.Renderer(), SDL::Buffer::FromSize(BUFFER_WIDTH, BUFFER_HEIGHT).value()));
   SDL::Buffer &chr_rom_buffer = texture.Buffer();
 
   static constexpr auto tile_memory_size = PPU::TILE_MEMORY_SIZE;
@@ -38,27 +47,26 @@ ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_wi
     std::ranges::copy(tile_data | rv::transform([](uint8_t value) {
                         // FIXME: we should actually look into the palette data and choose the right color. For now
                         //        let's make it bright enough to be seen on screen...
-                        uint8_t idx{0};
                         switch (value) {
                         case 0:
-                          idx = 0x01;
-                          break;
+                          return SDL::Pixel{{0, 0, 0, 255}};
                         case 1:
-                          idx = 0x23;
-                          break;
+                          return SDL::Pixel{{85, 85, 85, 255}};
                         case 2:
-                          idx = 0x27;
-                          break;
+                          return SDL::Pixel{{170, 170, 170, 255}};
                         case 3:
-                          idx = 0x30;
-                          break;
+                          return SDL::Pixel{{255, 255, 255, 255}};
+                        default:
+                          std::unreachable();
                         }
-                        return HW::PPUPalette[idx];
+                        std::unreachable();
                       }),
                       tile_pixels.begin());
 
-    auto starting_pixel_x = (tile_index * tile_width) % chr_rom_buffer.Width();
-    auto starting_pixel_y = (tile_index / (chr_rom_buffer.Width() / tile_width)) * tile_height;
+    bool second_table = tile_index >= 256;
+
+    auto starting_pixel_x = (tile_index * tile_width) % TABLE_WIDTH + (second_table * SECOND_TABLE_STARTING_X);
+    auto starting_pixel_y = ((tile_index % 256) / (TABLE_WIDTH / tile_width)) * tile_height;
 
     for (const auto [index, pixel] : rv::enumerate(tile_pixels)) {
       auto pixel_x = (index % tile_width) + starting_pixel_x;

@@ -32,6 +32,10 @@ std::span<const uint8_t> PPU::ActiveNametable() const {
   return std::span<const uint8_t>(m_vram).subspan(vram_index, 0x400);
 }
 
+std::span<const uint8_t, 4> PPU::BackgroundPalette(uint8_t index) const {
+  return std::span<const uint8_t, 4>{std::next(m_palette_table.cbegin(), 4 * index), size_t{4}};
+}
+
 PPU::TilePixelValues PPU::DecodeTile(std::span<const uint8_t> tile_chr_data) {
   TilePixelValues tile_pixels_v{0};
 

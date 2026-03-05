@@ -44,7 +44,7 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
   constexpr auto NES_SCREEN_W = BNES::HW::Screen::NES_SCREEN_W;
   constexpr auto NES_SCREEN_H = BNES::HW::Screen::NES_SCREEN_H;
 
-  constexpr unsigned int MAIN_WINDOW_W = NES_SCREEN_W * 6;
+  constexpr unsigned int MAIN_WINDOW_W = NES_SCREEN_W * 6 + 20;
   constexpr unsigned int MAIN_WINDOW_H = NES_SCREEN_H * 4;
 
   // Create the main screen window
@@ -129,10 +129,10 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
 
       // Draw PPU debug info
       TRY(ppu_debugger.BuildChrRomTexture(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 2}, 2.0f);
+        return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 3}, 2.0f);
       }));
       TRY(ppu_debugger.BuildPPURegisterText(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 5, NES_SCREEN_H * 2});
+        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 2});
       }));
 
       main_window.Present();

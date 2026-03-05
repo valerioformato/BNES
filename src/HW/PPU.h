@@ -51,6 +51,9 @@ public:
 
   [[nodiscard]] std::span<const uint8_t> CharacterRom() const { return m_character_rom; }
   [[nodiscard]] std::span<const uint8_t> ActiveNametable() const;
+  [[nodiscard]] uint8_t BackgroundColor() const { return m_palette_table[0]; };
+  [[nodiscard]] std::span<const uint8_t, 4> BackgroundPalette(uint8_t index) const;
+  [[nodiscard]] std::span<const uint8_t, 4> SpritePalette(uint8_t index) const;
 
   using TilePixelValues = std::array<uint8_t, TILE_WIDTH * TILE_HEIGHT>;
   static TilePixelValues DecodeTile(std::span<const uint8_t> tile_chr_data);

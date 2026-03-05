@@ -7,6 +7,7 @@
 #include "Tools/PPUPalette.h"
 #include "common/ranges_compat.h"
 
+#include <cstdint>
 #include <spdlog/fmt/ranges.h>
 
 namespace BNES {
@@ -32,40 +33,35 @@ ErrorOr<void> Screen::FillFromPPU(const PPU &ppu) {
   const auto bank_idx = ppu.BankIndex();
 
   const auto nametable = ppu.ActiveNametable().subspan(0, 960);
-  spdlog::trace("vram content: {}", nametable);
+  const auto attribute_table = ppu.ActiveNametable().subspan(960, 64);
+  const auto bg_palette_indices = attribute_table | rv::transform([](uint8_t value) {
+                                    std::array<uint8_t, 4> quad_palettes{0};
+                                    for (const auto &[idx, palette_idx] : rv::enumerate(quad_palettes)) {
+                                      palette_idx = (value >> idx) & 0b11;
+                                    }
+                                    return quad_palettes;
+                                  }) |
+                                  rv::join;
 
   for (const auto &[tile_position_idx, tile] : rv::enumerate(
            nametable | rv::transform([&](uint8_t tile_idx) { return chr_tiles[256 * bank_idx + tile_idx]; }))) {
 
+    const auto starting_pixel_x = (tile_position_idx * tile_width) % buffer.Width();
+    const auto starting_pixel_y = (tile_position_idx / (buffer.Width() / tile_width)) * tile_height;
+
+    const auto tile_position_x = starting_pixel_x / buffer.Width();
+    const auto tile_position_y = starting_pixel_y / buffer.Height();
+
     TilePixelData tile_pixels;
 
     auto tile_data = PPU::DecodeTile(tile);
-    std::ranges::copy(tile_data | rv::transform([](uint8_t value) {
-                        // FIXME: we should actually look into the palette data and choose the right color. For now
-                        //        let's make it bright enough to be seen on screen...
-                        uint8_t idx{0};
-                        switch (value) {
-                        case 0:
-                          idx = 0x01;
-                          break;
-                        case 1:
-                          idx = 0x23;
-                          break;
-                        case 2:
-                          idx = 0x27;
-                          break;
-                        case 3:
-                          idx = 0x30;
-                          break;
-                        default:
-                          std::unreachable();
-                        }
-                        return PPUPalette[idx];
+    std::ranges::copy(tile_data | rv::transform([&](uint8_t value) {
+                        auto palette_idx = tile_position_x / 2 + (8 * tile_position_y / 2);
+                        const auto palette = ppu.BackgroundPalette(palette_idx);
+                        const auto color_value = value ? palette[value] : ppu.BackgroundColor();
+                        return PPUPalette[color_value];
                       }),
                       tile_pixels.begin());
-
-    auto starting_pixel_x = (tile_position_idx * tile_width) % buffer.Width();
-    auto starting_pixel_y = (tile_position_idx / (buffer.Width() / tile_width)) * tile_height;
 
     for (const auto [index, pixel] : rv::enumerate(tile_pixels)) {
       auto pixel_x = (index % tile_width) + starting_pixel_x;
