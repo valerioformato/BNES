@@ -22,42 +22,50 @@ using HW::PPU;
 
 ErrorOr<SDL::Texture> PPUDebugger::BuildPaletteTexture(const SDL::Window &main_window) {
   static constexpr unsigned int padding = 4;
-  static constexpr unsigned int PALETTE_BLOCK_WIDTH = 128;
+  static constexpr unsigned int PALETTE_BLOCK_WIDTH = 256;
+  static constexpr unsigned int PALETTE_BLOCK_HEIGTH = 256;
   static constexpr unsigned int COLOR_BLOCK_WIDTH = PALETTE_BLOCK_WIDTH / 4;
 
-  SDL::Texture target_texture = TRY(SDL::Buffer::FromSize(128, 128).and_then([&main_window](SDL::Buffer &&buffer) {
-    return SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer), SDL::Texture::Access::Target);
-  }));
+  SDL::Texture target_texture = TRY(
+      SDL::Buffer::FromSize(PALETTE_BLOCK_WIDTH, PALETTE_BLOCK_HEIGTH).and_then([&main_window](SDL::Buffer &&buffer) {
+        return SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer), SDL::Texture::Access::Target);
+      }));
 
   auto at = SDL::ActiveRenderTarget(main_window.Renderer(), target_texture);
+  SDL_RenderClear(main_window.Renderer());
 
-  const auto palette_data = m_ppu->BackgroundPalette(0);
-  const auto palette_data_text =
-      std::format("{} {} {} {}", palette_data[0], palette_data[1], palette_data[2], palette_data[3]);
+  int y_offset = 0;
 
-  SDL::Texture palette_text_texture =
-      TRY(SDL::Texture::FromText(main_window.Renderer(), SDL::TextSpec{
-                                                             .content = palette_data_text,
-                                                             .color = SDL::Color{255, 255, 255, 255},
-                                                             .font = m_font,
-                                                         }));
+  for (uint8_t palette_index = 0; palette_index < 4; ++palette_index) {
+    const auto palette_data = m_ppu->BackgroundPalette(0);
+    const auto palette_data_text = std::format("0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}", palette_data[0], palette_data[1],
+                                               palette_data[2], palette_data[3]);
 
-  TRY(palette_text_texture.RenderAtPosition(main_window.Renderer(), {padding, 0}));
+    SDL::Texture palette_text_texture =
+        TRY(SDL::Texture::FromText(main_window.Renderer(), SDL::TextSpec{
+                                                               .content = palette_data_text,
+                                                               .color = SDL::Color{255, 255, 255, 255},
+                                                               .font = m_font,
+                                                           }));
 
-  auto buffer = TRY(SDL::Buffer::FromSize(128, 16));
-  rg::generate(buffer.Pixels(), [&, pixel_idx = 0]() mutable {
-    auto color_idx = (pixel_idx % PALETTE_BLOCK_WIDTH) / COLOR_BLOCK_WIDTH;
-    return color_idx != 0 ? HW::PPUPalette[palette_data[color_idx]] : HW::PPUPalette[m_ppu->BackgroundColor()];
-  });
+    TRY(palette_text_texture.RenderAtPosition(main_window.Renderer(), {padding, y_offset}));
 
-  SDL::Texture color_texture = TRY(SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer)));
-  color_texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST);
-  TRY(color_texture.Update());
+    y_offset += static_cast<int>(palette_text_texture.Buffer().Height()) + padding;
 
-  TRY(color_texture.RenderAtPosition(main_window.Renderer(),
-                                     {padding, static_cast<int>(palette_text_texture.Buffer().Height() + padding)}));
+    auto buffer = TRY(SDL::Buffer::FromSize(128, 16));
+    rg::generate(buffer.Pixels(), [&, pixel_idx = 0]() mutable {
+      auto color_idx = (pixel_idx % PALETTE_BLOCK_WIDTH) / COLOR_BLOCK_WIDTH;
+      return color_idx != 0 ? HW::PPUPalette[palette_data[color_idx]] : HW::PPUPalette[m_ppu->BackgroundColor()];
+    });
 
-  TRY(target_texture.Update());
+    SDL::Texture color_texture = TRY(SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer)));
+    color_texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST);
+    TRY(color_texture.Update());
+
+    TRY(color_texture.RenderAtPosition(main_window.Renderer(), {padding, y_offset}));
+
+    y_offset += static_cast<int>(color_texture.Buffer().Height()) + 2 * padding;
+  }
 
   return target_texture;
 }
