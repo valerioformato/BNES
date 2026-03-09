@@ -15,8 +15,16 @@ namespace BNES::SDL {
 
 class Texture {
 public:
+  friend class ActiveRenderTarget;
+
+  enum class Access {
+    Static = SDL_TEXTUREACCESS_STATIC,
+    Streaming = SDL_TEXTUREACCESS_STREAMING,
+    Target = SDL_TEXTUREACCESS_TARGET,
+  };
+
   // Static factory functions
-  static ErrorOr<Texture> FromBuffer(SDL_Renderer *renderer, Buffer &&buffer);
+  static ErrorOr<Texture> FromBuffer(SDL_Renderer *renderer, Buffer &&buffer, Access access = Access::Static);
 #if defined(SDL_TTF_MAJOR_VERSION)
   static ErrorOr<Texture> FromText(SDL_Renderer *renderer, TextSpec text);
 #endif
@@ -38,6 +46,7 @@ public:
 
   void SetScaleMode(SDL_ScaleMode scale_mode) const { SDL_SetTextureScaleMode(m_texture, scale_mode); }
 
+  [[nodiscard]] ErrorOr<void> Copy(SDL_Renderer *renderer, Texture &target_texture);
   [[nodiscard]] ErrorOr<void> Render(SDL_Renderer *renderer) { return RenderAtPosition(renderer, {0, 0}); }
   [[nodiscard]] ErrorOr<void> RenderAtPosition(SDL_Renderer *renderer, std::array<int, 2> position) {
     return RenderAtPositionAndScale(renderer, position, 1.0f);

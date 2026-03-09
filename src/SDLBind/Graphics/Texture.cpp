@@ -40,9 +40,9 @@ ErrorOr<void> Texture::Update() {
   return {};
 }
 
-ErrorOr<Texture> Texture::FromBuffer(SDL_Renderer *renderer, ::BNES::SDL::Buffer &&buffer) {
-  SDL_Texture *texture =
-      SDL_CreateTexture(renderer, Pixel::FORMAT, SDL_TEXTUREACCESS_STATIC, buffer.Width(), buffer.Height());
+ErrorOr<Texture> Texture::FromBuffer(SDL_Renderer *renderer, ::BNES::SDL::Buffer &&buffer, Access access) {
+  SDL_Texture *texture = SDL_CreateTexture(renderer, Pixel::FORMAT, static_cast<SDL_TextureAccess>(access),
+                                           buffer.Width(), buffer.Height());
 
   if (!texture) {
     spdlog::error("Failed to create STATIC texture: {}", SDL_GetError());

@@ -134,6 +134,9 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
       TRY(ppu_debugger.BuildPPURegisterText(main_window).and_then([&](auto &&tex) {
         return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 2});
       }));
+      TRY(ppu_debugger.BuildPaletteTexture(main_window).and_then([&](auto &&tex) {
+        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 5, NES_SCREEN_H * 2});
+      }));
 
       main_window.Present();
       time_point = std::chrono::system_clock::now();

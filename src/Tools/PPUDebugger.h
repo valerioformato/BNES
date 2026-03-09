@@ -20,6 +20,7 @@ public:
 
   ErrorOr<void> Update();
 
+  ErrorOr<SDL::Texture> BuildPaletteTexture(const SDL::Window &main_window);
   ErrorOr<SDL::Texture> BuildChrRomTexture(const SDL::Window &main_window);
   ErrorOr<SDL::Texture> BuildPPURegisterText(const SDL::Window &main_window);
 

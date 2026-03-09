@@ -5,6 +5,7 @@
 #include "Tools/PPUDebugger.h"
 #include "SDLBind/Graphics/Buffer.h"
 #include "SDLBind/Graphics/Color.h"
+#include "SDLBind/Graphics/RenderTarget.h"
 #include "SDLBind/Graphics/Texture.h"
 #include "Tools/PPUPalette.h"
 #include "common/ranges_compat.h"
@@ -17,18 +18,62 @@
 
 namespace BNES::Tools {
 
-ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_window) {
-  using HW::PPU;
+using HW::PPU;
 
-  constexpr unsigned int padding = 4;
-  constexpr unsigned int TABLE_WIDTH = PPU::TILE_WIDTH * 16;
-  constexpr unsigned int BUFFER_WIDTH = TABLE_WIDTH * 2 + padding;
-  constexpr unsigned int BUFFER_HEIGHT = PPU::TILE_HEIGHT * 16;
+ErrorOr<SDL::Texture> PPUDebugger::BuildPaletteTexture(const SDL::Window &main_window) {
+  static constexpr unsigned int padding = 4;
+  static constexpr unsigned int PALETTE_BLOCK_WIDTH = 128;
+  static constexpr unsigned int COLOR_BLOCK_WIDTH = PALETTE_BLOCK_WIDTH / 4;
+
+  SDL::Texture target_texture = TRY(SDL::Buffer::FromSize(128, 128).and_then([&main_window](SDL::Buffer &&buffer) {
+    return SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer), SDL::Texture::Access::Target);
+  }));
+
+  auto at = SDL::ActiveRenderTarget(main_window.Renderer(), target_texture);
+
+  const auto palette_data = m_ppu->BackgroundPalette(0);
+  const auto palette_data_text =
+      std::format("{} {} {} {}", palette_data[0], palette_data[1], palette_data[2], palette_data[3]);
+
+  SDL::Texture palette_text_texture =
+      TRY(SDL::Texture::FromText(main_window.Renderer(), SDL::TextSpec{
+                                                             .content = palette_data_text,
+                                                             .color = SDL::Color{255, 255, 255, 255},
+                                                             .font = m_font,
+                                                         }));
+
+  TRY(palette_text_texture.RenderAtPosition(main_window.Renderer(), {padding, 0}));
+
+  auto buffer = TRY(SDL::Buffer::FromSize(128, 16));
+  rg::generate(buffer.Pixels(), [&, pixel_idx = 0]() mutable {
+    auto color_idx = (pixel_idx % PALETTE_BLOCK_WIDTH) / COLOR_BLOCK_WIDTH;
+    return color_idx != 0 ? HW::PPUPalette[palette_data[color_idx]] : HW::PPUPalette[m_ppu->BackgroundColor()];
+  });
+
+  SDL::Texture color_texture = TRY(SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer)));
+  color_texture.SetScaleMode(SDL_ScaleMode::SDL_SCALEMODE_NEAREST);
+  TRY(color_texture.Update());
+
+  TRY(color_texture.RenderAtPosition(main_window.Renderer(),
+                                     {padding, static_cast<int>(palette_text_texture.Buffer().Height() + padding)}));
+
+  TRY(target_texture.Update());
+
+  return target_texture;
+}
+
+ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_window) {
+  static constexpr unsigned int padding = 4;
+  static constexpr unsigned int TABLE_WIDTH = PPU::TILE_WIDTH * 16;
+  static constexpr unsigned int BUFFER_WIDTH = TABLE_WIDTH * 2 + padding;
+  static constexpr unsigned int BUFFER_HEIGHT = PPU::TILE_HEIGHT * 16;
 
   constexpr unsigned int SECOND_TABLE_STARTING_X = TABLE_WIDTH + padding;
 
   SDL::Texture texture =
-      TRY(SDL::Texture::FromBuffer(main_window.Renderer(), SDL::Buffer::FromSize(BUFFER_WIDTH, BUFFER_HEIGHT).value()));
+      TRY(SDL::Buffer::FromSize(BUFFER_WIDTH, BUFFER_HEIGHT).and_then([&main_window](SDL::Buffer &&buffer) {
+        return SDL::Texture::FromBuffer(main_window.Renderer(), std::move(buffer));
+      }));
   SDL::Buffer &chr_rom_buffer = texture.Buffer();
 
   static constexpr auto tile_memory_size = PPU::TILE_MEMORY_SIZE;
@@ -82,8 +127,6 @@ ErrorOr<SDL::Texture> PPUDebugger::BuildChrRomTexture(const SDL::Window &main_wi
 }
 
 ErrorOr<SDL::Texture> PPUDebugger::BuildPPURegisterText(const SDL::Window &main_window) {
-  using PPU = HW::PPU;
-
   using time_resolution = std::chrono::microseconds;
   float fps = 0.0f;
   auto numerator = std::chrono::duration_cast<time_resolution>(std::chrono::seconds(1)).count();

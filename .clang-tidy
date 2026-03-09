@@ -43,4 +43,5 @@ readability-*,
 -readability-function-cognitive-complexity,
 -readability-implicit-bool-conversion,
 -readability-container-contains,
--readability-identifier-naming'
+-readability-identifier-naming,
+-readability-math-missing-parentheses'
