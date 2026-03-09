@@ -6,6 +6,7 @@
 #include "SDLBind/Text/TextSpec.h"
 
 #include "common/ranges_compat.h"
+#include <algorithm>
 
 namespace BNES::Tools {
 
