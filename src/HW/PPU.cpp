@@ -196,13 +196,15 @@ void PPU::WriteOAMDATA(uint8_t value) {
   // OAMDMA, since that uses writes to $2004. For emulation purposes, it is probably best to completely ignore writes
   // during rendering.
 
-  if (true /* !RenderingInProgress() */) {
+  if (!RenderingInProgress()) {
     m_oam_data[m_oam_address] = value;
     m_oam_address = (m_oam_address + 1);
   } else {
     m_oam_address = (m_oam_address + 4);
   }
 }
+
+void PPU::OAMDMATransfer(std::span<const uint8_t, 256> oam_data) { rg::copy(oam_data, m_oam_data.begin()); }
 
 uint8_t PPU::ReadPPUDATA() {
   uint8_t value_to_return{m_read_buffer};

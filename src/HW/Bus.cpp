@@ -95,6 +95,17 @@ void Bus::Write(Addr address, uint8_t data) {
   } else if (address >= 0x2008 && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
     Addr mirror_down_addr = address & 0b0010000000000111;
     Write(mirror_down_addr, data);
+  } else if (address == 0x4014) { // OAMDMM transfer
+    Addr starting_addr = 0x100 * data;
+    auto oam_data =
+        std::span<uint8_t, 256>{std::next(m_ram.begin(), starting_addr), std::next(m_ram.begin(), starting_addr + 256)};
+    m_ppu->OAMDMATransfer(oam_data);
+
+    // NOTE: from NESDEV
+    //       Not counting the OAMDMA write tick, the above procedure takes 513 CPU cycles (+1 on odd CPU cycles): first
+    //       one (or two) idle cycles, and then 256 pairs of alternating read/write cycles. (For comparison, an unrolled
+    //       LDA/STA loop would usually take four times as long.)
+    Tick((m_cpu->Cycles() % 2) ? 514 : 513);
   } else if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
     TODO(fmt::format("PPU write for address 0x{:04X} not implemented yet", address));
   } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {

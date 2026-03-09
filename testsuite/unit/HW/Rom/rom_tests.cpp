@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <spdlog/spdlog.h>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 
@@ -18,8 +19,8 @@ using namespace BNES::HW;
 // PRG and CHR data is filled with zeros.
 static std::filesystem::path WriteSyntheticNes2Rom(uint8_t prg_banks, uint8_t chr_banks, uint8_t timing,
                                                    uint16_t mapper = 0, uint8_t submapper = 0) {
-  auto path = std::filesystem::temp_directory_path() /
-              fmt::format("bnes_test_{}_{}_{}.nes", prg_banks, chr_banks, timing);
+  auto path =
+      std::filesystem::temp_directory_path() / fmt::format("bnes_test_{}_{}_{}.nes", prg_banks, chr_banks, timing);
 
   // clang-format off
   // NES 2.0 header (16 bytes)

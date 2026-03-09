@@ -68,6 +68,7 @@ protected:
   void WritePPUSCROLL(uint8_t value);
   void WriteOAMADDR(uint8_t value);
   void WriteOAMDATA(uint8_t value);
+  void OAMDMATransfer(std::span<const uint8_t, 256> oam_data);
 
   [[nodiscard]] uint8_t ReadPPUDATA();
   [[nodiscard]] uint8_t ReadPPUSTATUS();
@@ -84,6 +85,7 @@ protected:
   [[nodiscard]] bool SpriteSize() const { return m_control_register & 0b00100000; };
   [[nodiscard]] bool PPUMasterSlaveSelect() const { return m_control_register & 0b01000000; };
   [[nodiscard]] bool VblankNMIEnabled() const { return m_control_register & 0b10000000; };
+  [[nodiscard]] bool RenderingInProgress() const { return m_current_scanline < 240 || m_current_scanline == 261; }
 
   // Helper getters for PPUSTATUS register
   [[nodiscard]] bool IsInVblank() const { return m_status_register & 0b10000000; };
