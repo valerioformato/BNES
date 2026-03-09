@@ -37,24 +37,25 @@ ErrorOr<SDL::Texture> PPUDebugger::BuildPaletteTexture(const SDL::Window &main_w
   int y_offset = 0;
 
   for (uint8_t palette_index = 0; palette_index < 4; ++palette_index) {
-    const auto palette_data = m_ppu->BackgroundPalette(0);
+    const auto palette_data = m_ppu->BackgroundPalette(palette_index);
     const auto palette_data_text = std::format("0x{:02X} 0x{:02X} 0x{:02X} 0x{:02X}", palette_data[0], palette_data[1],
                                                palette_data[2], palette_data[3]);
 
     SDL::Texture palette_text_texture =
         TRY(SDL::Texture::FromText(main_window.Renderer(), SDL::TextSpec{
                                                                .content = palette_data_text,
-                                                               .color = SDL::Color{255, 255, 255, 255},
                                                                .font = m_font,
+                                                               .color = SDL::Color{255, 255, 255, 255},
                                                            }));
 
     TRY(palette_text_texture.RenderAtPosition(main_window.Renderer(), {padding, y_offset}));
 
     y_offset += static_cast<int>(palette_text_texture.Buffer().Height()) + padding;
 
-    auto buffer = TRY(SDL::Buffer::FromSize(128, 16));
-    rg::generate(buffer.Pixels(), [&, pixel_idx = 0]() mutable {
-      auto color_idx = (pixel_idx % PALETTE_BLOCK_WIDTH) / COLOR_BLOCK_WIDTH;
+    auto buffer = TRY(SDL::Buffer::FromSize(PALETTE_BLOCK_WIDTH, 16));
+    unsigned int pixel_idx = 0;
+    rg::generate(buffer.Pixels(), [&]() mutable {
+      auto color_idx = (pixel_idx++ % PALETTE_BLOCK_WIDTH) / COLOR_BLOCK_WIDTH;
       return color_idx != 0 ? HW::PPUPalette[palette_data[color_idx]] : HW::PPUPalette[m_ppu->BackgroundColor()];
     });
 
