@@ -123,6 +123,8 @@ ErrorOr<void> Screen::FillSprites(const PPU &ppu) {
 
   const auto bank_idx = ppu.SpritePatternTableAddress();
 
+  // TODO: we should check if there is a specific ordering for sprites to be rendered. The PPU doc is pretty long and we
+  //       might be doing something different with this simple approach.
   for (const auto &sprite_data : sprite_ppu_data) {
     // FIXME: in case of 8x16 tiles the bank_idx is encoded in sprite_data.tile_index
     const auto sprite_raw = chr_tiles[256 * bank_idx + sprite_data.tile_index];
