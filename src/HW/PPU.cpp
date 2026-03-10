@@ -6,6 +6,7 @@
 #include "common/ranges_compat.h"
 
 #include <bitset>
+#include <cstring>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace BNES::HW {
@@ -25,7 +26,10 @@ std::shared_ptr<spdlog::logger> PPU::s_logger = []() {
 
 std::span<const uint8_t> PPU::ActiveNametable() const {
   uint8_t nametable_index = BaseNametableAddress();
+  return Nametable(nametable_index);
+}
 
+std::span<const uint8_t> PPU::Nametable(uint8_t nametable_index) const {
   // Compute the VRAM index for the selected nametable and return a span into m_vram.
   Addr start_addr = VRAM_START_ADDRESS + static_cast<Addr>(nametable_index) * 0x400;
   Addr vram_index = MirrorVRAMAddress(start_addr);
@@ -34,6 +38,16 @@ std::span<const uint8_t> PPU::ActiveNametable() const {
 
 std::span<const uint8_t, 4> PPU::BackgroundPalette(uint8_t index) const {
   return std::span<const uint8_t, 4>{std::next(m_palette_table.cbegin(), 4 * index), size_t{4}};
+}
+
+std::span<const uint8_t, 4> PPU::SpritePalette(uint8_t index) const {
+  return std::span<const uint8_t, 4>{std::next(m_palette_table.cbegin(), 0x10 + 4 * index), size_t{4}};
+}
+
+std::array<PPU::SpriteData, 64> PPU::SpriteOAMData() const {
+  std::array<SpriteData, 64> result;
+  std::memcpy(result.data(), m_oam_data.data(), m_oam_data.size());
+  return result;
 }
 
 PPU::TilePixelValues PPU::DecodeTile(std::span<const uint8_t> tile_chr_data) {

@@ -22,6 +22,8 @@ public:
   ErrorOr<void> Init(const SDL::Window &window);
 
   ErrorOr<void> FillFromPPU(const PPU &ppu);
+  ErrorOr<void> FillBackground(const PPU &ppu);
+  ErrorOr<void> FillSprites(const PPU &ppu);
 
   ErrorOr<void> DrawScreen(SDL::Window &window, float scale_factor = 1);
 

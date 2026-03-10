@@ -37,6 +37,17 @@ public:
   using Addr = Bus::Addr;
   enum class Register { V = 0, T, X, W };
 
+  struct SpriteData {
+    uint8_t pos_y;
+    uint8_t tile_index;
+    uint8_t palette_idx : 2;
+    uint8_t : 3; // unused
+    uint8_t priority : 1;
+    uint8_t flip_horizontal : 1;
+    uint8_t flip_vertical : 1;
+    uint8_t pos_x;
+  };
+
   PPU() = delete;
   explicit PPU(Bus &bus)
       : m_bus{&bus}, m_mirroring{m_bus->Rom().mirroring}, m_character_rom{m_bus->Rom().character_rom} {
@@ -45,13 +56,23 @@ public:
 
   [[nodiscard]] EnumArray<uint16_t, Register> InternalRegisters() const { return m_internal_registers; };
 
+  [[nodiscard]] bool IsGrayScale() const { return m_mask_register & 0b00000001; }
+  [[nodiscard]] bool ShowBackgroundLeftBorder() const { return m_mask_register & 0b00000010; }
+  [[nodiscard]] bool ShowSpritesLeftBorder() const { return m_mask_register & 0b00000100; }
+  [[nodiscard]] bool RenderBackground() const { return m_mask_register & 0b00001000; }
+  [[nodiscard]] bool RenderSprites() const { return m_mask_register & 0b00010000; }
+  [[nodiscard]] bool SpritePatternTableAddress() const { return m_control_register & 0b00001000; };
+  [[nodiscard]] uint8_t BaseNametableAddress() const { return m_control_register & 0b00000011; };
+
   [[nodiscard]] uint16_t CurrentScanline() const { return m_current_scanline; }
   [[nodiscard]] size_t Cycles() const { return m_cycles; }
   [[nodiscard]] uint8_t BankIndex() const { return (m_control_register & 0b00010000) != 0; }
 
   [[nodiscard]] std::span<const uint8_t> CharacterRom() const { return m_character_rom; }
   [[nodiscard]] std::span<const uint8_t> ActiveNametable() const;
+  [[nodiscard]] std::span<const uint8_t> Nametable(uint8_t index) const;
   [[nodiscard]] uint8_t BackgroundColor() const { return m_palette_table[0]; };
+  [[nodiscard]] std::array<SpriteData, 64> SpriteOAMData() const;
   [[nodiscard]] std::span<const uint8_t, 4> BackgroundPalette(uint8_t index) const;
   [[nodiscard]] std::span<const uint8_t, 4> SpritePalette(uint8_t index) const;
 
@@ -78,9 +99,7 @@ protected:
   [[nodiscard]] uint16_t AddressRegister() const { return m_address_register; };
 
   // Helper getters for PPUCTRL settings
-  [[nodiscard]] uint8_t BaseNametableAddress() const { return m_control_register & 0b00000011; };
   [[nodiscard]] bool VRAMAddressIncrement() const { return m_control_register & 0b00000100; };
-  [[nodiscard]] bool SpritePatternTableAddress() const { return m_control_register & 0b00001000; };
   [[nodiscard]] bool BackgroundPatternTableAddress() const { return m_control_register & 0b00010000; };
   [[nodiscard]] bool SpriteSize() const { return m_control_register & 0b00100000; };
   [[nodiscard]] bool PPUMasterSlaveSelect() const { return m_control_register & 0b01000000; };
