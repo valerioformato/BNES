@@ -131,4 +131,15 @@ ErrorOr<void> Bus::LoadIntoProgramRom(std::span<const uint8_t> program) {
   return {};
 }
 
+ErrorOr<void> Bus::LoadIntoChrRom(std::span<const uint8_t> chr_data) {
+  if (chr_data.size() > (PPU_START_REGISTER - 1 + 1)) {
+    return make_error(std::make_error_code(std::errc::not_enough_memory), "CHR data too large to fit in memory");
+  }
+
+  m_rom.character_rom.resize(chr_data.size());
+  std::ranges::copy(chr_data, m_rom.character_rom.begin());
+
+  return {};
+}
+
 } // namespace BNES::HW

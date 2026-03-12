@@ -51,6 +51,7 @@ public:
 
   // Used mainly in unit tests...
   ErrorOr<void> LoadIntoProgramRom(std::span<const uint8_t> program);
+  ErrorOr<void> LoadIntoChrRom(std::span<const uint8_t> chr_data);
 
   [[nodiscard]] const ::BNES::HW::Rom &Rom() const { return m_rom; };
 
