@@ -1,5 +1,6 @@
 #include "HW/Bus.h"
 #include "HW/CPU.h"
+#include "HW/Constants.h"
 #include "HW/PPU.h"
 #include "HW/Screen.h"
 #include "SDLBind/Graphics/Buffer.h"
@@ -41,11 +42,10 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
 
   BNES::HW::PPU ppu{bus};
 
-  constexpr auto NES_SCREEN_W = BNES::HW::Screen::NES_SCREEN_W;
-  constexpr auto NES_SCREEN_H = BNES::HW::Screen::NES_SCREEN_H;
+  constexpr unsigned int MAIN_WINDOW_W = BNES::HW::NES_SCREEN_W * 6 + 20;
+  constexpr unsigned int MAIN_WINDOW_H = BNES::HW::NES_SCREEN_H * 4;
 
-  constexpr unsigned int MAIN_WINDOW_W = NES_SCREEN_W * 6 + 20;
-  constexpr unsigned int MAIN_WINDOW_H = NES_SCREEN_H * 4;
+  constexpr double BNES_TARGET_FPS = 60.0;
 
   // Create the main screen window
   BNES::SDL::Window main_window = TRY(BNES::SDL::Window::FromSpec({
@@ -113,33 +113,40 @@ BNES::ErrorOr<int> nes_main(Options options) { // Final exit code
       break;
     }
 
-    cpu.RunInstruction(cpu.DecodeNextInstruction());
+    constexpr auto frame_cycles = BNES::HW::NES_CPU_FREQ_HZ / BNES_TARGET_FPS;
+    const auto target_cpu_cycles = options.stepping ? cpu.Cycles() + 1 : cpu.Cycles() + frame_cycles;
 
     auto time_since_last_frame_update = std::chrono::system_clock::now() - time_point;
 
     if (time_since_last_frame_update > std::chrono::microseconds(16667)) {
+      time_point = std::chrono::system_clock::now();
+
       main_window.Clear();
 
       TRY(screen.DrawScreen(main_window, 4.0f));
 
       // Draw CPU debug info
       TRY(cpu_debugger.BuildTexture(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 4, 0});
+        return tex.RenderAtPosition(main_window.Renderer(), {BNES::HW::NES_SCREEN_W * 4, 0});
       }));
 
       // Draw PPU debug info
       TRY(ppu_debugger.BuildChrRomTexture(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPositionAndScale(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 3}, 2.0f);
+        return tex.RenderAtPositionAndScale(main_window.Renderer(),
+                                            {BNES::HW::NES_SCREEN_W * 4, BNES::HW::NES_SCREEN_H * 3}, 2.0f);
       }));
       TRY(ppu_debugger.BuildPPURegisterText(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 4, NES_SCREEN_H * 2});
+        return tex.RenderAtPosition(main_window.Renderer(), {BNES::HW::NES_SCREEN_W * 4, BNES::HW::NES_SCREEN_H * 2});
       }));
       TRY(ppu_debugger.BuildPaletteTexture(main_window).and_then([&](auto &&tex) {
-        return tex.RenderAtPosition(main_window.Renderer(), {NES_SCREEN_W * 5, NES_SCREEN_H * 2});
+        return tex.RenderAtPosition(main_window.Renderer(), {BNES::HW::NES_SCREEN_W * 5, BNES::HW::NES_SCREEN_H * 2});
       }));
 
       main_window.Present();
-      time_point = std::chrono::system_clock::now();
+
+      while (cpu.Cycles() < target_cpu_cycles) {
+        cpu.RunInstruction(cpu.DecodeNextInstruction());
+      }
     }
   }
 

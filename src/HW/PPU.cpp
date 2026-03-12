@@ -3,8 +3,10 @@
 //
 
 #include "HW/PPU.h"
+#include "HW/Constants.h"
 #include "common/ranges_compat.h"
 
+#include <bit>
 #include <bitset>
 #include <cstring>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -66,8 +68,91 @@ PPU::TilePixelValues PPU::DecodeTile(std::span<const uint8_t> tile_chr_data) {
   return tile_pixels_v;
 }
 
+void PPU::UpdateSprite0Hit(unsigned int cycles_to_advance) {
+  // NOTE: from NESDev:
+  //       While the PPU is drawing the picture, when an opaque pixel of sprite 0 overlaps an opaque pixel of the
+  //       background, this is a sprite 0 hit. The PPU detects this condition and sets bit 6 of PPUSTATUS ($2002) to 1
+  //       starting at this pixel, letting the CPU know how far along the PPU is in drawing the picture.
+
+  // check if sprite0 hit flag is already set
+  if (m_status_register & 0b01000000) {
+    return;
+  }
+
+  // sprite 0 hit cannot occur if background or sprite rendering is disabled
+  if (!RenderBackground() || !RenderSprites()) {
+    return;
+  }
+
+  unsigned int current_x = m_cycles;
+  unsigned int current_y = m_current_scanline;
+  unsigned int target_x = m_cycles + cycles_to_advance;
+  unsigned int target_y = m_current_scanline;
+  if (target_x > 341) {
+    target_x -= 341;
+    target_y += 1;
+  }
+
+  // Get position for sprite 0
+  SpriteData sprite0;
+  memcpy(&sprite0, m_oam_data.data(), sizeof(sprite0));
+
+  unsigned int sprite0_pos_x = sprite0.pos_x;
+  unsigned int sprite0_pos_y = sprite0.pos_y;
+
+  auto is_position_on_sprite = [](unsigned int x, unsigned int y, const SpriteData &sprite) {
+    // pos_y in OAM is stored as actual_y - 1 (delayed by one scanline)
+    unsigned int sprite_top = sprite.pos_y + 1;
+    return x >= sprite.pos_x && x < sprite.pos_x + TILE_WIDTH && y >= sprite_top && y < sprite_top + TILE_HEIGHT;
+  };
+
+  // are we intersecting sprite0?
+  if (is_position_on_sprite(current_x, current_y, sprite0) || is_position_on_sprite(target_x, target_y, sprite0)) {
+    for (unsigned int i_pix = 0; i_pix < cycles_to_advance; ++i_pix) {
+      auto x = current_x + i_pix;
+      auto y = current_y;
+      if (x > 341) {
+        x -= 341;
+        y += 1;
+      }
+
+      if (!is_position_on_sprite(x, y, sprite0)) {
+        continue;
+      }
+
+      // sprite 0 hit never occurs at x=255, or at x=0..7 when left-side clipping is active
+      if (x == 255 || (x <= 7 && (!ShowBackgroundLeftBorder() || !ShowSpritesLeftBorder()))) {
+        continue;
+      }
+
+      auto chr_tiles = CharacterRom() | rv::chunk(TILE_MEMORY_SIZE);
+
+      const auto nametable = ActiveNametable().subspan(0, 960);
+      unsigned int bkg_tile_idx = (x / TILE_WIDTH) + (y / TILE_HEIGHT) * 32;
+      const auto bkg_tile = chr_tiles[256 * BankIndex() + nametable[bkg_tile_idx]];
+      TilePixelValues bkg_tile_data = DecodeTile(bkg_tile);
+
+      const auto sprite_raw = chr_tiles[256 * SpritePatternTableAddress() + sprite0.tile_index];
+      TilePixelValues sprite_data = DecodeTile(sprite_raw);
+
+      const auto bkg_pos_x = (bkg_tile_idx * TILE_WIDTH) % NES_SCREEN_W;
+      const auto bkg_pos_y = (bkg_tile_idx / (NES_SCREEN_W / TILE_WIDTH)) * TILE_HEIGHT;
+
+      auto sprite_pix_idx = x - sprite0.pos_x + (y - (sprite0.pos_y + 1)) * TILE_WIDTH;
+      auto bkg_tile_pix_idx = x - bkg_pos_x + (y - bkg_pos_y) * TILE_WIDTH;
+
+      // finally, let's check if both pixels are opaque and set the sprite0 hit flag
+      if (sprite_data[sprite_pix_idx] && bkg_tile_data[bkg_tile_pix_idx]) {
+        m_status_register |= 0b01000000;
+      }
+    }
+  }
+}
+
 void PPU::Tick(unsigned int cycles) {
   static std::chrono::time_point<std::chrono::steady_clock> last_time = std::chrono::steady_clock::now();
+
+  UpdateSprite0Hit(cycles);
 
   m_cycles += cycles;
 
@@ -76,18 +161,20 @@ void PPU::Tick(unsigned int cycles) {
     m_current_scanline += 1;
 
     if (m_current_scanline == 241) {
-      s_logger->trace("VBLANK triggered");
       m_status_register |= 0b10000000;
       if (VblankNMIEnabled()) {
         const auto now = std::chrono::steady_clock::now();
         m_last_frame_time = now - last_time;
         last_time = now;
 
-        s_logger->trace("VBLANK NMI triggered (frame time: {} ms)",
-                        std::chrono::duration_cast<std::chrono::milliseconds>(m_last_frame_time).count());
         m_bus->PropagateNMI();
-        m_cycles += 2 * 3; // NMI takes 2 CPU cycles to process
+        m_cycles += 7 * 3; // NMI takes 2 CPU cycles to process
       }
+    }
+
+    if (m_current_scanline == 261) {
+      // on the pre-render scanline we reset the sprite-0 hit flag
+      m_status_register &= 0b10111111;
     }
 
     if (m_current_scanline >= 262) {
@@ -247,7 +334,11 @@ uint8_t PPU::ReadPPUDATA() {
 
 uint8_t PPU::ReadPPUSTATUS() {
   m_internal_registers[Register::W] = 0;
-  return m_status_register;
+
+  auto value_to_return = m_status_register;
+  m_status_register &= 0b01111111;
+
+  return value_to_return;
 }
 
 uint8_t PPU::ReadOAMDATA() { return m_oam_data[m_oam_address]; }

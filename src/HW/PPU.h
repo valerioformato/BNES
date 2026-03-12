@@ -109,6 +109,8 @@ protected:
   // Helper getters for PPUSTATUS register
   [[nodiscard]] bool IsInVblank() const { return m_status_register & 0b10000000; };
 
+  void UpdateSprite0Hit(unsigned int cycles_to_advance);
+
   // Protected members for testing
   std::array<uint8_t, 32> m_palette_table{0};
   std::array<uint8_t, 0x800> m_vram{0};

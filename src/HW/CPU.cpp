@@ -496,6 +496,7 @@ void CPU::RunInstruction(Instruction &&instr) {
           m_program_counter += instruction.size;
         }
 
+        m_cycles += instruction.cycles;
         m_bus->Tick(instruction.cycles);
       },
       instr);
