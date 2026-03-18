@@ -49,10 +49,12 @@ public:
   };
 
   PPU() = delete;
-  explicit PPU(Bus &bus)
-      : m_bus{&bus}, m_mirroring{m_bus->Rom().mirroring}, m_character_rom{m_bus->Rom().character_rom} {
-    m_bus->AttachPPU(this);
-  };
+  explicit PPU(Bus &bus) : m_bus{&bus} { m_bus->AttachPPU(this); };
+
+  void Init() {
+    m_mirroring = m_bus->Rom().mirroring;
+    m_character_rom = m_bus->Rom().character_rom;
+  }
 
   [[nodiscard]] EnumArray<uint16_t, Register> InternalRegisters() const { return m_internal_registers; };
 

@@ -228,6 +228,7 @@ BNES::ErrorOr<int> nestest_main(Options options) {
   cpu.Init();
 
   BNES::HW::PPU ppu{bus};
+  ppu.Init();
 
   // Force the start in automated mode.
   // The reset vector points to a starting address that we can use once we implement a working PPU.

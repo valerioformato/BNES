@@ -57,6 +57,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     SetOpaqueTile(chr, 0); // tile 0: fully opaque
     REQUIRE(bus.LoadIntoChrRom(chr).has_value());
     PPUMock ppu{bus};
+    ppu.Init();
     ppu.WritePPUMASK(0b00011000); // enable background + sprite rendering
 
     // Sprite 0 at screen position (40, 40): OAM stores y - 1 = 39
@@ -104,6 +105,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     // tile 1 stays all zeros → transparent (used for sprite)
     REQUIRE(bus.LoadIntoChrRom(chr).has_value());
     PPUMock ppu{bus};
+    ppu.Init();
     ppu.WritePPUMASK(0b00011000);
 
     auto oam = MakeOAM(40, 40, 1); // sprite uses tile 1 (transparent)
@@ -128,6 +130,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     // tile 1 stays all zeros → transparent (used for background)
     REQUIRE(bus.LoadIntoChrRom(chr).has_value());
     PPUMock ppu{bus};
+    ppu.Init();
     ppu.WritePPUMASK(0b00011000);
 
     auto oam = MakeOAM(40, 40, 0); // sprite uses tile 0 (opaque)
@@ -154,6 +157,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     SetSinglePixelOpaqueTile(chr, 0, 7, 0);
     REQUIRE(bus.LoadIntoChrRom(chr).has_value());
     PPUMock ppu{bus};
+    ppu.Init();
     ppu.WritePPUMASK(0b00011000);
 
     // Sprite at x=248 → pixel 7 maps to screen x=255
@@ -188,6 +192,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     WHEN("left-side clipping is active (ShowBackgroundLeftBorder and ShowSpritesLeftBorder are both 0)") {
       // PPUMASK 0b00011000: bits 1 (ShowBackgroundLeftBorder) and 2 (ShowSpritesLeftBorder) = 0
       PPUMock ppu{bus};
+      ppu.Init();
       ppu.WritePPUMASK(0b00011000);
       ppu.OAMDMATransfer(std::span<const uint8_t, 256>{oam});
       ppu.Tick(40 * CYCLES_PER_SCANLINE);
@@ -201,6 +206,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     WHEN("left-side clipping is inactive (ShowBackgroundLeftBorder and ShowSpritesLeftBorder are both 1)") {
       // PPUMASK 0b00011110: bits 1 and 2 set → no clipping on left border
       PPUMock ppu{bus};
+      ppu.Init();
       ppu.WritePPUMASK(0b00011110);
       ppu.OAMDMATransfer(std::span<const uint8_t, 256>{oam});
       ppu.Tick(40 * CYCLES_PER_SCANLINE);
@@ -220,6 +226,7 @@ SCENARIO("Sprite 0 hit flag detection", "[PPU][Sprite0]") {
     SetOpaqueTile(chr, 0);
     REQUIRE(bus.LoadIntoChrRom(chr).has_value());
     PPUMock ppu{bus};
+    ppu.Init();
     ppu.WritePPUMASK(0b00011000);
 
     auto oam = MakeOAM(40, 40, 0);
