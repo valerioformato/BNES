@@ -39,6 +39,7 @@ private:
   SDL::Window m_main_window;
 
   bool m_can_step{false};
+  bool m_should_quit{false};
 
   std::shared_ptr<spdlog::logger> m_logger;
   ErrorOr<Event> FromSDL(SDL::Event event);
