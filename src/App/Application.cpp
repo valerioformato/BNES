@@ -1,8 +1,100 @@
 #include "App/Application.h"
 
 #include "HW/Constants.h"
+#include "SDLBind/OS/KeyboardEvents.h"
+#include "common/Types/overloaded.h"
+#include <functional>
 
 namespace BNES {
+ErrorOr<Event> App::FromSDL(SDL::Event event) {
+  std::visit(Utils::overloaded{
+                 [](SDL::KeyDownEvent evt) -> Event {
+                   switch (evt.key) {
+                   case SDL::KeyBoardKey::S:
+                     return StepEvent{};
+                     // if (!m_options.stepping) {
+                     //   m_options.stepping = true;
+                     //   m_logger->info("Single stepping enabled. Press 's' to step through instructions.");
+                     // } else {
+                     //   m_can_step = true;
+                     // }
+                     break;
+                   case SDL::KeyBoardKey::C:
+                     return ContinueEvent{};
+                     // if (m_options.stepping) {
+                     //   m_options.stepping = false;
+                     //   m_logger->info("Single stepping disabled. Execution continues.");
+                     // }
+                     break;
+                   case SDL::KeyBoardKey::Q:
+                   case SDL::KeyBoardKey::Escape:
+                     return QuitEvent{};
+                     // m_logger->info("Quit requested");
+                     // Quit();
+                     break;
+                   default:
+                     return std::monostate{};
+                     break;
+                   }
+                 },
+                 [this](auto evt) -> Event {
+                   m_logger->trace("Unhandled event");
+                   return std::monostate{};
+                 },
+             },
+             event);
+  return {};
+}
+
+// [this]([[maybe_unused]] StepEvent evt) -> Event {
+//   Step();
+//   // if (!m_options.stepping) {
+//   //   m_options.stepping = true;
+//   //   m_logger->info("Single stepping enabled. Press 's' to step through instructions.");
+//   // } else {
+//   //   m_can_step = true;
+//   // }
+// },
+// [this]([[maybe_unused]] ContinueEvent evt) -> Event {
+//   Continue();
+//   // if (m_options.stepping) {
+//   //   m_options.stepping = false;
+//   //   m_logger->info("Single stepping disabled. Execution continues.");
+//   // }
+// },
+// [this]([[maybe_unused]] QuitEvent evt) -> Event {
+//   // m_logger->info("Quit requested");
+//   // Quit();
+// },
+
+void App::operator()([[maybe_unused]] StepEvent event) {
+  if (!m_options.stepping) {
+    m_options.stepping = true;
+    m_logger->info("Single stepping enabled. Press 's' to step through instructions.");
+  } else {
+    m_can_step = true;
+  }
+}
+
+void App::operator()([[maybe_unused]] ContinueEvent event) {
+  if (m_options.stepping) {
+    m_options.stepping = false;
+    m_logger->info("Single stepping disabled. Execution continues.");
+  }
+}
+
+void App::operator()([[maybe_unused]] QuitEvent event) {
+  m_logger->info("Quit requested");
+  // TODO: implement quit logic
+}
+
+void App::operator()([[maybe_unused]] std::monostate) { m_logger->trace("Unhandled event"); }
+
+ErrorOr<void> App::HandleEvent(Event event) {
+  std::visit(*this, event);
+  return {};
+}
+
 ErrorOr<void> App::Run() {
   constexpr unsigned int MAIN_WINDOW_W = BNES::HW::NES_SCREEN_W * 6 + 20;
   constexpr unsigned int MAIN_WINDOW_H = BNES::HW::NES_SCREEN_H * 4;
@@ -27,41 +119,16 @@ ErrorOr<void> App::Run() {
   auto time_point = std::chrono::system_clock::now();
 
   while (true) {
-    bool proceed = false;
-
+    m_can_step = false;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-      switch (event.type) {
-      case SDL_EVENT_KEY_DOWN:
-        switch (event.key.key) {
-        case SDLK_S:
-          if (!m_options.stepping) {
-            m_options.stepping = true;
-            spdlog::info("Single stepping enabled. Press 's' to step through instructions.");
-          } else {
-            proceed = true;
-          }
-          break;
-        case SDLK_C:
-          if (m_options.stepping) {
-            m_options.stepping = false;
-            spdlog::info("Single stepping disabled. Execution continues.");
-          }
-          break;
-        case SDLK_Q:
-        case SDLK_ESCAPE:
-          spdlog::info("Quit requested");
-          return {};
-        }
-        break;
-      case SDL_EVENT_QUIT:
-        spdlog::info("Quit requested");
-        return {};
-      }
+      TRY(BNES::SDL::FromSDL(event)
+              .and_then([this](SDL::Event evt) { return FromSDL(evt); })
+              .and_then([this](Event evt) { return HandleEvent(evt); }));
     }
 
     // If stepping is enabled and we haven't received a proceed signal, wait for events
-    if (m_options.stepping && !proceed) {
+    if (m_options.stepping && !m_can_step) {
       SDL_Delay(10); // Small delay to avoid busy-waiting
       continue;
     }

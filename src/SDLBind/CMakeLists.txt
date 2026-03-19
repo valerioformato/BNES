@@ -1,5 +1,5 @@
 set(SDLBind_SRC Graphics/Window.cpp Graphics/Texture.cpp Graphics/Surface.cpp Graphics/Buffer.cpp Graphics/Buffer.h
-                Text/Font.cpp
+  OS/Event.cpp Text/Font.cpp
 )
 
 add_library(SDLBind STATIC ${SDLBind_SRC})
