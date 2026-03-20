@@ -8,13 +8,9 @@ namespace BNES::SDL {
 ErrorOr<Event> FromSDL(SDL_Event sdl_event) {
   switch (sdl_event.type) {
   case SDL_EVENT_KEY_DOWN:
-    if (auto maybe_key = magic_enum::enum_cast<KeyBoardKey>(sdl_event.key.key); maybe_key)
-      return KeyDownEvent{.key = maybe_key.value()};
-    return make_error(std::errc::argument_out_of_domain, "Key not supported yet");
+    return KeyDownEvent{.key = static_cast<KeyBoardKey>(sdl_event.key.key)};
   case SDL_EVENT_KEY_UP:
-    if (auto maybe_key = magic_enum::enum_cast<KeyBoardKey>(sdl_event.key.key); maybe_key)
-      return KeyUpEvent{.key = maybe_key.value()};
-    return make_error(std::errc::argument_out_of_domain, "Key not supported yet");
+    return KeyUpEvent{.key = static_cast<KeyBoardKey>(sdl_event.key.key)};
   }
 
   spdlog::trace("SDL event not implemented yet: 0x{:X}", sdl_event.type);

@@ -2,7 +2,7 @@
 #define BNES_KEYBOARDEVENTS_H
 
 #include <SDL3/SDL_keycode.h>
-#include <new>
+#include <magic_enum.hpp>
 
 namespace BNES::SDL {
 
@@ -56,6 +56,5 @@ struct KeyDownEvent {
 struct KeyUpEvent {
   KeyBoardKey key;
 };
-
 } // namespace BNES::SDL
 #endif
