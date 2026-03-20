@@ -8,7 +8,7 @@
 namespace BNES {
 ErrorOr<Event> App::FromSDL(SDL::Event event) {
   return std::visit(Utils::overloaded{
-                        [](SDL::KeyDownEvent evt) -> Event {
+                        [this](SDL::KeyDownEvent evt) -> Event {
                           switch (evt.key) {
                           case SDL::KeyBoardKey::S:
                             return StepEvent{};
@@ -18,8 +18,20 @@ ErrorOr<Event> App::FromSDL(SDL::Event event) {
                           case SDL::KeyBoardKey::Escape:
                             return QuitEvent{};
                           default:
+                            // Check if this is a joypad input
+                            if (IsKeyBind(evt.key)) {
+                              auto [joy_no, button] = ToJoypadButton(evt.key);
+                              return JoypadEvent{.status = true, .joy_no = joy_no, .button = button};
+                            }
                             return std::monostate{};
                           }
+                        },
+                        [this](SDL::KeyUpEvent evt) -> Event {
+                          if (IsKeyBind(evt.key)) {
+                            auto [joy_no, button] = ToJoypadButton(evt.key);
+                            return JoypadEvent{.status = false, .joy_no = joy_no, .button = button};
+                          }
+                          return std::monostate{};
                         },
                         [this](auto evt) -> Event {
                           m_logger->trace("Unhandled event");
@@ -48,6 +60,13 @@ void App::operator()([[maybe_unused]] ContinueEvent event) {
 void App::operator()([[maybe_unused]] QuitEvent event) {
   m_logger->info("Quit requested");
   m_should_quit = true;
+}
+
+void App::operator()(JoypadEvent event) {
+  m_logger->trace("Joypad event: status: {} joy_no: {}, button: {}", event.status, event.joy_no,
+                  magic_enum::enum_name(event.button));
+  HW::Joypad &joypad = event.joy_no == 1 ? m_joypad1 : m_joypad2;
+  joypad.SetButtonStatus(event.button, event.status);
 }
 
 void App::operator()([[maybe_unused]] std::monostate) { m_logger->trace("Unhandled event"); }
@@ -143,4 +162,19 @@ ErrorOr<void> App::Run() {
 
   return {};
 }
+
+App::KeybindsMap App::DefaultKeybinds = {
+    {SDL::KeyBoardKey::ArrowDown, {1, HW::Joypad::Button::DOWN}},
+    {SDL::KeyBoardKey::ArrowUp, {1, HW::Joypad::Button::UP}},
+    {SDL::KeyBoardKey::ArrowLeft, {1, HW::Joypad::Button::LEFT}},
+    {SDL::KeyBoardKey::ArrowRight, {1, HW::Joypad::Button::RIGHT}},
+    {SDL::KeyBoardKey::Space, {1, HW::Joypad::Button::SELECT}},
+    {SDL::KeyBoardKey::Return, {1, HW::Joypad::Button::START}},
+    {SDL::KeyBoardKey::Z, {1, HW::Joypad::Button::BUTTON_A}},
+    {SDL::KeyBoardKey::X, {1, HW::Joypad::Button::BUTTON_B}},
+};
+
+bool App::IsKeyBind(SDL::KeyBoardKey key) { return m_keybinds.contains(key); }
+std::pair<unsigned int, HW::Joypad::Button> App::ToJoypadButton(SDL::KeyBoardKey key) { return m_keybinds[key]; }
+
 } // namespace BNES

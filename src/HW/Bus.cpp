@@ -3,18 +3,30 @@
 //
 
 #include "HW/Bus.h"
+
 #include "HW/CPU.h"
 #include "HW/PPU.h"
 #include "HW/Screen.h"
+#include "Joypad.h"
 #include "common/Utils.h"
 
 #include <spdlog/spdlog.h>
 
 namespace BNES::HW {
 
-void Bus::AttachCPU(CPU *cpu) { m_cpu = cpu; }
-void Bus::AttachPPU(PPU *ppu) { m_ppu = ppu; }
-void Bus::AttachScreen(Screen *screen) { m_screen = screen; }
+void Bus::Attach(CPU *cpu) { m_cpu = cpu; }
+void Bus::Attach(PPU *ppu) { m_ppu = ppu; }
+void Bus::Attach(Joypad *joypad, unsigned int joy_no) {
+  switch (joy_no) {
+  case 1:
+    m_joypad1 = joypad;
+    break;
+  case 2:
+    m_joypad2 = joypad;
+    break;
+  }
+}
+void Bus::Attach(Screen *screen) { m_screen = screen; }
 
 void Bus::PropagateNMI() {
   m_cpu->ProcessNMI();
@@ -59,6 +71,14 @@ uint8_t Bus::Read(Addr address) {
       rom_address %= 0x4000;
     }
     return m_rom.program_rom[rom_address];
+  }
+
+  if (address == JOYPAD1_ADDRESS) {
+    return m_joypad1->Read();
+  }
+
+  if (address == JOYPAD1_ADDRESS) {
+    return m_joypad2->Read();
   }
 
   if (address >= PPU_START_REGISTER && address <= MAX_ADDRESSABLE_PPU_ADDRESS) {
@@ -111,7 +131,13 @@ void Bus::Write(Addr address, uint8_t data) {
   } else if (address >= ROM_START_REGISTER && address <= MAX_ADDRESSABLE_ROM_ADDRESS) {
     spdlog::error("CANNOT WRITE TO ROM MEMORY!!!");
     throw std::runtime_error("Can't write to ROM memory");
-  } else {
+  } else if (address == JOYPAD1_ADDRESS) {
+    m_joypad1->Write(data);
+  } else if (address == JOYPAD1_ADDRESS) {
+    m_joypad2->Write(data);
+  }
+
+  else {
     spdlog::error("Bus write request for address 0x{:04X}: Address out of range", address);
   }
 }

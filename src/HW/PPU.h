@@ -49,7 +49,7 @@ public:
   };
 
   PPU() = delete;
-  explicit PPU(Bus &bus) : m_bus{&bus} { m_bus->AttachPPU(this); };
+  explicit PPU(Bus &bus) : m_bus{&bus} { m_bus->Attach(this); };
 
   void Init() {
     m_mirroring = m_bus->Rom().mirroring;

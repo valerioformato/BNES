@@ -18,6 +18,7 @@ namespace BNES::HW {
 // Forward declarations - Bus only needs pointers, not complete definitions
 class CPU;
 class PPU;
+class Joypad;
 class Screen;
 
 class Bus {
@@ -30,6 +31,8 @@ public:
   static constexpr size_t MAX_ADDRESSABLE_PPU_ADDRESS = 0x3FFF;
   static constexpr size_t ROM_START_REGISTER = 0x8000;
   static constexpr size_t MAX_ADDRESSABLE_ROM_ADDRESS = 0xFFFF;
+  static constexpr size_t JOYPAD1_ADDRESS = 0x4016;
+  static constexpr size_t JOYPAD2_ADDRESS = 0x4017;
 
   static constexpr unsigned int PPU_FREQ_RATIO = 3; // ratio between PPU clock freq and CPU clock freq
 
@@ -38,9 +41,10 @@ public:
     return {};
   }
 
-  void AttachCPU(CPU *cpu);
-  void AttachPPU(PPU *ppu);
-  void AttachScreen(Screen *screen);
+  void Attach(CPU *cpu);
+  void Attach(PPU *ppu);
+  void Attach(Joypad *joypad, unsigned int joy_no);
+  void Attach(Screen *screen);
 
   void PropagateNMI();
 
@@ -61,6 +65,8 @@ private:
 
   CPU *m_cpu{nullptr};
   PPU *m_ppu{nullptr};
+  Joypad *m_joypad1{nullptr};
+  Joypad *m_joypad2{nullptr};
   Screen *m_screen{nullptr};
 };
 } // namespace BNES::HW

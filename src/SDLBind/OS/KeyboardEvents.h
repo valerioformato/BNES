@@ -46,6 +46,8 @@ enum class KeyBoardKey : unsigned int {
   Period = SDLK_PERIOD,
   Slash = SDLK_SLASH,
   Escape = SDLK_ESCAPE,
+  Space = SDLK_SPACE,
+  Return = SDLK_RETURN,
   // TODO: maybe add the rest
 };
 

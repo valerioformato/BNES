@@ -17,7 +17,7 @@ public:
   static constexpr unsigned int NES_SCREEN_H = 240;
 
   Screen() = delete;
-  explicit Screen(Bus &bus) { bus.AttachScreen(this); };
+  explicit Screen(Bus &bus) { bus.Attach(this); };
 
   ErrorOr<void> Init(const SDL::Window &window);
 
