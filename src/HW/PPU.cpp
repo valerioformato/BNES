@@ -156,6 +156,15 @@ void PPU::Tick(unsigned int cycles) {
 
   m_cycles += cycles;
 
+  // NOTE from https://www.nesdev.org/wiki/PPU_registers#OAMADDR
+  // OAMADDR is set to 0 during each of ticks 257–320 (the sprite tile loading interval) of the pre-render and
+  // visible scanlines. This also means that at the end of a normal complete rendered frame, OAMADDR will always have
+  // returned to 0.
+
+  if ((m_current_scanline == 261 || m_current_scanline < 241) && (m_cycles > 256 && m_cycles < 321)) {
+    m_oam_address = 0;
+  }
+
   while (m_cycles >= 341) {
     m_cycles -= 341;
     m_current_scanline += 1;
@@ -273,18 +282,7 @@ void PPU::WritePPUMASK(uint8_t value) {
   m_mask_register = value;
 }
 
-void PPU::WriteOAMADDR(uint8_t value) {
-  // NOTE from https://www.nesdev.org/wiki/PPU_registers#OAMADDR
-  // OAMADDR is set to 0 during each of ticks 257–320 (the sprite tile loading interval) of the pre-render and
-  // visible scanlines. This also means that at the end of a normal complete rendered frame, OAMADDR will always have
-  // returned to 0.
-
-  // if (... ) {
-  //   m_oam_address = 0;
-  // }
-
-  m_oam_address = value;
-}
+void PPU::WriteOAMADDR(uint8_t value) { m_oam_address = value; }
 
 void PPU::WriteOAMDATA(uint8_t value) {
   // https://www.nesdev.org/wiki/PPU_registers#OAMDATA
