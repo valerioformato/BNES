@@ -177,7 +177,7 @@ void PPU::Tick(unsigned int cycles) {
         last_time = now;
 
         m_bus->PropagateNMI();
-        m_cycles += 7 * 3; // NMI takes 2 CPU cycles to process
+        m_cycles += 7 * 3; // NMI takes 7 CPU cycles to process
       }
     }
 
